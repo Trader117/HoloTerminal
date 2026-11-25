@@ -39,6 +39,8 @@
         {{#if card.climate}}<dt>Climate</dt><dd>{{card.climate}}</dd>{{/if}}
         {{#if card.terrain}}<dt>Terrain</dt><dd>{{card.terrain}}</dd>{{/if}}
         {{#if card.routesText}}<dt>Routes</dt><dd>{{card.routesText}}</dd>{{/if}}
+        {{#if card.trade.exports}}<dt>Cheap here</dt><dd class="ht-gx-good">{{card.trade.exports}}</dd>{{/if}}
+        {{#if card.trade.imports}}<dt>Wanted</dt><dd class="ht-gx-want">{{card.trade.imports}}</dd>{{/if}}
       </dl>
       {{#if card.notes}}{{#if card.showNotes}}<div class="ht-gx-notes">{{card.notes}}</div>{{/if}}{{/if}}
       <div class="ht-gx-actions">

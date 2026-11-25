@@ -109,6 +109,13 @@ The datapad's **HoloDock** tile lists the crew's ships. SW5e starship actors app
 - **Jumps:** with a route plotted on the galaxy map, the nav computer shows the fuel the party ship needs. The GM's **Make the jump** button moves the ship marker to the destination, burns the fuel, updates the ship's location and posts the arrival to chat.
 - **Settings:** fuel per day in hyperspace (default 1, or 0 to turn fuel use off) and a fallback fuel price for ships without an SW5e size item.
 
+## Trade runs
+Every world prices twelve kinds of cargo (foodstuffs, water, ore, metals, fuel, textiles, droid parts, electronics, medical supplies, luxury goods, and the restricted weapons and spice). Prices come from the world's terrain, climate and class and from how far it is from the Core, so desert worlds want water and the Core sells electronics cheaply.
+
+- **Trade screen:** open it from the party ship in the HoloDock (*Trade*) or with `api.openTrade()`. It works wherever the party ship is docked on the galaxy map. Goods marked *cheap* can be bought; anything can be sold. The active character pays and is paid, and the hold remembers what you paid per ton.
+- **Planet cards** on the galaxy map list what is cheap there and what is wanted.
+- **GM:** *Shift markets* on the trade screen rerolls every world's prices. The *Trade: restricted goods* setting hides weapons and spice. Sales by players are whispered to the GM.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
