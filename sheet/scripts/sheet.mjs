@@ -5,6 +5,7 @@
 const MODULE_ID = "holo-terminal"; // the sheet ships inside the Holo-Terminal module
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
+import { usePower } from "../../scripts/powers.mjs";
 const THEMES = ["sw5e", "cyan", "amber", "red", "green"];
 const INVENTORY_TYPES = ["weapon", "equipment", "consumable", "tool", "container", "loot"];
 const FORCE_SCHOOLS = ["lgt", "uni", "drk"];
@@ -713,7 +714,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
   static #onDeathSave(event) { return this.actor.rollDeathSave?.({ event }); }
   static #onRest(event, target) { return target.dataset.type === "long" ? this.actor.longRest() : this.actor.shortRest(); }
-  static #onUseItem(event, target) { return HoloDossierSheet.#item.call(this, target)?.use({ event }); }
+  static #onUseItem(event, target) { const item = HoloDossierSheet.#item.call(this, target); return item && usePower(item, event); }
   static #onEditItem(event, target) { return HoloDossierSheet.#item.call(this, target)?.sheet.render(true); }
   static async #onDeleteItem(event, target) {
     const item = HoloDossierSheet.#item.call(this, target);

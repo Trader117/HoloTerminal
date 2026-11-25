@@ -1,5 +1,6 @@
 /* Holo-Terminal Combat HUD: what happens when a player clicks something. */
 import { BASIC, groupOf } from "./data.mjs";
+import { usePower } from "../powers.mjs";
 
 /** dnd5e 4.1 moved rolls to a (config, dialog, message) signature. */
 const modernRolls = () => foundry.utils.isNewerVersion(game.system.version, "4.0.99");
@@ -23,7 +24,7 @@ export function rollTool(item, event) {
 
 /** Use an item. Returns the action-economy group it spent, if any. */
 export async function useItem(item, event) {
-  const result = await item.use({ event });
+  const result = await usePower(item, event);
   return result ? groupOf(item) : null; // cancelled dialogs return nothing
 }
 
