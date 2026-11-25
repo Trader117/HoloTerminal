@@ -45,10 +45,17 @@
 .htc-stat label { font-size: .68em; letter-spacing: .1em; color: var(--htc-dim); } .htc-stat b { font-size: 1.05em; }
 .htc-card-buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
 .htc-card-buttons > button { flex: 1 1 100%; }
+#htc-hud .htc-card-buttons > .htc-half { flex: 1 1 45%; }
 .htc-rests { display: flex; gap: 4px; flex: 1; } .htc-rests button { flex: 1; }
 .htc-mini { display: flex; gap: 4px; }
 #htc-hud .htc-danger { border-color: var(--htc-crit); color: var(--htc-crit); }
 #htc-hud .htc-attn { border-color: var(--htc-fg); animation: htc-pulse 1.4s ease-in-out infinite; }
+
+/* lightsaber toggle */
+#htc-hud .htc-saber { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.htc-saber-blade { display: inline-block; width: 26px; height: 4px; border-radius: 2px; background: #888; border-left: 6px solid #666; }
+.htc-saber-on .htc-saber-blade, .htc-saber:hover .htc-saber-blade { background: #fff; box-shadow: 0 0 4px var(--saber), 0 0 9px var(--saber); }
+#htc-hud .htc-saber-on { border-color: var(--saber); box-shadow: 0 0 8px var(--saber); }
 
 /* help */
 .htc-help { padding: 6px 10px; max-width: 300px; font-size: .9em; overflow-y: auto; scrollbar-width: thin; }

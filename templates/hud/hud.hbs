@@ -61,7 +61,12 @@
       </div>
     </div>
     <div class="htc-card-buttons">
-      <button type="button" data-action="drawer" class="{{#if drawer}}htc-on{{/if}}" data-tooltip="Roll saving throws, ability checks, skills and tools"><i class="fa-solid fa-dice-d20"></i> Checks &amp; Saves</button>
+      <button type="button" data-action="drawer" class="{{#if saber}}htc-half{{/if}} {{#if drawer}}htc-on{{/if}}" data-tooltip="Roll saving throws, ability checks, skills and tools"><i class="fa-solid fa-dice-d20"></i> Checks &amp; Saves</button>
+      {{#if saber}}
+      <button type="button" data-action="saber" class="htc-saber htc-half {{#if saber.on}}htc-saber-on{{/if}}" style="--saber:{{saber.color}}"
+        data-tooltip="{{#if saber.on}}Switch off your {{saber.name}}.{{else}}Ignite your {{saber.name}}: pick a blade colour and your token glows. Shift-click to ignite in your last colour.{{/if}}">
+        <span class="htc-saber-blade"></span> {{#if saber.on}}Saber Off{{else}}Ignite Saber{{/if}}</button>
+      {{/if}}
       {{#if dying}}
       <button type="button" data-action="death-save" class="htc-danger" data-tooltip="You're at 0 HP. Roll a death save at the start of your turn. Three successes and you stabilise; three failures and you die.">
         <i class="fa-solid fa-skull"></i> Death Save ✓{{dying.success}} ✗{{dying.failure}}</button>

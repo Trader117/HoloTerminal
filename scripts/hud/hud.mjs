@@ -1,5 +1,6 @@
 /* Holo-Terminal Combat HUD: an original, labeled action bar for dnd5e / SW5e. */
 import { buildData } from "./data.mjs";
+import { registerSaberSettings, saberState, toggleSaber } from "./saber.mjs";
 import { useItem, useBasic, rollSkill, rollSave, rollCheck, rollTool, rollInitiative, endTurn } from "./actions.mjs";
 
 // Work out our module id from where this file is served, so the HUD follows any rename.
@@ -58,7 +59,7 @@ class CombatHud {
     const data = buildData(actor, {
       used: this.usedFor(actor), macros: this.macros(actor), theme: setting("hudTheme"),
       showBasic: setting("hudBasicActions"), collapsed: setting("hudCollapsed"),
-      drawer: this.drawer, help: this.help
+      drawer: this.drawer, help: this.help, saber: saberState(MODULE_ID, actor, this.token)
     });
     const html = await renderTpl(TEMPLATE, data);
     if (!this.el) {
@@ -112,6 +113,7 @@ class CombatHud {
         this.render();
         break;
       }
+      case "saber": toggleSaber(MODULE_ID, actor, this.token, ev); break;
       case "short-rest": actor.shortRest(); break;
       case "long-rest": actor.longRest(); break;
       case "death-save": actor.rollDeathSave({ event: ev }); break;
@@ -197,6 +199,7 @@ Hooks.once("init", () => {
     name: "Combat HUD: show common actions", hint: "Dash, Dodge, Hide, Help and the other actions anyone can take.",
     scope: "client", config: true, type: Boolean, default: true, onChange: rerender
   });
+  registerSaberSettings(MODULE_ID);
   game.settings.register(MODULE_ID, "hudCollapsed", { scope: "client", config: false, type: Boolean, default: false, onChange: rerender });
   game.settings.register(MODULE_ID, "hudPosition", { scope: "client", config: false, type: Object, default: { left: 120, bottom: 80 } });
   game.keybindings.register(MODULE_ID, "hudToggle", {

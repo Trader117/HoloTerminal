@@ -230,6 +230,7 @@ export function buildData(actor, state) {
     collapsed: state.collapsed,
     help: state.help,
     drawer: state.drawer,
+    saber: state.saber ?? null,
     actor: { id: actor.id, name: actor.name, img: actor.img, subtitle: subtitleOf(actor) },
     isChar,
     hp: { value: hpVal, max: hpMax, temp: Number(hp.temp) || 0, pct,
