@@ -4,6 +4,7 @@ import { DatapadApp, PARTIAL_PATHS, NAMED_PARTIALS } from "./datapad.mjs";
 import { ConsoleApp } from "./admin.mjs";
 import { registerRegionBehavior } from "./regions.mjs";
 import { registerScannerSettings, registerSignatureBehavior } from "./scanner.mjs";
+import { initScanSocket, openScanner, runScan } from "./scan-wheel.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
 const loadTpl = (paths) => (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)(paths);
@@ -23,12 +24,17 @@ Hooks.once("init", () => {
     name: "Open datapad", editable: [{ key: "KeyP", modifiers: ["Shift"] }],
     onDown: () => { datapad(); return true; }
   });
+  game.keybindings.register(MODULE_ID, "scanner", {
+    name: "Open Pulse Scanner", hint: "Players: the scanner wheel for your token. GM: the Scanners tab (or the wheel if a token is selected).",
+    editable: [], onDown: () => { openScanner({ ConsoleApp }); return true; }
+  });
 });
 
 Hooks.once("ready", () => {
   registerActions();
   registerLootHandlers();
   initSocket(datapad);
+  initScanSocket();
   game.modules.get(MODULE_ID).api = {
     datapad: () => datapad("home"),
     console: () => game.user.isGM && ConsoleApp.instance.render(true),
@@ -36,7 +42,8 @@ Hooks.once("ready", () => {
     openShop: (ref) => { const s = resolve("shops", ref); return s && datapad("shop", s.id); },
     openBounties: () => datapad("bounties"),
     openSalvage: () => datapad("salvage"),
-    openScanner: () => datapad("scanner"),
+    openScanner: () => openScanner({ ConsoleApp }),
+    scan: (actor, scannerId, opts) => runScan(actor, scannerId, opts),
     /** GM: push a view to every player's datapad. */
     showAll: (view, ref) => {
       const kind = { terminal: "terminals", shop: "shops" }[view];
@@ -53,12 +60,15 @@ Hooks.on("getSceneControlButtons", (controls) => {
   const gm = { name: "ht-console", title: "Holo-Terminal GM Console", icon: "fas fa-terminal", button: true };
   const openPad = () => datapad();
   const openGM = () => ConsoleApp.instance.render(true);
+  const scan = { name: "ht-scanner", title: "Pulse Scanner", icon: "fas fa-satellite-dish", button: true };
+  const openScan = () => openScanner({ ConsoleApp });
   if (Array.isArray(controls)) { // v12
     const tools = controls.find((c) => c.name === "token")?.tools;
-    tools?.push({ ...pad, onClick: openPad });
+    tools?.push({ ...pad, onClick: openPad }, { ...scan, onClick: openScan });
     if (game.user.isGM) tools?.push({ ...gm, onClick: openGM });
   } else if (controls.tokens) { // v13
-    controls.tokens.tools["ht-datapad"] = { ...pad, onChange: openPad, order: 98 };
+    controls.tokens.tools["ht-datapad"] = { ...pad, onChange: openPad, order: 97 };
+    controls.tokens.tools["ht-scanner"] = { ...scan, onChange: openScan, order: 98 };
     if (game.user.isGM) controls.tokens.tools["ht-console"] = { ...gm, onChange: openGM, order: 99 };
   }
 });

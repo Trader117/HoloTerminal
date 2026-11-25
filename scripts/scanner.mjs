@@ -1,55 +1,66 @@
 import { MODULE_ID } from "./store.mjs";
-import { regionBounds } from "./cameras.mjs";
 
-/* Pulse Scanner. A player sends a Tech or Force pulse from their token. It finds:
-   - Regions with the "Scan Signature" behaviour (GM-placed: a hidden terminal, a kyber crystal, a buried cache...).
-   - Creatures, if the setting is on: droids answer a Tech pulse; creatures with Force powers answer a Force pulse.
-   Each signature has a DC. Beat it and you get the name and details; miss by 5 or less and you see a faint blip. */
+/* Pulse Scanner.
+   The GM gives a character one or more scanners (stored on the actor, no item needed). Each scanner has a signal type,
+   a range in scene units, optional charges, and a pulse style. A player picks one from the scanner wheel around their
+   token; the pulse rolls out across the map and lights up matching targets inside its range.
+   Targets are Scene Regions with the "Scan Signature" behaviour. Every shape in a Region is checked on its own, so
+   three secret doors drawn in one Region light up separately. Disabling the behaviour marks the target resolved. */
 
 export const SIGNATURE_TYPE = `${MODULE_ID}.scanSignature`;
-export const MODES = {
-  tech: { label: "Tech pulse", icon: "fa-satellite-dish", hint: "Electronics, droids, power sources, hidden machinery." },
-  force: { label: "Force pulse", icon: "fa-hand-sparkles", hint: "Force-imbued relics, kyber, Force users, dark-side echoes." }
-};
-const FORCE_SCHOOLS = ["lgt", "drk", "uni"];
-const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const FLAG = "scanners";
 
+export const SIGNALS = {
+  tech:       { label: "Tech",       icon: "fa-microchip",        color: "#2aa3df", hint: "Devices, droids, transmitters, power cells, slicing ports." },
+  force:      { label: "Force",      icon: "fa-hand-sparkles",    color: "#e69a28", hint: "Kyber, Force-imbued relics, Force users, dark-side echoes." },
+  structural: { label: "Structural", icon: "fa-building-columns", color: "#a7b6c4", hint: "Hidden doors, crawlspaces, hull stress, weak bulkheads." },
+  thermal:    { label: "Thermal",    icon: "fa-temperature-high", color: "#ff5146", hint: "Engines, reactors, warm bodies, recently fired blasters." },
+  bio:        { label: "Bio-sign",   icon: "fa-dna",              color: "#4cc38a", hint: "Life signs, toxins, spores, organic matter." },
+  trace:      { label: "Trace",      icon: "fa-fingerprint",      color: "#c38bff", hint: "Residue, blood, carbon scoring, tracks, evidence." }
+};
+export const STYLES = {
+  ripple: "Ripple (expanding rings)",
+  sweep: "Radar sweep",
+  lattice: "Hex lattice",
+  static: "Interference"
+};
+
+/* ---------- settings ---------- */
 export function registerScannerSettings() {
   const sw = game.system.id === "sw5e";
-  game.settings.register(MODULE_ID, "scanRange", {
-    name: "Pulse Scanner range", hint: "Radius of a pulse, in grid squares. 0 = the whole scene.",
-    scope: "world", config: true, type: Number, default: 12
-  });
-  game.settings.register(MODULE_ID, "scanTechSkill", {
-    name: "Tech pulse skill", hint: "Skill key rolled for a Tech pulse. SW5e Technology is 'tec'.",
-    scope: "world", config: true, type: String, default: sw ? "tec" : "inv"
-  });
-  game.settings.register(MODULE_ID, "scanForceSkill", {
-    name: "Force pulse skill", hint: "Skill key rolled for a Force pulse. Insight ('ins') by default.",
-    scope: "world", config: true, type: String, default: "ins"
-  });
-  game.settings.register(MODULE_ID, "scanCreatures", {
-    name: "Pulse Scanner finds creatures", hint: "Tech pulses find droids, Force pulses find creatures with Force powers. Hidden tokens are found too (DC +5).",
-    scope: "world", config: true, type: Boolean, default: true
-  });
+  const reg = (key, data) => game.settings.register(MODULE_ID, key, { scope: "world", config: true, ...data });
+  reg("scanPlayers", { name: "Pulse Scanner: players can scan", hint: "Turn off to pause scanning for everyone but the GM.", type: Boolean, default: true });
+  reg("scanShare", { name: "Pulse Scanner: who sees a pulse", type: String, default: "self",
+    choices: { self: "The scanning player (and the GM)", all: "Everyone on the scene" } });
+  reg("scanTokens", { name: "Pulse Scanner: token contacts", hint: "Pulses bracket other tokens in range. Droids show on Tech pulses and Force users on Force pulses with a label.",
+    type: String, default: "visible", choices: { visible: "Tokens the player can see", walls: "Through walls (not GM-hidden tokens)", off: "Off (targets only)" } });
+  reg("scanHighlight", { name: "Pulse Scanner: highlight time", hint: "Seconds that highlights stay on the map.", type: Number, default: 10 });
+  reg("scanRoll", { name: "Pulse Scanner: roll to resolve", hint: "Each pulse rolls a skill. Targets with a DC above the roll show only as an unresolved signal.",
+    type: Boolean, default: false });
+  reg("scanTechSkill", { name: "Pulse Scanner: Tech skill", hint: "Rolled for Tech pulses when rolling is on. SW5e Technology is 'tec'.", type: String, default: sw ? "tec" : "inv" });
+  reg("scanForceSkill", { name: "Pulse Scanner: Force skill", hint: "Rolled for Force pulses when rolling is on.", type: String, default: "ins" });
+  reg("scanOtherSkill", { name: "Pulse Scanner: other signals skill", hint: "Rolled for Structural, Thermal, Bio-sign and Trace pulses when rolling is on.", type: String, default: "prc" });
+  reg("scanRechargeItem", { name: "Pulse Scanner: recharge item", hint: "Name of an item used up to recharge a scanner, e.g. 'Power Cell'. Leave blank for free recharges.", type: String, default: "" });
+  reg("scanSound", { name: "Pulse Scanner: pulse sound", type: String, default: "", filePicker: "audio" });
 }
+const S = (k) => game.settings.get(MODULE_ID, k);
 
 /* ---------- Region behaviour ---------- */
 export function registerSignatureBehavior() {
   const Base = foundry.data?.regionBehaviors?.RegionBehaviorType;
   if (!Base) return;
-  const { StringField, NumberField } = foundry.data.fields;
+  const { StringField, NumberField, BooleanField, ColorField } = foundry.data.fields;
+  const signalChoices = Object.fromEntries(Object.entries(SIGNALS).map(([k, v]) => [k, v.label]));
   class ScanSignatureBehavior extends Base {
     static defineSchema() {
       return {
-        kind: new StringField({ required: true, initial: "tech", choices: { tech: "Tech", force: "Force", both: "Tech and Force" },
-          label: "Shows up on", hint: "Which pulse finds it." }),
-        label: new StringField({ required: true, blank: true, initial: "", label: "Name",
-          hint: "What the scanner calls it once resolved, e.g. 'Power cell cache'. Blank uses the Region's name." }),
-        details: new StringField({ required: true, blank: true, initial: "", label: "Readout",
-          hint: "Text the player reads when the pulse beats the DC." }),
-        dc: new NumberField({ required: true, integer: true, min: 0, initial: 12, label: "DC",
-          hint: "Pulse roll needed to resolve it. Missing by 5 or less still shows a faint blip." })
+        signal: new StringField({ required: true, initial: "tech", choices: signalChoices, label: "Detected by", hint: "The scanner signal that finds this target." }),
+        label: new StringField({ required: true, blank: true, initial: "", label: "Name", hint: "Shown on the map when found. Blank uses the Region's name." }),
+        notes: new StringField({ required: true, blank: true, initial: "", label: "Notes", hint: "Extra readout under the name, e.g. 'Panel is loose. Power cell inside.'" }),
+        showNotes: new BooleanField({ initial: true, label: "Show notes to players", hint: "Off: players see the name only. Still detected either way." }),
+        marker: new StringField({ required: true, initial: "outline", choices: { outline: "Outline the area", reticle: "Target reticle", both: "Both" }, label: "Marker" }),
+        color: new ColorField({ required: false, nullable: true, initial: null, label: "Colour", hint: "Blank uses the signal's colour." }),
+        dc: new NumberField({ required: true, integer: true, min: 0, initial: 0, label: "DC", hint: "Only used when 'roll to resolve' is on. 0 = always resolves." })
       };
     }
     static events = {};
@@ -58,71 +69,181 @@ export function registerSignatureBehavior() {
   CONFIG.RegionBehavior.typeIcons[SIGNATURE_TYPE] = "fas fa-satellite-dish";
 }
 
-/* ---------- scanning ---------- */
-const forceUser = (actor) => actor?.items?.some((i) => i.type === "spell" && FORCE_SCHOOLS.includes(i.system?.school));
-const isDroid = (actor) => /droid/i.test(actor?.system?.details?.type?.value ?? actor?.system?.details?.type?.custom ?? "");
+/* ---------- scanners on actors ---------- */
+export const scannersOf = (actor) => foundry.utils.deepClone(actor?.getFlag(MODULE_ID, FLAG) ?? []);
+export const saveScanners = (actor, list) => actor.setFlag(MODULE_ID, FLAG, list);
 
-/** Every signature on a scene: { key, kind, name, details, dc, x, y } with x/y at its centre. */
-export function signatures(scene) {
-  const out = [];
-  for (const region of scene?.regions ?? []) {
-    const b = regionBounds(region);
-    if (!b) continue;
-    for (const beh of region.behaviors ?? []) {
-      if (beh.type !== SIGNATURE_TYPE || beh.disabled) continue;
-      const s = beh.system;
-      out.push({ key: beh.uuid, source: "region", kind: s.kind, name: s.label || region.name || "Signature", details: s.details,
-        dc: s.dc ?? 12, x: b.x + b.w / 2, y: b.y + b.h / 2 });
-    }
+export function newScanner(data = {}) {
+  const signal = SIGNALS[data.signal] ? data.signal : "tech";
+  const max = Math.max(1, Number(data.max) || 5);
+  return { id: foundry.utils.randomID(), name: data.name || `${SIGNALS[signal].label} scanner`, signal,
+    range: Math.max(1, Number(data.range) || 30), limited: !!data.limited, max, charges: max, style: STYLES[data.style] ? data.style : "ripple" };
+}
+
+/** Characters a GM can hand scanners to: player-owned or assigned to a user. */
+export function scannerActors() {
+  const assigned = new Set(game.users.map((u) => u.character?.id).filter(Boolean));
+  return game.actors.filter((a) => a.type === "character" && (a.hasPlayerOwner || assigned.has(a.id)))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function recharge(actor, scannerId) {
+  const list = scannersOf(actor), sc = list.find((s) => s.id === scannerId);
+  if (!sc?.limited || sc.charges >= sc.max) return false;
+  const itemName = S("scanRechargeItem")?.trim();
+  if (itemName && !game.user.isGM) {
+    const item = actor.items.find((i) => i.name.toLowerCase() === itemName.toLowerCase());
+    if (!item) { ui.notifications.warn(`You need a ${itemName} to recharge.`); return false; }
+    const qty = item.system?.quantity ?? 1;
+    if (qty > 1) await item.update({ "system.quantity": qty - 1 }); else await item.delete();
   }
-  if (game.settings.get(MODULE_ID, "scanCreatures")) {
-    const g = scene?.grid?.size ?? 100;
-    for (const t of scene?.tokens ?? []) {
-      const a = t.actor;
-      if (!a || a.hasPlayerOwner) continue;
-      const kinds = [isDroid(a) && "tech", forceUser(a) && "force"].filter(Boolean);
-      for (const kind of kinds) out.push({ key: `${t.uuid}:${kind}`, source: "token", kind,
-        name: kind === "tech" ? "Droid" : "Force presence", details: t.hidden ? "Concealed." : t.name,
-        dc: 10 + (t.hidden ? 5 : 0), x: t.x + (t.width ?? 1) * g / 2, y: t.y + (t.height ?? 1) * g / 2 });
+  sc.charges = sc.max;
+  await saveScanners(actor, list);
+  ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }),
+    content: `<b>${actor.name}</b> recharged <i>${sc.name}</i>${itemName && !game.user.isGM ? ` with a ${itemName}` : ""}.` });
+  return true;
+}
+
+/* ---------- geometry ---------- */
+function rotatePts(pts, cx, cy, deg) {
+  if (!deg) return pts;
+  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const out = [];
+  for (let i = 0; i < pts.length; i += 2) {
+    const dx = pts[i] - cx, dy = pts[i + 1] - cy;
+    out.push(cx + dx * c - dy * s, cy + dx * s + dy * c);
+  }
+  return out;
+}
+function ellipsePts(cx, cy, rx, ry, n = 32) {
+  const out = [];
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; out.push(cx + rx * Math.cos(a), cy + ry * Math.sin(a)); }
+  return out;
+}
+/** A Region shape as a flat polygon [x0,y0,x1,y1,...] in scene pixels. */
+export function shapePolygon(sh) {
+  switch (sh.type) {
+    case "rectangle": {
+      const { x, y, width: w, height: h } = sh;
+      return rotatePts([x, y, x + w, y, x + w, y + h, x, y + h], x + w / 2, y + h / 2, sh.rotation);
     }
+    case "circle": return ellipsePts(sh.x, sh.y, sh.radius, sh.radius);
+    case "ellipse": return rotatePts(ellipsePts(sh.x, sh.y, sh.radiusX, sh.radiusY), sh.x, sh.y, sh.rotation);
+    case "polygon": return [...sh.points];
+    default: return null;
+  }
+}
+function insidePoly(pts, x, y) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 2; i < pts.length; j = i, i += 2) {
+    const xi = pts[i], yi = pts[i + 1], xj = pts[j], yj = pts[j + 1];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function segDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
+  const t = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0;
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+/** Pixel distance from a point to the nearest edge of a polygon (0 inside). */
+export function polyDistance(pts, x, y) {
+  if (insidePoly(pts, x, y)) return 0;
+  let d = Infinity;
+  for (let i = 0, j = pts.length - 2; i < pts.length; j = i, i += 2) d = Math.min(d, segDist(x, y, pts[j], pts[j + 1], pts[i], pts[i + 1]));
+  return d;
+}
+function centroid(pts) {
+  let x = 0, y = 0; const n = pts.length / 2;
+  for (let i = 0; i < pts.length; i += 2) { x += pts[i]; y += pts[i + 1]; }
+  return { x: x / n, y: y / n };
+}
+
+/** Bounding box { x, y, w, h } of a Region's shapes (holes ignored). Used by cameras. */
+export function regionBounds(region) {
+  const pts = (region.shapes ?? []).filter((sh) => !sh.hole).map(shapePolygon).filter(Boolean).flat();
+  if (!pts.length) return null;
+  const xs = pts.filter((_, i) => i % 2 === 0), ys = pts.filter((_, i) => i % 2 === 1);
+  const x = Math.min(...xs), y = Math.min(...ys);
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+}
+
+/* ---------- detection ---------- */
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const FORCE_SCHOOLS = ["lgt", "drk", "uni"];
+const isForceUser = (a) => a?.items?.some((i) => i.type === "spell" && FORCE_SCHOOLS.includes(i.system?.school));
+const isDroid = (a) => /droid/i.test(a?.system?.details?.type?.value ?? "") || /droid/i.test(a?.system?.details?.type?.custom ?? "");
+const bearing = (dx, dy) => COMPASS[Math.round(((Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360) / 45) % 8];
+
+/** Every active Scan Signature target on a scene. */
+export function targets(scene, { includeResolved = false } = {}) {
+  const out = [];
+  for (const region of scene?.regions ?? []) for (const beh of region.behaviors ?? []) {
+    if (beh.type !== SIGNATURE_TYPE || (beh.disabled && !includeResolved)) continue;
+    const s = beh.system;
+    out.push({ uuid: beh.uuid, regionId: region.id, region, behavior: beh, resolved: beh.disabled, signal: s.signal,
+      name: s.label || region.name || "Signature", notes: s.notes, showNotes: s.showNotes, marker: s.marker,
+      color: s.color?.css ?? (typeof s.color === "string" ? s.color : null) ?? SIGNALS[s.signal]?.color, dc: s.dc ?? 0 });
   }
   return out;
 }
 
-/** The pulse: which signatures this mode and roll pick up, relative to the origin point. */
-export function pulse(scene, origin, mode, total) {
-  const g = scene?.grid?.size ?? 100;
-  const range = game.settings.get(MODULE_ID, "scanRange") || 0;
-  const hits = [];
-  for (const s of signatures(scene)) {
-    if (s.kind !== mode && s.kind !== "both") continue;
-    const dx = s.x - origin.x, dy = s.y - origin.y;
-    const dist = Math.hypot(dx, dy) / g;
-    if (range > 0 && dist > range) continue;
-    const resolved = total >= s.dc, faint = !resolved && total >= s.dc - 5;
-    if (!resolved && !faint) continue;
-    const angle = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360; // 0 = north (up), clockwise
-    hits.push({ key: s.key, resolved, name: resolved ? s.name : "Faint signal", details: resolved ? s.details : "",
-      dist: Math.round(dist), bearing: COMPASS[Math.round(angle / 45) % 8], angle, dx: dx / g, dy: dy / g, x: s.x, y: s.y });
+/**
+ * Runs a pulse. origin: {x, y} in scene pixels. Returns everything the map effect and the datapad need:
+ * areas (one per reached shape), tokens (contacts), and a per-target summary.
+ */
+export function pulse(scene, origin, scanner, { total = null, viewer = game.user, excludeToken = null } = {}) {
+  const g = scene.grid?.size ?? 100, unit = scene.grid?.distance ?? 5;
+  const rangePx = (scanner.range / unit) * g;
+  const sig = SIGNALS[scanner.signal] ?? SIGNALS.tech;
+  const areas = [], found = [];
+  for (const t of targets(scene)) {
+    if (t.signal !== scanner.signal) continue;
+    const resolved = total === null || !S("scanRoll") || !t.dc || total >= t.dc;
+    let reached = 0, nearest = Infinity, where = null;
+    for (const sh of t.region.shapes ?? []) {
+      if (sh.hole) continue;
+      const pts = shapePolygon(sh);
+      if (!pts) continue;
+      const d = polyDistance(pts, origin.x, origin.y);
+      if (d > rangePx) continue;
+      reached++;
+      const c = centroid(pts);
+      if (d < nearest) { nearest = d; where = c; }
+      areas.push({ points: pts, center: c, dist: d, color: t.color, marker: t.marker, resolved,
+        label: resolved ? t.name : "Unresolved signal", notes: resolved && (t.showNotes || viewer.isGM) ? t.notes : "" });
+    }
+    if (reached) found.push({ uuid: t.uuid, name: resolved ? t.name : "Unresolved signal", notes: resolved && (t.showNotes || viewer.isGM) ? t.notes : "",
+      resolved, areas: reached, dist: Math.round((nearest / g) * unit), bearing: bearing(where.x - origin.x, where.y - origin.y),
+      dx: (where.x - origin.x) / rangePx, dy: (where.y - origin.y) / rangePx, x: where.x, y: where.y, color: t.color });
   }
-  hits.sort((a, b) => Number(b.resolved) - Number(a.resolved) || a.dist - b.dist);
-  const reach = range > 0 ? range : Math.max(4, ...hits.map((h) => Math.hypot(h.dx, h.dy)));
-  return { mode, total, range, reach, hits };
+  const tokens = [];
+  const mode = S("scanTokens");
+  if (mode !== "off") for (const tok of scene.tokens) {
+    if (tok.id === excludeToken || tok.hidden) continue;
+    if (mode === "visible" && scene === canvas.scene && tok.object && !tok.object.isVisible) continue;
+    const w = (tok.width ?? 1) * g, h = (tok.height ?? 1) * g, cx = tok.x + w / 2, cy = tok.y + h / 2;
+    const d = Math.max(0, Math.hypot(cx - origin.x, cy - origin.y) - Math.min(w, h) / 2);
+    if (d > rangePx) continue;
+    const a = tok.actor;
+    const tag = scanner.signal === "tech" && isDroid(a) ? "Droid" : scanner.signal === "force" && isForceUser(a) ? "Force presence"
+      : scanner.signal === "bio" && !isDroid(a) ? "Life sign" : scanner.signal === "thermal" ? "Heat signature" : "";
+    tokens.push({ x: tok.x, y: tok.y, w, h, dist: d, tag });
+  }
+  found.sort((a, b) => Number(b.resolved) - Number(a.resolved) || a.dist - b.dist);
+  return { origin, rangePx, range: scanner.range, units: scene.grid?.units ?? "", signal: scanner.signal, color: sig.color,
+    style: scanner.style ?? "ripple", scannerName: scanner.name, total, areas, tokens, found, sceneId: scene.id };
 }
 
-/** Blip positions on the radar (percent of the dish), and when the sweep reaches them. */
-export function blips(result, sweepSeconds) {
-  return result.hits.map((h, i) => {
-    const r = Math.min(1, Math.hypot(h.dx, h.dy) / result.reach) * 46;
-    const a = (h.angle - 90) * Math.PI / 180;
-    return { n: i + 1, resolved: h.resolved, left: (50 + r * Math.cos(a)).toFixed(1), top: (50 + r * Math.sin(a)).toFixed(1),
-      delay: ((h.angle / 360) * sweepSeconds).toFixed(2) };
-  });
+/** Where a pulse starts for this user: a controlled token they own, else their character's only token on the scene. */
+export function originToken(actor) {
+  const ctrl = canvas.tokens?.controlled.filter((t) => t.document.isOwner);
+  if (ctrl?.length === 1) return ctrl[0].document;
+  if (ctrl?.length > 1) return null;
+  const mine = canvas.scene?.tokens.filter((t) => t.actorId === (actor ?? game.user.character)?.id) ?? [];
+  return mine.length === 1 ? mine[0] : null;
 }
-
-/** Local-only ping on the canvas (not broadcast), if the core supports it. */
-export function markOnMap(x, y) {
-  if (!canvas?.ready) return;
-  try { canvas.controls?.drawPing?.({ x, y }, { style: "pulse", color: "#2aa3df", duration: 2500 }); }
-  catch (err) { console.warn(`${MODULE_ID} | ping failed`, err); }
+export function tokenCenter(tok) {
+  const g = tok.parent?.grid?.size ?? 100;
+  return { x: tok.x + (tok.width ?? 1) * g / 2, y: tok.y + (tok.height ?? 1) * g / 2 };
 }

@@ -20,6 +20,9 @@ import { isLootable, lootSummary } from "./loot.mjs";
 import * as Crypt from "./decrypt.mjs";
 import * as Cam from "./cameras.mjs";
 import * as Scan from "./scanner.mjs";
+import { runScan, lastPulse, PULSE_HOOK } from "./scan-wheel.mjs";
+import { pingPoint } from "./scan-fx.mjs";
+import { rollSkill } from "./roll.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
@@ -37,21 +40,6 @@ function activeActor() {
 }
 const unlockedIds = () => new Set(game.user.getFlag(MODULE_ID, "unlocked") ?? []);
 async function unlock(id) { const s = unlockedIds(); s.add(id); await game.user.setFlag(MODULE_ID, "unlocked", [...s]); }
-
-async function rollSkill(actor, skill) {
-  if (actor?.rollSkill) {
-    try {
-      const modern = game.system.id === "dnd5e" && foundry.utils.isNewerVersion(game.system.version, "4.0.99");
-      let roll = modern ? await actor.rollSkill({ skill }) : await actor.rollSkill(skill);
-      if (Array.isArray(roll)) roll = roll[0];
-      if (roll?.total !== undefined) return roll.total;
-      return null; // dialog cancelled
-    } catch (err) { console.warn(`${MODULE_ID} | skill roll failed, falling back to d20`, err); }
-  }
-  const roll = await new Roll("1d20").evaluate();
-  await roll.toMessage({ flavor: "Slicing check", speaker: ChatMessage.getSpeaker({ actor }) });
-  return roll.total;
-}
 
 export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #instance;
@@ -74,7 +62,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
       lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits,
-      scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark
+      scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
@@ -85,12 +73,11 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   hackTarget = null; justDecrypted = null;
   /** Recording being watched: { id, t, playing, speed }. */
   tape = null; #tapeTimer = null;
-  /** Last Pulse Scanner result for this client. */
-  scan = null;
 
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
+    Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
       "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
       Hooks.on(h, () => this.rendered && this.render());
@@ -331,22 +318,27 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _ctx_scanner(ctx, actor) {
-    const SWEEP = 2.4;
-    const scan = this.scan?.sceneId === canvas.scene?.id ? this.scan : null;
-    return { title: "Pulse Scanner", noOrigin: !this.#scanOrigin(actor), sweep: SWEEP,
-      modes: Object.entries(Scan.MODES).map(([key, m]) => ({ key, ...m, active: scan?.mode === key })),
-      scan: scan && { ...scan, modeLabel: Scan.MODES[scan.mode].label, blips: Scan.blips(scan, SWEEP),
-        hits: scan.hits.map((h, i) => ({ ...h, n: i + 1 })), rangeLabel: scan.range > 0 ? `${scan.range} sq` : "full scene" } };
-  }
-
-  /** Where a pulse starts: the selected token, else the active character's token on this scene. */
-  #scanOrigin(actor) {
-    const scene = canvas.scene;
-    if (!scene) return null;
-    const g = scene.grid?.size ?? 100;
-    const tok = canvas.tokens?.controlled[0]?.document ?? scene.tokens.find((t) => t.actorId === actor?.id);
-    if (tok) return { x: tok.x + (tok.width ?? 1) * g / 2, y: tok.y + (tok.height ?? 1) * g / 2, name: tok.name };
-    return null;
+    const SWEEP = 2.4, units = canvas.scene?.grid?.units ?? "";
+    const scanners = Scan.scannersOf(actor).map((s) => {
+      const sig = Scan.SIGNALS[s.signal] ?? Scan.SIGNALS.tech;
+      return { ...s, sig, empty: s.limited && s.charges <= 0, canRecharge: s.limited && s.charges < s.max,
+        pct: s.limited ? Math.round((s.charges / s.max) * 100) : 100, styleLabel: Scan.STYLES[s.style]?.split(" (")[0] };
+    });
+    const p = lastPulse?.sceneId === canvas.scene?.id ? lastPulse : null;
+    let scan = null;
+    if (p) {
+      const hits = p.found.map((f, i) => ({ ...f, n: i + 1, units }));
+      const blips = hits.map((h) => {
+        const len = Math.hypot(h.dx, h.dy), k = len > 1 ? 1 / len : 1;
+        const angle = (Math.atan2(h.dx, -h.dy) * 180 / Math.PI + 360) % 360;
+        return { n: h.n, resolved: h.resolved, color: h.color, left: (50 + h.dx * k * 46).toFixed(1), top: (50 + h.dy * k * 46).toFixed(1),
+          delay: ((angle / 360) * SWEEP).toFixed(2) };
+      });
+      scan = { hits, blips, color: p.color, name: p.scannerName, signal: Scan.SIGNALS[p.signal]?.label, total: p.total,
+        contacts: p.tokens.length, range: `${p.range} ${units}`, origin: p.origin?.name, charges: p.charges };
+    }
+    return { title: "Pulse Scanner", sweep: SWEEP, scanners, scan, actorName: actor?.name, noActor: !actor,
+      noToken: !!actor && !Scan.originToken(actor), units };
   }
 
   _ctx_shop(ctx) {
@@ -406,24 +398,11 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
   /* ---------- pulse scanner ---------- */
-  static async #scanPulse(e, el) {
-    const mode = el.dataset.mode, actor = activeActor(), origin = this.#scanOrigin(actor);
-    if (!origin || !Scan.MODES[mode]) return ui.notifications.warn("Select your token on this scene to send a pulse.");
-    const skill = game.settings.get(MODULE_ID, mode === "force" ? "scanForceSkill" : "scanTechSkill");
-    const total = await rollSkill(actor, skill);
-    if (total === null) return;
-    const result = Scan.pulse(canvas.scene, origin, mode, total);
-    this.scan = { ...result, sceneId: canvas.scene.id, origin: origin.name, at: Date.now() };
-    const found = result.hits.filter((h) => h.resolved).map((h) => h.name);
-    ChatMessage.create({ whisper: ChatMessage.getWhisperRecipients("GM").map((u) => u.id),
-      speaker: ChatMessage.getSpeaker({ actor }),
-      content: `<b>${Scan.MODES[mode].label}</b> (${total}) from ${origin.name}: ${found.length ? found.join(", ") : "nothing resolved"}` +
-        `${result.hits.length > found.length ? `, ${result.hits.length - found.length} faint` : ""}.` });
-    this.render();
-  }
+  static async #scanPulse(e, el) { await runScan(activeActor(), el.dataset.id); this.render(); }
+  static async #scanRecharge(e, el) { if (await Scan.recharge(activeActor(), el.dataset.id)) this.render(); }
   static #scanMark(e, el) {
-    const h = this.scan?.hits?.[Number(el.dataset.index)];
-    if (h) Scan.markOnMap(h.x, h.y);
+    const h = lastPulse?.found?.[Number(el.dataset.index)];
+    if (h) pingPoint(h.x, h.y, h.color);
   }
 
   /* ---------- cameras ---------- */

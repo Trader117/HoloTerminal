@@ -1,36 +1,44 @@
-<div class="ht-scan-modes">
-  {{#each modes}}
-  <button type="button" class="ht-scan-mode ht-scan-{{key}}{{#if active}} ht-active{{/if}}" data-action="scanPulse" data-mode="{{key}}" {{#if ../noOrigin}}disabled{{/if}}>
-    <i class="fas {{icon}}"></i><span class="ht-scan-mode-label">{{label}}</span><small>{{hint}}</small>
-  </button>
-  {{/each}}
+{{#if noActor}}<p class="ht-dim">Select your token or assign a character to use scanners.</p>
+{{else}}
+<div class="ht-scanners">
+  {{#each scanners}}
+  <div class="ht-scanner{{#if empty}} ht-empty{{/if}}" style="--sig:{{sig.color}}">
+    <span class="ht-scanner-icon"><i class="fas {{sig.icon}}"></i></span>
+    <div class="ht-scanner-info">
+      <div class="ht-scanner-name">{{name}}</div>
+      <div class="ht-scanner-meta">{{sig.label}} &middot; {{range}} {{../units}} &middot; {{styleLabel}}</div>
+      {{#if limited}}<div class="ht-charge"><span style="width:{{pct}}%"></span></div><div class="ht-scanner-meta">{{charges}}/{{max}} charges</div>
+      {{else}}<div class="ht-scanner-meta">Unlimited</div>{{/if}}
+    </div>
+    <div class="ht-scanner-btns">
+      <button type="button" class="ht-primary" data-action="scanPulse" data-id="{{id}}" {{#if empty}}disabled{{/if}} {{#if ../noToken}}disabled title="Select your token on this scene"{{/if}}><i class="fas fa-satellite-dish"></i> Scan</button>
+      {{#if canRecharge}}<button type="button" data-action="scanRecharge" data-id="{{id}}"><i class="fas fa-battery-half"></i> Recharge</button>{{/if}}
+    </div>
+  </div>
+  {{else}}<p class="ht-dim">{{actorName}} has no scanners. The GM can give one from the GM Console (Scanners tab).</p>{{/each}}
 </div>
-{{#if noOrigin}}<p class="ht-dim">Select your token on this scene to send a pulse.</p>{{/if}}
-
-<div class="ht-radar{{#if scan}} ht-radar-{{scan.mode}}{{/if}}" style="--sweep:{{sweep}}s">
-  <span class="ht-radar-ring" style="--r:33%"></span><span class="ht-radar-ring" style="--r:66%"></span>
-  <span class="ht-radar-cross"></span>
-  <span class="ht-radar-sweep"></span>
-  <span class="ht-radar-n">N</span>
-  <span class="ht-radar-you" title="You"></span>
-  {{#each scan.blips}}
-  <span class="ht-blip{{#unless resolved}} ht-faint{{/unless}}" style="left:{{left}}%;top:{{top}}%;--delay:{{delay}}s">{{#if resolved}}{{n}}{{/if}}</span>
-  {{/each}}
-</div>
+{{#if noToken}}{{#if scanners.length}}<p class="ht-dim">Select your token on this scene (just one) to scan.</p>{{/if}}{{/if}}
 
 {{#if scan}}
-<div class="ht-scan-meta"><span>{{scan.modeLabel}} &middot; roll {{scan.total}}</span><span>range {{scan.rangeLabel}} &middot; from {{scan.origin}}</span></div>
+<div class="ht-radar" style="--sweep:{{sweep}}s;--tone:{{scan.color}}">
+  <span class="ht-radar-ring" style="--r:33%"></span><span class="ht-radar-ring" style="--r:66%"></span>
+  <span class="ht-radar-cross"></span><span class="ht-radar-sweep"></span>
+  <span class="ht-radar-n">N</span><span class="ht-radar-you" title="You"></span>
+  {{#each scan.blips}}<span class="ht-blip{{#unless resolved}} ht-faint{{/unless}}" style="left:{{left}}%;top:{{top}}%;--delay:{{delay}}s;--tone:{{color}}">{{#if resolved}}{{n}}{{/if}}</span>{{/each}}
+</div>
+<div class="ht-scan-meta"><span>{{scan.name}} &middot; {{scan.signal}}{{#if (ne scan.total null)}} &middot; roll {{scan.total}}{{/if}}</span><span>{{scan.range}} &middot; {{scan.contacts}} contact{{#unless (eq scan.contacts 1)}}s{{/unless}}</span></div>
 <ol class="ht-scan-hits">
   {{#each scan.hits}}
-  <li class="{{#unless resolved}}ht-faint{{/unless}}">
+  <li class="{{#unless resolved}}ht-faint{{/unless}}" style="--tone:{{color}}">
     <span class="ht-scan-n">{{#if resolved}}{{n}}{{else}}?{{/if}}</span>
     <div class="ht-scan-text">
-      <div class="ht-scan-name">{{name}}</div>
-      {{#if details}}<div class="ht-scan-details">{{details}}</div>{{/if}}
-      <div class="ht-scan-where">{{dist}} sq {{bearing}}</div>
+      <div class="ht-scan-name">{{name}}{{#if (ne areas 1)}} <small>&times;{{areas}}</small>{{/if}}</div>
+      {{#if notes}}<div class="ht-scan-details">{{notes}}</div>{{/if}}
+      <div class="ht-scan-where">{{dist}} {{units}} {{bearing}}</div>
     </div>
     <button type="button" class="ht-icon-btn" data-action="scanMark" data-index="{{@index}}" title="Ping on my map"><i class="fas fa-location-crosshairs"></i></button>
   </li>
-  {{else}}<li class="ht-dim">-- no signatures in range --</li>{{/each}}
+  {{else}}<li class="ht-dim">-- no targets in range --</li>{{/each}}
 </ol>
-{{else}}<p class="ht-dim ht-center">Pick a pulse. It rolls your skill, and the higher the roll the more it resolves.</p>{{/if}}
+{{/if}}
+{{/if}}
