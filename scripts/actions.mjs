@@ -27,9 +27,9 @@ export function registerActions() {
     if (!user.isGM) gmWhisper(`<b>${user.name}</b> used <i>${control.label}</i> on ${t.name}.`);
   });
 
-  registerHandler("sliceResult", async ({ terminalId, success, actorName }, user) => {
+  registerHandler("sliceResult", async ({ terminalId, success, actorName, game }, user) => {
     const t = find("terminals", terminalId);
-    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}.`);
+    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}${game ? ` (${game})` : ""}.`);
   });
 
   registerHandler("claimBounty", async ({ bountyId, actorName }, user) => {

@@ -214,3 +214,46 @@
 .ht-shop-editor .ht-shop td { vertical-align: middle; }
 .ht-shop-editor .ht-shop td button { width: 2.2em; padding: 4px 0; }
 .ht-console .ht-row { justify-content: flex-start; margin-top: 0; }
+
+/* ---------- hacking games ---------- */
+.ht-center { text-align: center; }
+.ht-hack-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ht-hack-name { font: 700 13px var(--ht-font-display); color: var(--ht-good); text-transform: uppercase; letter-spacing: 1.5px; }
+.ht-timer { font: 700 18px Consolas, monospace; color: #bfe6ff; text-shadow: 0 0 6px rgba(42, 163, 223, .9); }
+.ht-timer.low { color: var(--ht-red); text-shadow: 0 0 6px rgba(255, 81, 70, .8); animation: ht-blink 1s steps(1) infinite; }
+.ht-granted { color: var(--ht-good); }
+
+/* circuit */
+.ht-circuit { display: grid; grid-template-columns: 22px auto 22px; grid-template-rows: repeat(var(--n), 1fr); justify-content: center; align-items: center; }
+.ht-circuit-grid { grid-column: 2; grid-row: 1 / -1; display: grid; grid-template-columns: repeat(var(--n), 46px); grid-auto-rows: 46px; gap: 3px; }
+.ht-port { text-align: center; font-size: 16px; } .ht-port-in { grid-column: 1; color: var(--ht-gold); } .ht-port-out { grid-column: 3; color: var(--ht-good); }
+.ht-screen .ht-tile { width: 46px; height: 46px; padding: 0; border-radius: 4px; background: rgba(2, 16, 28, .8); border: 1px solid var(--ht-line); }
+.ht-tile-svg { width: 100%; height: 100%; display: block; transition: transform .12s; }
+.ht-tile-svg path { stroke: #3f5d73; stroke-width: 16; fill: none; stroke-linecap: square; }
+.ht-tile-svg circle { fill: #3f5d73; }
+.ht-tile-svg.lit path { stroke: var(--ht-blue); filter: drop-shadow(0 0 4px var(--ht-blue)); }
+.ht-tile-svg.lit circle { fill: #bfe6ff; }
+
+/* signal */
+.ht-scope { width: 100%; height: 150px; background: rgba(2, 14, 24, .85); border: 1px solid var(--ht-line); border-radius: 6px;
+  background-image: linear-gradient(rgba(110, 175, 220, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(110, 175, 220, .08) 1px, transparent 1px); background-size: 25px 25px; }
+.ht-scope path { fill: none; vector-effect: non-scaling-stroke; }
+.ht-wave-axis { stroke: rgba(110, 175, 220, .25); stroke-width: 1; }
+.ht-wave-target { stroke: var(--ht-red); stroke-width: 2; opacity: .85; }
+.ht-wave-player { stroke: var(--ht-blue); stroke-width: 2.5; filter: drop-shadow(0 0 3px var(--ht-blue)); }
+.ht-sync { color: var(--ht-good); }
+.ht-dial { display: grid; grid-template-columns: 90px 1fr 24px; align-items: center; gap: 8px; margin: 6px 0;
+  font: 700 11px var(--ht-font-display); text-transform: uppercase; letter-spacing: 1px; color: var(--ht-muted); }
+.ht-dial input[type=range] { width: 100%; accent-color: var(--ht-blue); }
+.ht-dial output { font: 700 14px Consolas, monospace; color: #bfe6ff; text-align: right; }
+
+/* firewall */
+.ht-fw-grid { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 3px; width: min(100%, 340px); margin: 0 auto; outline: none; }
+.ht-fw-cell { aspect-ratio: 1; border-radius: 3px; background: rgba(2, 16, 28, .8); border: 1px solid var(--ht-line); position: relative; }
+.ht-fw-wall { background: repeating-linear-gradient(45deg, #24313c 0 4px, #18222b 4px 8px); border-color: #2f3d49; }
+.ht-fw-warn { background: rgba(255, 81, 70, .16); border-color: rgba(255, 81, 70, .45); }
+.ht-fw-probe { background: var(--ht-blue); box-shadow: 0 0 10px var(--ht-blue); }
+.ht-fw-core { background: var(--ht-good); box-shadow: 0 0 10px var(--ht-good); }
+.ht-fw-sentinel { background: var(--ht-red); box-shadow: 0 0 10px var(--ht-red); border-radius: 50%; }
+.ht-fw-pad { display: grid; grid-template-areas: ". up ." "left down right"; grid-template-columns: repeat(3, 44px); gap: 4px; justify-content: center; margin-top: 8px; }
+.ht-fw-pad button { height: 36px; }
