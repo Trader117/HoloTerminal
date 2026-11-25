@@ -7,6 +7,8 @@ import { registerScannerSettings, registerSignatureBehavior } from "./scanner.mj
 import { initScanSocket, openScanner, runScan } from "./scan-wheel.mjs";
 import { registerGalaxySettings } from "./galaxy.mjs";
 import { registerDockSettings, registerDockHandlers } from "./holodock.mjs";
+import { registerCommsSettings, registerCommsHandlers, initCommsSocket, send as commsSend, startCall } from "./comms.mjs";
+import { HolocallApp } from "./holocall.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -22,6 +24,7 @@ Hooks.once("init", () => {
   registerScannerSettings();
   registerGalaxySettings();
   registerDockSettings();
+  registerCommsSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -39,6 +42,9 @@ Hooks.once("ready", () => {
   registerActions();
   registerLootHandlers();
   registerDockHandlers();
+  registerCommsHandlers();
+  initCommsSocket();
+  HolocallApp.register();
   initSocket(datapad);
   initScanSocket();
   game.modules.get(MODULE_ID).api = {
@@ -50,6 +56,11 @@ Hooks.once("ready", () => {
     openSalvage: () => datapad("salvage"),
     openScanner: () => openScanner({ ConsoleApp }),
     openHoloDock: (actorId = null) => datapad("holodock", actorId),
+    openComms: () => datapad("comms"),
+    /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */
+    sendComms: (opts) => commsSend(opts),
+    /** GM: holocall from an actor to some users (all players if none given). */
+    holocall: (opts) => game.user.isGM && startCall(opts),
     galaxy: () => GalaxyMapApp.instance.render(true),
     scan: (actor, scannerId, opts) => runScan(actor, scannerId, opts),
     /** GM: push a view to every player's datapad. */

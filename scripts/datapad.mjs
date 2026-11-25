@@ -25,15 +25,16 @@ import { pingPoint } from "./scan-fx.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { rollSkill } from "./roll.mjs";
 import * as Dock from "./holodock.mjs";
+import * as Comms from "./comms.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -67,7 +68,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       galaxy: () => GalaxyMapApp.instance.render(true),
       scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge,
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
-      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet
+      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
+      commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
@@ -82,6 +84,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
+    Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
     Hooks.on(Dock.DOCK_HOOK, () => this.rendered && this.view === "holodock" && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
@@ -120,6 +123,12 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    if (this.view === "comms" && this.viewId) {
+      const body = this.element.querySelector(".ht-body"); if (body) body.scrollTop = body.scrollHeight;
+      this.element.querySelector("[name=comms-text]")?.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); this.element.querySelector("[data-action=commsSend]")?.click(); }
+      });
+    }
     if (!this._hackBound) {
       this._hackBound = true;
       this.element.addEventListener("input", (ev) => {
@@ -210,6 +219,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _ctx_home() {
     const apps = [
+      { view: "comms", icon: "fa-tower-broadcast", label: "Comms", tone: "green", count: Comms.unreadCount(activeActor()?.id) },
       { view: "network", icon: "fa-network-wired", label: "Local Net", tone: "blue" },
       { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
       { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
@@ -328,6 +338,24 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Salvage", bodies, noActor: !actor };
   }
 
+  _ctx_comms(ctx, actor) {
+    if (!actor) return { title: "Comms", noActor: true };
+    const me = actor.id, all = Comms.threads(me);
+    const fmt = (ts) => new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    if (this.viewId) {
+      let t = all.find((x) => x.key === this.viewId);
+      if (!t) { const a = game.actors.get(this.viewId); t = { key: this.viewId, title: a?.name ?? "Unknown", img: a?.img, icon: "fa-user", messages: [], canReply: !!a, unread: 0 }; }
+      if (t.unread) Comms.markRead(me, t.key);
+      const thread = { ...t, messages: t.messages.map((m) => ({ text: m.text, time: fmt(m.ts), mine: m.from?.id === me, broadcast: m.to === "all",
+        who: m.from?.name ?? m.from?.alias ?? "Unknown sender" })) };
+      return { title: thread.title, thread };
+    }
+    const seen = new Set([me]), contacts = [];
+    for (const a of [...Comms.playerCharacters(), ...all.map((t) => game.actors.get(t.key)).filter(Boolean)])
+      if (!seen.has(a.id)) { seen.add(a.id); contacts.push({ id: a.id, name: a.name }); }
+    return { title: "Comms", threads: all, contacts };
+  }
+
   _ctx_holodock() {
     if (!this.viewId) return { title: "HoloDock", ships: Dock.shipActors().map((a) => Dock.shipInfo(a)) };
     const a = game.actors.get(this.viewId);
@@ -419,6 +447,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   /* ---------- pulse scanner ---------- */
   static async #scanPulse(e, el) { await runScan(activeActor(), el.dataset.id); this.render(); }
+  static async #commsSend(e, el) {
+    const box = this.element.querySelector("[name=comms-text]"), text = box?.value.trim();
+    if (!text) return;
+    box.value = "";
+    await Comms.send({ fromId: activeActor()?.id, to: el.dataset.to, text });
+  }
+  static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
+
   static async #dockRefuel(e, el) {
     const ship = Dock.shipInfo(game.actors.get(this.viewId));
     const units = el.dataset.units === "fill" ? Math.max(0, (ship.fuel.max ?? 0) - ship.fuel.value) : Number(el.dataset.units) || 1;

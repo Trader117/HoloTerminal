@@ -1,0 +1,36 @@
+{{#if noActor}}<p class="ht-dim">Select your token or assign a character to use comms.</p>
+{{else if thread}}
+<div class="ht-comms-head">
+  {{#if thread.img}}<img src="{{thread.img}}" alt="">{{else}}<span class="ht-comms-ico"><i class="fas {{thread.icon}}"></i></span>{{/if}}
+  <span>{{thread.title}}</span>
+</div>
+<ol class="ht-comms-log">
+  {{#each thread.messages}}
+  <li class="{{#if mine}}mine{{/if}}{{#if broadcast}} broadcast{{/if}}">
+    {{#unless mine}}<span class="ht-comms-who">{{who}}</span>{{/unless}}
+    <div class="ht-comms-text">{{text}}</div>
+    <time>{{time}}</time>
+  </li>
+  {{/each}}
+</ol>
+{{#if thread.canReply}}
+<div class="ht-comms-send">
+  <textarea name="comms-text" rows="2" placeholder="Transmit to {{thread.title}}..."></textarea>
+  <button type="button" class="ht-primary" data-action="commsSend" data-to="{{thread.key}}"><i class="fas fa-paper-plane"></i></button>
+</div>
+{{else}}<p class="ht-dim">This channel is receive-only.</p>{{/if}}
+{{else}}
+<div class="ht-comms-new">
+  <select name="comms-to">{{#each contacts}}<option value="{{id}}">{{name}}</option>{{else}}<option value="">No one to call</option>{{/each}}</select>
+  <button type="button" data-action="commsOpen"><i class="fas fa-pen"></i> New message</button>
+</div>
+<ul class="ht-comms-threads">
+  {{#each threads}}
+  <li><button type="button" data-action="go" data-view="comms" data-id="{{key}}" class="{{#if unread}}unread{{/if}}">
+    {{#if img}}<img src="{{img}}" alt="">{{else}}<span class="ht-comms-ico"><i class="fas {{icon}}"></i></span>{{/if}}
+    <span class="ht-comms-sum"><b>{{title}}</b><small>{{preview}}</small></span>
+    {{#if unread}}<span class="ht-comms-dot">{{unread}}</span>{{/if}}
+  </button></li>
+  {{else}}<li class="ht-dim">No transmissions yet.</li>{{/each}}
+</ul>
+{{/if}}
