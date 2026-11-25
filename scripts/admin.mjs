@@ -6,6 +6,7 @@ import { runScan } from "./scan-wheel.mjs";
 import { playPulse } from "./scan-fx.mjs";
 import * as Dock from "./holodock.mjs";
 import * as Comms from "./comms.mjs";
+import * as JumpEvents from "./jump-events.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -147,6 +148,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tgEdit: ConsoleApp.#tgEdit,
       shipAdd: ConsoleApp.#shipAdd, shipParty: ConsoleApp.#shipParty, shipOpen: ConsoleApp.#shipOpen, shipShow: ConsoleApp.#shipShow,
       shipEdit: ConsoleApp.#shipEdit, shipRemove: ConsoleApp.#shipRemove,
+      evToggle: ConsoleApp.#evToggle, evEdit: ConsoleApp.#evEdit, evDelete: ConsoleApp.#evDelete, evRoll: ConsoleApp.#evRoll, evReset: ConsoleApp.#evReset,
       cmSend: ConsoleApp.#cmSend, cmCall: ConsoleApp.#cmCall, cmDelete: ConsoleApp.#cmDelete, cmClear: ConsoleApp.#cmClear
     }
   };
@@ -161,7 +163,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const h of ["updateActor", "createRegionBehavior", "updateRegionBehavior", "deleteRegionBehavior", "updateRegion", "canvasReady"])
       Hooks.on(h, () => this.rendered && this.tab === "scanners" && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && this.tab === "comms" && this.render());
-    for (const h of ["updateActor", "createActor", "deleteActor", Dock.DOCK_HOOK])
+    for (const h of ["updateActor", "createActor", "deleteActor", Dock.DOCK_HOOK, JumpEvents.EVENTS_HOOK])
       Hooks.on(h, () => this.rendered && this.tab === "ships" && this.render());
   }
 
@@ -170,6 +172,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.tab === "scanners") return { tab: this.tab, tabs, isScanners: true, ...this.#scannerContext() };
     if (this.tab === "comms") return { tab: this.tab, tabs, isComms: true, ...this.#commsContext() };
     if (this.tab === "ships") return { tab: this.tab, tabs, isShips: true, ships: Dock.shipActors().map((a) => Dock.shipInfo(a)),
+      jumpEvents: JumpEvents.events(), eventChance: game.settings.get(MODULE_ID, "jumpEventChance"),
       candidates: game.actors.filter((a) => !Dock.isShip(a)).sort((a, b) => a.name.localeCompare(b.name)).map((a) => ({ id: a.id, name: `${a.name} (${a.type})` })) };
     return {
       tab: this.tab, isShops: this.tab === "shops",
@@ -285,6 +288,30 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #cmClear() {
     const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Clear all comms?" }, content: "<p>Delete every message for everyone? This can't be undone.</p>" });
     if (ok) await requestGM("commsClear");
+  }
+
+  /* ---------- hyperspace events ---------- */
+  static async #evToggle(e, el) { const l = JumpEvents.events(); const ev = l.find((x) => x.id === el.dataset.id); if (ev) { ev.enabled = !ev.enabled; await JumpEvents.saveEvents(l); } }
+  static async #evDelete(e, el) { await JumpEvents.saveEvents(JumpEvents.events().filter((x) => x.id !== el.dataset.id)); }
+  static #evRoll() { JumpEvents.maybeEvent({ force: true }); }
+  static async #evReset() {
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Restore default events?" }, content: "<p>Replace your event table with the built-in one?</p>" });
+    if (ok) await JumpEvents.saveEvents(JumpEvents.DEFAULT_EVENTS.map((x, i) => ({ id: `default${i}`, enabled: true, ...x })));
+  }
+  static async #evEdit(e, el) {
+    const l = JumpEvents.events(), ev = l.find((x) => x.id === el.dataset.id) ?? { id: foundry.utils.randomID(), enabled: true, name: "", text: "", weight: 1, fuel: 0 };
+    const esc = (v) => String(v ?? "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const content = `<div class="ht-sc-dialog">
+      <label>Name <input name="name" type="text" value="${esc(ev.name)}"></label>
+      <label>What happens <textarea name="text" rows="4">${esc(ev.text)}</textarea></label>
+      <label>Weight (how often) <input name="weight" type="number" min="0" value="${ev.weight}"></label>
+      <label>Extra fuel used <input name="fuel" type="number" min="0" value="${ev.fuel ?? 0}"></label></div>`;
+    const data = await foundry.applications.api.DialogV2.prompt({ window: { title: ev.name ? `Edit ${ev.name}` : "New hyperspace event" }, content,
+      ok: { label: "Save", callback: (ev2, btn) => Object.fromEntries(new FormData(btn.form)) } }).catch(() => null);
+    if (!data?.name?.trim()) return;
+    Object.assign(ev, { name: data.name.trim(), text: data.text ?? "", weight: Math.max(0, Number(data.weight) || 0), fuel: Math.max(0, Number(data.fuel) || 0) });
+    if (!l.includes(ev)) l.push(ev);
+    await JumpEvents.saveEvents(l);
   }
 
   /* ---------- ships tab ---------- */

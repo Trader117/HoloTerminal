@@ -103,6 +103,24 @@
       </li>
       {{else}}<li class="ht-dim">No ships yet.</li>{{/each}}
     </ul>
+    <details class="ht-sc-give">
+      <summary><i class="fas fa-meteor"></i> Hyperspace events <small class="ht-dim">({{eventChance}}% per jump, set in module settings)</small></summary>
+      <ul>
+        {{#each jumpEvents}}
+        <li class="ht-entry{{#unless enabled}} ht-resolved{{/unless}}">
+          <button type="button" data-action="evToggle" data-id="{{id}}" title="{{#if enabled}}On (click to turn off){{else}}Off{{/if}}"><i class="fas {{#if enabled}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i></button>
+          <span class="ht-entry-name">{{name}}<small>weight {{weight}}{{#if fuel}} · +{{fuel}} fuel{{/if}}</small></span>
+          <button type="button" data-action="evEdit" data-id="{{id}}" title="Edit"><i class="fas fa-pen"></i></button>
+          <button type="button" data-action="evDelete" data-id="{{id}}" title="Delete"><i class="fas fa-trash"></i></button>
+        </li>
+        {{else}}<li class="ht-dim">No events. Add one or restore the defaults.</li>{{/each}}
+      </ul>
+      <div class="ht-row">
+        <button type="button" data-action="evEdit"><i class="fas fa-plus"></i> New event</button>
+        <button type="button" data-action="evRoll"><i class="fas fa-dice"></i> Roll one now</button>
+        <button type="button" data-action="evReset"><i class="fas fa-rotate-left"></i> Defaults</button>
+      </div>
+    </details>
   </section>
   {{else}}
   <section class="ht-body">

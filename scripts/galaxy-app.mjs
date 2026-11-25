@@ -2,6 +2,7 @@ import { MODULE_ID, SOCKET } from "./store.mjs";
 import * as G from "./galaxy.mjs";
 import * as Dock from "./holodock.mjs";
 import * as Trade from "./trade.mjs";
+import * as JumpEvents from "./jump-events.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const WOOKIEE = "https://starwars.fandom.com/wiki/";
@@ -526,6 +527,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     ChatMessage.create({ content: `<p><b>${esc(a?.name ?? "The party ship")}</b> jumps to hyperspace and arrives at <b>${esc(name)}</b> after ${G.formatHours(this.route.hours)}${need ? ` (${need} fuel used)` : ""}.</p>` });
     this.route = null; this.routeFrom = null; this.routeEnds = null; this.render();
+    JumpEvents.maybeEvent({ where: name });
   }
   static #clearRoute() { this.route = null; this.routeFrom = null; this.routeEnds = null; this.render(); }
   static #shareRoute() { if (this.route) { game.socket.emit(SOCKET, { type: "galaxyRoute", userId: game.user.id, route: this.route }); ui.notifications.info("Route shown to everyone with the galaxy map open."); } }
