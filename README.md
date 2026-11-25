@@ -137,6 +137,15 @@ The datapad's **Credits** tile shows the active character's balance and a transa
 - **One ledger:** transfers, GM grants and fines, fuel purchases and trade buys and sales are all recorded.
 - **GM:** the same screen has a *grant or fine* form for any player character and shows the whole ledger.
 
+## Cantina: Nova
+An original card game against the house, from the datapad's **Cantina** tile. Stakes come out of the active character's credits and go through the GM.
+
+- Four suits run 1 to 11. Suns, Moons and Comets count up; Voids count against you.
+- Three rounds to get closest to **23**. Each round: draw a card (5 at most), swap one of yours for the face-up discard, or hold. The house plays after you, and on the last round it sees how close you are.
+- Between rounds the flux die rolls. On a 6 every hand loses its biggest card and draws a new one.
+- Beat the house to double your stake; win on exactly 23 (a **Nova**) for three times your stake. Ties go to the house. Results go to chat and the ledger.
+- The *Cantina: table limit* setting caps a stake (500 cr by default).
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
@@ -172,6 +181,7 @@ api.openComms();
 api.sendComms({ fromId: npc.id, to: pc.id, text: "Bay 12, midnight." });
 api.holocall({ actorId: npc.id, line: "We need to talk." }); // GM, all players
 api.openCredits();
+api.openCantina();
 api.openHoloDock();                    // ship list, or pass an actor id for one ship
 api.showAll("shop", "Outpost Supply"); // GM: push to every player
 ```

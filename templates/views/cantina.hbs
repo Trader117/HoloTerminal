@@ -1,0 +1,42 @@
+{{#if noActor}}<p class="ht-dim">Select your token or assign a character to sit at the table.</p>
+{{else if (eq phase "bet")}}
+<div class="ht-nova-rules">
+  <p><b>Nova</b>: three rounds to bring your hand as close to <b>23</b> as you can. Suns, Moons and Comets count 1 to 11; <span class="ht-neg">Voids count against you</span>.</p>
+  <p>Each round, <b>draw</b> a card (up to 5), <b>swap</b> one of yours for the face-up discard, or <b>hold</b>. Between rounds the flux die rolls: on a 6, every hand loses its biggest card and draws a new one.</p>
+  <p>Beat the house to double your stake. Win with exactly 23, a <b>Nova</b>, and you get three times your stake back. Ties go to the house, and the house plays last.</p>
+</div>
+<div class="ht-nova-bet">
+  <span>Stake</span>
+  {{#each stakes}}<button type="button" data-action="novaDeal" data-stake="{{this}}" {{#if (ne ../credits null)}}{{/if}}>{{this}} cr</button>{{/each}}
+</div>
+<p class="ht-dim">Table limit {{limit}} cr.</p>
+{{else}}
+<div class="ht-nova">
+  <div class="ht-nova-row">
+    <div class="ht-nova-label">House <b>{{#if done}}{{houseTotal}}{{else}}?{{/if}}</b></div>
+    <div class="ht-cards">{{#each house}}{{#if ../done}}<span class="ht-card-face{{#if neg}} neg{{/if}}" title="{{name}}"><b>{{value}}</b><i class="fas {{icon}}"></i></span>{{else}}<span class="ht-card-back"></span>{{/if}}{{/each}}</div>
+  </div>
+  <div class="ht-nova-mid">
+    <div class="ht-nova-pile" title="Face-up discard">{{#if top}}<span class="ht-card-face{{#if top.neg}} neg{{/if}}" title="{{top.name}}"><b>{{top.value}}</b><i class="fas {{top.icon}}"></i></span>{{/if}}<small>Discard</small></div>
+    <div class="ht-nova-status"><b>Round {{round}} / 3</b>{{#if flux}}<span class="ht-flux{{#if (eq flux 6)}} hit{{/if}}">Flux {{flux}}</span>{{/if}}<span>Stake {{stake}} cr</span></div>
+  </div>
+  <div class="ht-nova-row">
+    <div class="ht-nova-label">You <b>{{playerTotal}}</b> <small>{{away}} from 23</small></div>
+    <div class="ht-cards">{{#each player}}<span class="ht-card-face{{#if neg}} neg{{/if}}{{#if ../swapping}} pick{{/if}}" title="{{name}}" {{#if ../swapping}}data-action="novaSwap" data-index="{{@index}}"{{/if}}><b>{{value}}</b><i class="fas {{icon}}"></i></span>{{/each}}</div>
+  </div>
+  {{#if done}}
+  <div class="ht-nova-result ht-nova-{{result.outcome}}">{{resultText}}</div>
+  <div class="ht-row"><button type="button" class="ht-primary" data-action="novaAgain"><i class="fas fa-rotate-right"></i> New hand</button></div>
+  {{else if swapping}}
+  <p class="ht-dim">Pick one of your cards to swap for the discard.</p>
+  <div class="ht-row"><button type="button" data-action="novaCancel">Cancel</button></div>
+  {{else}}
+  <div class="ht-row ht-nova-actions">
+    <button type="button" data-action="novaMove" data-move="draw" {{#if full}}disabled{{/if}}><i class="fas fa-clone"></i> Draw</button>
+    <button type="button" data-action="novaPickSwap"><i class="fas fa-right-left"></i> Swap</button>
+    <button type="button" data-action="novaMove" data-move="hold"><i class="fas fa-hand"></i> Hold</button>
+  </div>
+  {{/if}}
+  <ol class="ht-nova-log">{{#each log}}<li>{{this}}</li>{{/each}}</ol>
+</div>
+{{/if}}
