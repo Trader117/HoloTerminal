@@ -1,4 +1,5 @@
 import { MODULE_ID } from "./store.mjs";
+import { placeFrameless } from "./frameless.mjs";
 import * as Comms from "./comms.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -29,6 +30,10 @@ export class HolocallApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const c = this.call ?? { lines: [] };
     return { ...c, owner: this.owner, latest: c.lines.at(-1) ?? "", earlier: c.lines.slice(-4, -1) };
   }
+  setPosition(position) {
+    try { super.setPosition(position); } catch { /* frameless */ }
+    return placeFrameless(this, position);
+  }
   _onRender(ctx, opts) {
     super._onRender?.(ctx, opts);
     const input = this.element.querySelector("input[name=line]");
@@ -39,7 +44,7 @@ export class HolocallApp extends HandlebarsApplicationMixin(ApplicationV2) {
       handle.dataset.drag = "1";
       handle.addEventListener("pointerdown", (ev) => {
         if (ev.button !== 0 || ev.target.closest("button")) return;
-        const s = { x: ev.clientX, y: ev.clientY, left: this.position.left, top: this.position.top };
+        const at = placeFrameless(this); const s = { x: ev.clientX, y: ev.clientY, left: at.left, top: at.top };
         const move = (e) => this.setPosition({ left: s.left + e.clientX - s.x, top: s.top + e.clientY - s.y });
         const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
         window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
