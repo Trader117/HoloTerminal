@@ -99,3 +99,6 @@
 
 /* bio */
 .holo-bio prose-mirror, .holo-bio .editor-content { color:var(--holo-fg); font-family:inherit; min-height:300px; }
+.holo-stat.holo-on { background:var(--holo-fg); border-color:var(--holo-fg); }
+.holo-stat.holo-on b { color:var(--holo-bg); }
+.holo-item-row > .holo-dim, .holo-uses, .holo-qty, .holo-badge { white-space:nowrap; flex:none; }
