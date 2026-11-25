@@ -24,6 +24,32 @@ export function registerGalaxySettings() {
     scope: "world", config: true, type: Number, default: 6 });
   game.settings.register(MODULE_ID, "galaxyClass", { name: "Galaxy map: default hyperdrive class", hint: "Used for route estimates until a ship is chosen.",
     scope: "world", config: true, type: Number, default: 2 });
+  game.settings.register(MODULE_ID, "galaxyRegionSource", { name: "Galaxy map: canon region borders",
+    hint: "Reference map: loads the region outlines from Henry Bernberg's public ArcGIS galaxy map each time the galaxy map opens (needs internet; nothing is stored in the module). Built-in: borders worked out from Wookieepedia's planet data.",
+    scope: "world", config: true, type: String, default: "reference", choices: { reference: "Reference map (online)", builtin: "Built-in" },
+    onChange: () => { refShapes = null; Hooks.callAll(GALAXY_HOOK); } });
+}
+
+/* ---------- reference region outlines (loaded live, never bundled) ---------- */
+export const REF_REGIONS_URL = "https://services3.arcgis.com/nM57tYg6wB9iTP3P/arcgis/rest/services/Regions__new_/FeatureServer/4/query";
+export const REF_MAP_CREDIT = "Region outlines: Henry Bernberg's Star Wars galaxy map (ArcGIS)";
+let refShapes = null;
+/** Its grid square A-1 spans x -16.5M..-15M and y 13.5M..12M (Web Mercator metres); one square = 1.5M. */
+const refToMap = ([X, Y]) => [((X + 16.5e6) / 1.5e6) * SQ, ((13.5e6 - Y) / 1.5e6) * SQ];
+/** Fetches the reference map's region outlines. Resolves to [{ name, rings: [[x,y]...][] }] grouped by region, or null. */
+export function loadReferenceRegions() {
+  if (refShapes) return refShapes;
+  const q = new URLSearchParams({ where: "1=1", outFields: "cregion", returnGeometry: "true", geometryPrecision: "0", maxAllowableOffset: "15000", f: "json" });
+  refShapes = fetch(`${REF_REGIONS_URL}?${q}`).then((r) => r.json()).then((j) => {
+    const by = new Map();
+    for (const f of j.features ?? []) {
+      const name = f.attributes?.cregion; if (!name || !f.geometry?.rings) continue;
+      if (!by.has(name)) by.set(name, []);
+      for (const ring of f.geometry.rings) by.get(name).push(ring.map(refToMap));
+    }
+    return by.size ? [...by].map(([name, rings]) => ({ name, rings })) : null;
+  }).catch((err) => { console.warn(`${MODULE_ID} | reference region outlines could not be loaded`, err); return null; });
+  return refShapes;
 }
 
 /* ---------- helpers ---------- */
@@ -246,7 +272,7 @@ const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8
  * Returns { n, cx, cy, rings: [{ inner: number[], outer: number[] }], cells: (string|null)[][], names: [{name, color, label}] }.
  */
 export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
-const CANON_COLOR = { "The Interior": "#ffd36b", "New Territories": "#7ee0c3", "The Slice": "#ff7eb6", "Trailing Sectors": "#6fd3ff", "Western Reaches": "#c5e86c", "Unknown Regions": "#b39dff" };
+export const CANON_COLOR = { "The Interior": "#ffd36b", "New Territories": "#7ee0c3", "The Slice": "#ff7eb6", "Trailing Sectors": "#6fd3ff", "Western Reaches": "#c5e86c", "Unknown Regions": "#b39dff" };
 
 export function buildSectors(planets, B, { minCells = 3, only = new Set(CANON_REGIONS) } = {}) {
   const N = B.n, K = B.bands.length, { cx, cy } = B;
