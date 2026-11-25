@@ -4,8 +4,8 @@
   {{#if (eq kind "terminals")}} Linked doors and lights appear under <code>controls</code>; change each <code>label</code> to name it. They keep working from any scene. Slice <code>game</code>: cipher, circuit, signal, firewall or random. Difficulty: easy, normal, hard, elite. Remove <code>slice</code> or set <code>password</code> to "" to change locking. Any message or file can add <code>"encrypted": {"dc": 15, "key": "Code Cylinder", "game": "signal"}</code> (every field optional; <code>"game": "none"</code> means it can't be sliced).{{/if}}</p>
   {{#if (eq kind "terminals")}}
   <div class="ht-link-box">
-    <b><i class="fas fa-link"></i> Link doors and lights</b>
-    <span>On the map, select doors (Walls layer) or lights (Lighting layer). Hold Shift to pick several. Then press:</span>
+    <b><i class="fas fa-link"></i> Link doors, lights and cameras</b>
+    <span>On the map, select doors (Walls layer), lights (Lighting layer) or cameras: a Region you draw over the area to watch (Regions layer, any shape; players never see Regions). Hold Shift to pick several. Then press:</span>
     <button type="button" class="ht-primary" data-action="linkSelected"><i class="fas fa-plus"></i> Add selected</button>
   </div>
   {{/if}}

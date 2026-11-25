@@ -1,6 +1,6 @@
 export const MODULE_ID = "holo-terminal";
 export const SOCKET = `module.${MODULE_ID}`;
-export const COLLECTIONS = ["terminals", "shops", "bounties"];
+export const COLLECTIONS = ["terminals", "shops", "bounties", "recordings"];
 export const CHANGED_HOOK = `${MODULE_ID}.changed`;
 
 /* ---------- settings ---------- */

@@ -45,6 +45,18 @@ A locked terminal can be sliced instead of using its access code. Set the termin
 
 Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and number of sentinels. Before starting, a player can roll the slicing skill against the terminal's DC. Success gives +1, plus 1 more for every 5 over the DC (up to +3), and a failure gives -1. Each point is an attempt (Cipher), 15 seconds (Circuit), 10 seconds (Signal) or 3 moves (Firewall). The GM gets a whisper naming the game for every success and failure.
 
+## Security cameras
+1. On the Regions layer, draw a Region over the area a camera should watch. Any shape works; the feed shows the box around it. Players never see Regions. Naming the Region names the camera.
+2. Select it, open the terminal's editor and press *Add selected*. Doors and lights can be selected in the same pass.
+3. The terminal gets a **Cameras** tab with a live feed of that area. The feed shows the map, tiles and visible tokens, and updates as tokens move. It works even if the camera is on a different scene from the players.
+
+**Recording:** on the Cameras tab, the GM can press *Record* under a feed. Every token movement inside that area is captured until *Stop recording*. Recording runs on the GM's client, so keep it open while recording. Saved recordings appear under *Recordings*. They're hidden from players until the GM presses the eye icon to share one. Playback has play/pause, a scrub bar, and 1×/2×/4×/8× speed.
+
+## Region triggers
+Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage or the home screen. Locked terminals still ask for their code.
+- **Players only** (on by default): tokens moved by the GM don't trigger it.
+- **Only once per player**: each player gets it the first time only. Turn it off and on again to reset.
+
 ## Encrypted messages and files
 Any message or file on a terminal can be encrypted:
 ```json

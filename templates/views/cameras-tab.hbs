@@ -1,0 +1,31 @@
+{{#if tape}}
+  <div class="ht-tape">
+    {{> camFeed tape.feed}}
+    <div class="ht-tape-bar">
+      <button type="button" data-action="recToggle" title="Play / pause"><i class="fas {{#if tape.playing}}fa-pause{{else}}fa-play{{/if}}"></i></button>
+      <input type="range" class="ht-scrub" data-scrub min="0" max="{{tape.duration}}" step="100" value="{{tape.t}}">
+      <span class="ht-tape-time">{{tape.clock}} / {{tape.total}}</span>
+      <button type="button" data-action="recSpeed" title="Playback speed">{{tape.speed}}&times;</button>
+      <button type="button" data-action="recClose" title="Back to cameras"><i class="fas fa-xmark"></i></button>
+    </div>
+  </div>
+{{else}}
+  {{#each cameras}}
+    {{#if feed}}{{> camFeed feed}}{{else}}<div class="ht-feed ht-feed-dead"><span>{{label}}</span><span>NO SIGNAL</span></div>{{/if}}
+    {{#if ../isGM}}{{#if feed}}<div class="ht-row ht-cam-gm">
+      {{#if feed.recording}}<button type="button" class="ht-rec-btn on" data-action="camStop" data-index="{{index}}"><i class="fas fa-stop"></i> Stop recording</button>
+      {{else}}<button type="button" class="ht-rec-btn" data-action="camRecord" data-index="{{index}}"><i class="fas fa-circle"></i> Record</button>{{/if}}
+    </div>{{/if}}{{/if}}
+  {{/each}}
+  <h4 class="ht-subhead">Recordings</h4>
+  {{#each recordings}}
+    <div class="ht-control ht-rec-row">
+      <i class="fas fa-film ht-control-icon"></i><span>{{label}} <small class="ht-dim">{{length}}</small></span>
+      <button type="button" data-action="recPlay" data-id="{{id}}"><i class="fas fa-play"></i> Play</button>
+      {{#if ../isGM}}
+        <button type="button" data-action="recShare" data-id="{{id}}" title="{{#if shared}}Players can watch (click to hide){{else}}Hidden from players (click to share){{/if}}"><i class="fas {{#if shared}}fa-eye{{else}}fa-eye-slash{{/if}}"></i></button>
+        <button type="button" data-action="recDelete" data-id="{{id}}" title="Delete"><i class="fas fa-trash"></i></button>
+      {{/if}}
+    </div>
+  {{else}}<p class="ht-dim">-- no recordings available --</p>{{/each}}
+{{/if}}
