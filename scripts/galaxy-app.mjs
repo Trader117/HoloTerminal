@@ -309,45 +309,26 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     c.textAlign = "left";
   }
-  /** Canon regions: each region as one path of polar cells, plus borders wherever neighbouring cells differ. */
+  /** Canon regions: one path per region. */
   #sectorArt(g) {
     if (this._sectorArt) return this._sectorArt;
-    const S = g.sectors, { na, nr, rows } = S;
-    const ang = (i) => ((i / na) * 360 + S.rot) * (Math.PI / 180);
-    const pt = (i, j) => [S.cx + Math.cos(ang(i)) * (j / nr) * S.r, S.cy + Math.sin(ang(i)) * (j / nr) * S.r];
-    const fills = S.names.map(() => new Path2D()), border = new Path2D();
-    rows.forEach((row, i) => {
-      // Runs along this half-degree: one cell polygon each.
-      let j0 = 0;
-      for (let j = 1; j <= nr; j++) {
-        if (j < nr && row[j] === row[j0]) continue;
-        const v = row[j0];
-        if (v >= 0) {
-          const f = fills[v];
-          f.moveTo(...pt(i, j0)); f.lineTo(...pt(i, j)); f.lineTo(...pt(i + 1, j)); f.lineTo(...pt(i + 1, j0)); f.closePath();
-          // Arc border at the outer end of the run (between regions, or the map's edge).
-          border.moveTo(...pt(i, j)); border.lineTo(...pt(i + 1, j));
-        }
-        j0 = j;
-      }
-      // Radial border against the previous half-degree where the regions differ.
-      const prev = rows[(i - 1 + na) % na];
-      for (let j = 0; j < nr; j++) {
-        if (row[j] === prev[j] || (row[j] < 0 && prev[j] < 0)) continue;
-        let k = j; while (k + 1 < nr && row[k + 1] !== prev[k + 1] && !(row[k + 1] < 0 && prev[k + 1] < 0)) k++;
-        border.moveTo(...pt(i, j)); border.lineTo(...pt(i, k + 1)); j = k;
-      }
+    const regions = g.sectors.regions.map(({ name, color, points }) => {
+      const path = new Path2D();
+      points.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y)));
+      path.closePath();
+      return { name, color, path };
     });
-    return (this._sectorArt = { fills: fills.map((path, v) => ({ path, color: S.names[v].color })), border, names: S.names });
+    return (this._sectorArt = { regions, names: g.sectors.names });
   }
   #drawSectors(c, g, z) {
     if (!g.sectors || !game.settings.get(MODULE_ID, "galaxyCanonRegions")) return;
     const art = this.#sectorArt(g), [ox, oy] = this.toScreen(0, 0);
     c.save(); c.translate(ox, oy); c.scale(z, z);
-    // Coloured regions with light borders; fainter when the main region bands are drawn on top.
-    const a = this.show.regions ? 0.13 : 0.3;
-    for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path, "nonzero"); }
-    c.lineWidth = 2 / z; c.lineJoin = "round"; c.strokeStyle = "rgba(240,244,248,.7)"; c.stroke(art.border);
+    // Coloured regions with white borders, like the printed map; fainter when the main region bands are drawn on top.
+    const a = this.show.regions ? 0.18 : 0.42;
+    for (const f of art.regions) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path); }
+    c.lineJoin = "miter"; c.miterLimit = 6; c.lineWidth = 3 / z; c.strokeStyle = "rgba(244,246,248,.9)";
+    for (const f of art.regions) c.stroke(f.path);
     c.restore();
     if (!this.show.regionLabels) return;
     this.#placeLabels(c, art.names.map((n) => ({ ...n, name: n.name.toUpperCase(), color: "#f3f6f8" })), z, "800");

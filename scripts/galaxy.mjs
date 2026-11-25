@@ -246,36 +246,42 @@ export function buildBands(planets, ringInfo) {
 const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
 
 /**
- * The six canon regions, from data/canon-regions.json: the region map in Star Wars: The Galactic Explorer's Guide,
- * stored as a polar raster (one row of [radius step, region] runs per half-degree) and placed on this map's grid by a
- * best fit of the worlds it shows. Returns { cx, cy, r, rot, na, nr, rows: Int8Array[] (region per radius step, -1 =
- * outside), names: [{ name, color, label }] }.
+ * The six canon regions, from data/canon-regions.json: outlines of the region map in Star Wars: The Galactic
+ * Explorer's Guide, stored as polygons in polar form around the map's centre (so arcs stay round and corners sharp),
+ * and placed on this map's grid by a best fit of the worlds that map shows.
+ * Returns { regions: [{ name, color, points: [[x, y]...] }], names: [{ name, color, label }] }.
  */
 export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
 export const CANON_COLOR = { "The Interior": "#e8b04a", "New Territories": "#d94a6a", "The Slice": "#4fa58f", "Trailing Sectors": "#9b6cc4", "Western Reaches": "#e3784a", "Unknown Regions": "#4f9fcf" };
 
 export function buildSectors(canon) {
-  const { na, nr, cx, cy, r, rot = 0 } = canon;
-  const rows = canon.runs.map((runs) => {
-    const row = new Int8Array(nr).fill(-1);
-    runs.forEach(([j, v], k) => { const end = runs[k + 1]?.[0] ?? nr; row.fill(v, j, end); });
-    return row;
+  const { cx, cy, r, rot = 0 } = canon, rad = Math.PI / 180;
+  const regions = canon.regions.map(({ name, poly }) => {
+    // Edges run evenly in angle and radius between corners, at most a degree apart, so arcs come out round.
+    const points = [];
+    poly.forEach(([t0, f0], i) => {
+      const [t1, f1] = poly[(i + 1) % poly.length], dt = ((t1 - t0 + 540) % 360) - 180, steps = Math.max(1, Math.ceil(Math.abs(dt)));
+      for (let k = 0; k < steps; k++) {
+        const t = (t0 + (dt * k) / steps + rot) * rad, f = f0 + ((f1 - f0) * k) / steps;
+        points.push([cx + Math.cos(t) * f * r, cy + Math.sin(t) * f * r]);
+      }
+    });
+    return { name, color: CANON_COLOR[name], points };
   });
-  const ang = (i) => ((i / na) * 360 + rot) * (Math.PI / 180);
-  // Label: each region's centre of mass in polar cells, moved to its nearest own cell if it falls outside.
-  const names = canon.names.map((name, v) => {
-    let sx = 0, sy = 0, n = 0;
-    rows.forEach((row, i) => row.forEach((x, j) => { if (x !== v) return; const w = j + 0.5; sx += Math.cos(ang(i + 0.5)) * w * w; sy += Math.sin(ang(i + 0.5)) * w * w; n += w; }));
-    let lx = cx + (sx / n / nr) * r, ly = cy + (sy / n / nr) * r;
-    const at = (x, y) => { const t = ((Math.atan2(y - cy, x - cx) * 180) / Math.PI - rot + 720) % 360, i = Math.floor((t / 360) * na) % na, j = Math.floor((Math.hypot(x - cx, y - cy) / r) * nr); return j < nr ? rows[i][j] : -1; };
-    if (at(lx, ly) !== v) {
-      let best = null, bd = Infinity;
-      rows.forEach((row, i) => row.forEach((x, j) => { if (x !== v) return; const px = cx + Math.cos(ang(i + 0.5)) * ((j + 0.5) / nr) * r, py = cy + Math.sin(ang(i + 0.5)) * ((j + 0.5) / nr) * r, d = Math.hypot(px - lx, py - ly); if (d < bd) { bd = d; best = [px, py]; } }));
-      [lx, ly] = best;
+  const inside = ([x, y], pts) => { let o = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) o = !o; } return o; };
+  // Label: the inside point furthest from the region's edge (coarse grid search).
+  const names = regions.map(({ name, color, points }) => {
+    const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), step = Math.max(x1 - x0, y1 - y0) / 40;
+    let best = [(x0 + x1) / 2, (y0 + y1) / 2], bd = -1;
+    for (let x = x0; x <= x1; x += step) for (let y = y0; y <= y1; y += step) {
+      if (!inside([x, y], points)) continue;
+      let d = Infinity; for (let k = 0; k < points.length; k += 2) d = Math.min(d, Math.hypot(points[k][0] - x, points[k][1] - y));
+      if (d > bd) { bd = d; best = [x, y]; }
     }
-    return { name, color: CANON_COLOR[name], label: { x: lx, y: ly } };
+    return { name, color, label: { x: best[0], y: best[1] } };
   });
-  return { cx, cy, r, rot, na, nr, rows, names };
+  return { regions, names };
 }
 
 /**
