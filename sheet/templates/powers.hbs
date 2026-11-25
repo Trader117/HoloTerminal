@@ -1,0 +1,28 @@
+<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="powers">
+  <div class="holo-casting">
+    <div class="holo-cast-block holo-force">
+      <h3 class="holo-h">Force Powers <a data-action="createItem" data-type="spell" data-school="uni"><i class="fa-solid fa-plus"></i></a></h3>
+      <div class="holo-school-cards">
+        {{#each forceSchools}}<div class="holo-school holo-school-{{key}}"><b>{{label}}</b><span>DC {{dc}}</span><span>ATK {{attack}}</span><span class="holo-dim">{{attr}}</span></div>{{/each}}
+      </div>
+      {{#each forcePowers}}
+      <h4 class="holo-lvl">{{label}}</h4>
+      <ul class="holo-list">{{#each powers}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
+      {{else}}<p class="holo-dim">{{localize "HOLOSHEET.NoPowers"}}</p>{{/each}}
+    </div>
+    <div class="holo-cast-block holo-tech">
+      <h3 class="holo-h">Tech Powers <a data-action="createItem" data-type="spell" data-school="tec"><i class="fa-solid fa-plus"></i></a></h3>
+      <div class="holo-school-cards">
+        {{#each techSchools}}<div class="holo-school holo-school-{{key}}"><b>{{label}}</b><span>DC {{dc}}</span><span>ATK {{attack}}</span><span class="holo-dim">{{attr}}</span></div>{{/each}}
+      </div>
+      {{#each techPowers}}
+      <h4 class="holo-lvl">{{label}}</h4>
+      <ul class="holo-list">{{#each powers}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
+      {{else}}<p class="holo-dim">{{localize "HOLOSHEET.NoPowers"}}</p>{{/each}}
+    </div>
+  </div>
+  {{#if otherPowers.length}}
+  <h3 class="holo-h">Other</h3>
+  {{#each otherPowers}}<h4 class="holo-lvl">{{label}}</h4><ul class="holo-list">{{#each powers}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>{{/each}}
+  {{/if}}
+</section>
