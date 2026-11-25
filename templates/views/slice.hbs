@@ -12,13 +12,13 @@
   <div class="ht-cipher">
     {{#each puzzle.guesses}}
       <div class="ht-guess">{{#each glyphs}}<span class="ht-glyph">{{this}}</span>{{/each}}
-        <span class="ht-score">LOCK {{locked}} &middot; DRIFT {{drift}}</span></div>
+        <span class="ht-score"><span class="ht-lock">LOCK {{locked}}</span> &middot; <span class="ht-drift">DRIFT {{drift}}</span></span></div>
     {{/each}}
     {{#if (eq puzzle.state "playing")}}
       <div class="ht-guess ht-current">{{#each slots}}<span class="ht-glyph">{{this}}</span>{{/each}}</div>
       <p class="ht-dim">{{remaining}} attempts left</p>
       <div class="ht-pad">{{#each puzzle.pool}}<button type="button" class="ht-glyph-btn" data-action="glyph" data-glyph="{{this}}">{{this}}</button>{{/each}}</div>
-      <div class="ht-row"><button type="button" data-action="glyphBack">&#9003; Clear</button><button type="button" data-action="transmit">Transmit</button></div>
+      <div class="ht-row"><button type="button" data-action="glyphBack">&#9003; Clear</button><button type="button" data-action="transmit" class="ht-primary">Transmit</button></div>
     {{else if (eq puzzle.state "won")}}
       <p class="ht-big">ACCESS GRANTED</p>
       <button type="button" data-action="go" data-view="terminal" data-id="{{viewId}}">Enter</button>
