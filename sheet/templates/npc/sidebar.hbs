@@ -1,0 +1,66 @@
+<aside class="holo-sidebar">
+  <div class="holo-card">
+    <img class="holo-portrait" src="{{actor.img}}" alt="{{actor.name}}" data-action="editImage" data-tooltip="Change portrait">
+    <div class="holo-ac-row">
+      <div class="holo-ac" data-tooltip="Armor Class{{#if acNote}} ({{acNote}}){{/if}}"><b>{{ac}}</b></div>
+    </div>
+    <div class="holo-diamonds">
+      <div class="holo-diamond holo-click" data-action="rollInit" data-tooltip="Roll initiative"><b>{{init}}</b><label>Initiative</label></div>
+      <div class="holo-diamond holo-diamond-low" data-tooltip="{{otherSpeeds}}"><b>{{speedValue}}</b><label>{{speedLabel}}</label></div>
+      <div class="holo-diamond"><b>{{prof}}</b><label>Proficiency</label></div>
+    </div>
+    <div class="holo-meter holo-meter-hp holo-hp-{{hp.state}}">
+      <label>Hit Points</label>
+      <div class="holo-meter-bar">
+        <span class="holo-meter-fill" style="width:{{hp.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="system.attributes.hp.value" value="{{hp.value}}" data-delta data-current="{{hp.value}}" data-tooltip="Type -5 or +5 to adjust"><span>/</span>
+          {{#if editMode}}<input type="text" name="system.attributes.hp.max" value="{{hp.baseMax}}" data-tooltip="Maximum HP">{{else}}<span>{{hp.max}}</span>{{/if}}</div>
+        <input class="holo-meter-side" type="text" name="system.attributes.hp.temp" value="{{#if hp.temp}}{{hp.temp}}{{/if}}" placeholder="TMP" data-delta data-current="{{hp.temp}}" data-tooltip="Temporary HP">
+      </div>
+      <div class="holo-hp-formula">
+        {{#if editMode}}<input type="text" name="system.attributes.hp.formula" value="{{hp.formula}}" placeholder="HP formula, e.g. 8d8+16">
+        {{else}}<span>{{#if hp.formula}}{{hp.formula}}{{else}}<span class="holo-dim">No HP formula</span>{{/if}}</span>{{/if}}
+        {{#if hp.formula}}<a data-action="rollNpcHp" data-tooltip="Roll new hit points from the formula"><i class="fa-solid fa-dice-d20"></i></a>{{/if}}
+      </div>
+    </div>
+    {{#if force.show}}
+    <div class="holo-meter holo-meter-force">
+      <label>{{localize "HOLOSHEET.ForcePoints"}}</label>
+      <div class="holo-meter-bar"><span class="holo-meter-fill" style="width:{{force.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="{{force.path}}" value="{{force.value}}" data-delta data-current="{{force.value}}"><span>/ {{force.max}}</span></div></div>
+    </div>
+    {{/if}}
+    {{#if tech.show}}
+    <div class="holo-meter holo-meter-tech">
+      <label>{{localize "HOLOSHEET.TechPoints"}}</label>
+      <div class="holo-meter-bar"><span class="holo-meter-fill" style="width:{{tech.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="{{tech.path}}" value="{{tech.value}}" data-delta data-current="{{tech.value}}"><span>/ {{tech.max}}</span></div></div>
+    </div>
+    {{/if}}
+    {{#each legendary}}
+    <div class="holo-legend">
+      <label>{{label}}</label>
+      <div class="holo-legend-pips">
+        {{#each pips}}<a class="holo-pip-box {{#if on}}on{{/if}}" data-action="setLegendary" data-res="{{../key}}" data-n="{{n}}" data-tooltip="{{n}} left">{{n}}</a>{{/each}}
+        {{#if ../editMode}}<small class="holo-dim">max</small><input type="text" name="system.resources.{{key}}.max" value="{{max}}" data-tooltip="Maximum">{{/if}}
+      </div>
+    </div>
+    {{/each}}
+  </div>
+
+  {{#if quickAttacks.length}}
+  <div class="holo-favs">
+    <h4 class="holo-side-title"><i class="fa-solid fa-crosshairs"></i> Attacks</h4>
+    <ul class="holo-fav-list">
+      {{#each quickAttacks}}
+      <li class="holo-fav-item" data-item-id="{{id}}">
+        <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+        <div class="holo-fav-text"><a class="holo-fav-name" data-action="useItem">{{name}}</a><span>{{#if roll.hit}}{{roll.hit}} hit{{else if roll.dc}}{{roll.ability}} DC {{roll.dc}}{{/if}}{{#if damage}} · {{damage}}{{/if}}</span></div>
+        {{#if recharge}}<a class="holo-recharge {{#if recharge.charged}}on{{/if}}" data-action="rollRecharge" data-tooltip="{{#if recharge.charged}}Ready{{else}}Roll recharge{{/if}}">{{recharge.short}}</a>{{/if}}
+        {{#if uses}}{{#unless recharge}}<span class="holo-fav-uses"><input type="text" data-item-field="system.uses.value" value="{{uses.value}}"> / {{uses.max}}</span>{{/unless}}{{/if}}
+      </li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+</aside>

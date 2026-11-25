@@ -1,0 +1,20 @@
+<div class="holo-sb-entry holo-item" data-item-id="{{id}}" draggable="true">
+  <div class="holo-sb-line">
+    <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+    <a class="holo-sb-name" data-action="useItem" data-tooltip="Use {{name}}">{{name}}</a>
+    {{#if recharge}}<a class="holo-recharge {{#if recharge.charged}}on{{/if}}" data-action="rollRecharge" data-tooltip="{{#if recharge.charged}}Ready: click to roll anyway{{else}}Spent: click to roll recharge{{/if}}">{{recharge.label}}</a>{{/if}}
+    {{#if uses}}{{#unless recharge}}<span class="holo-sb-uses"><input type="text" data-item-field="system.uses.value" value="{{uses.value}}"><span>/ {{uses.max}}{{#if recovery}} {{recovery}}{{/if}}</span></span>{{/unless}}{{/if}}
+    {{#if legCost}}<span class="holo-sb-tag">Costs {{legCost}}</span>{{/if}}
+    <span class="holo-sb-stats">
+      {{#if roll.hit}}<b>{{roll.hit}}</b> hit{{else if roll.dc}}<b>DC {{roll.dc}}</b> {{roll.ability}}{{/if}}
+      {{#if range}}<span>{{range}}</span>{{/if}}
+      {{#if damage}}<span class="holo-sb-dmg">{{damage}}</span>{{/if}}
+    </span>
+    <span class="holo-controls">
+      {{#if equippable}}<a data-action="toggleEquip" class="holo-equip {{#if equipped}}holo-equip-on{{/if}}" data-tooltip="{{#if equipped}}Unequip{{else}}Equip{{/if}}"><i class="fa-solid fa-shield-halved"></i></a>{{/if}}
+      <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+      <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+    </span>
+  </div>
+  {{#if desc}}<div class="holo-sb-desc">{{{desc}}}</div>{{/if}}
+</div>

@@ -304,3 +304,78 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
   .holo-columns { grid-template-columns:1fr; } .holo-abilities { grid-template-columns:repeat(3, minmax(0,1fr)); }
   .c-range, .c-dmg, .c-weight, .c-school { display:none !important; }
 }
+
+/* ---------- NPC stat block (npc-sheet.mjs) ---------- */
+.holo-npc .holo-sub a { color:var(--hs-muted); font-size:11px; }
+.holo-npc input.holo-npc-align { width:12em; height:22px; font:700 12px var(--hs-display); text-transform:uppercase; }
+.holo-cr-badge { flex:none; width:78px; height:68px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
+  background:linear-gradient(180deg, var(--hs-panel2), var(--hs-bg)); border:2px solid var(--hs-bar); border-radius:8px;
+  box-shadow:inset 0 0 0 2px var(--hs-bg), 0 0 12px color-mix(in srgb, var(--hs-bar) 25%, transparent); }
+.holo-cr-badge small { font:700 10px var(--hs-display); color:var(--hs-bar); letter-spacing:1px; }
+.holo-cr-badge b { font:700 26px/1 var(--hs-display); color:var(--hs-strong); }
+.holo-cr-badge span { font:600 10px var(--hs-display); color:var(--hs-muted); }
+.holo-sheet.application .holo-cr-badge input { flex:none; width:3.2em; height:26px; padding:0; text-align:center; font:700 18px var(--hs-display); }
+.holo-npc .holo-ac-row { margin-top:-34px; }
+.holo-hp-formula { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:3px; font:600 12px var(--hs-display); color:var(--hs-muted); }
+.holo-hp-formula a { color:var(--hs-bar); font-size:14px; }
+.holo-sheet.application .holo-hp-formula input[type="text"] { flex:1; height:22px; font-size:12px; }
+.holo-sheet.application .holo-meter-text input[type="text"] + span + input[type="text"] { text-align:left; }
+.holo-legend { margin-top:.55rem; }
+.holo-legend label { display:block; font:700 10px var(--hs-display); color:var(--hs-muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:3px; }
+.holo-legend-pips { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.holo-legend .holo-pip-box.on { background:var(--hs-bar); border-color:var(--hs-bar); }
+.holo-sheet.application .holo-legend-pips input[type="text"] { flex:none; width:2.4em; height:22px; text-align:center; }
+.holo-recharge { flex:none; padding:0 6px; border:1px solid var(--hs-line); border-radius:4px; font:700 11px/20px var(--hs-display); color:var(--hs-muted) !important; white-space:nowrap; }
+.holo-recharge.on { border-color:var(--hs-hp); color:var(--hs-hp) !important; }
+.holo-recharge:not(.on) { border-style:dashed; }
+
+/* abilities with their saves under them */
+.holo-npc-abilities .holo-ability { min-height:112px; clip-path:polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%); }
+.holo-npc-save { margin-top:3px; padding:0 6px; border-radius:3px; font:700 10px/16px var(--hs-display); text-transform:uppercase; letter-spacing:.3px; color:var(--hs-muted) !important; border:1px solid transparent; }
+.holo-npc-save:hover { border-color:var(--hs-rule); }
+.holo-save-prof .holo-npc-save { color:var(--hs-bar) !important; border-color:color-mix(in srgb, var(--hs-bar) 50%, transparent); }
+
+/* gold-framed properties block, like a printed stat block */
+.holo-sb-frame { position:relative; margin:0 0 .6rem; padding:.55rem .9rem; background:var(--hs-panel); border:1px solid var(--hs-bar); border-radius:4px;
+  box-shadow:inset 0 0 0 3px var(--hs-bg), inset 0 0 0 4px color-mix(in srgb, var(--hs-bar) 45%, transparent); }
+.holo-sb-frame::before, .holo-sb-frame::after { content:""; position:absolute; left:-1px; right:-1px; height:4px; background:var(--hs-bar); }
+.holo-sb-frame::before { top:-1px; } .holo-sb-frame::after { bottom:-1px; }
+.holo-sb-prop { padding:3px 0; font-size:13.5px; line-height:1.45; color:var(--hs-text); }
+.holo-sb-prop + .holo-sb-prop { border-top:1px solid color-mix(in srgb, var(--hs-line) 60%, transparent); }
+.holo-sb-prop > b { font:700 13.5px var(--hs-display); color:var(--hs-head); margin-right:.2rem; }
+.holo-sb-prop .holo-sb-gap { margin-left:1.2rem; }
+.holo-sb-roll { display:inline-block; margin-right:.55rem; color:var(--hs-strong) !important; border-bottom:1px dotted var(--hs-muted); }
+.holo-sb-roll:hover { border-bottom-color:var(--hs-rule); }
+.holo-sb-more { margin-left:.3rem; font:700 11px var(--hs-display); color:var(--hs-rule) !important; text-transform:uppercase; letter-spacing:.4px; }
+.holo-sb-pen { color:var(--hs-muted) !important; font-size:11px; }
+.holo-sb-edit { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.holo-sb-edit label { display:flex; align-items:center; gap:6px; font:700 12px var(--hs-display); color:var(--hs-head); }
+.holo-sheet.application .holo-sb-edit input { flex:none; width:4em; height:24px; text-align:center; }
+.holo-chip-cond { border-color:var(--hs-head); color:var(--hs-head); margin-right:4px; }
+.holo-sb-allskills { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); column-gap:.8rem; margin:.2rem 0 .3rem; padding:.2rem 0; border-top:1px dashed var(--hs-line); }
+.holo-sb-allskills li { border-top:none !important; padding:2px 4px; }
+
+/* traits and actions */
+.holo-sb-h { margin-top:.9rem; }
+.holo-sb-intro { margin:-.1rem 0 .4rem; font-size:13px; font-style:italic; color:var(--hs-muted); }
+.holo-statblock .holo-sb-entry { padding:5px 8px 6px; border-left:2px solid transparent; border-top:none; }
+.holo-statblock .holo-sb-entry + .holo-sb-entry { border-top:1px solid color-mix(in srgb, var(--hs-line) 50%, transparent); }
+.holo-statblock .holo-sb-entry:hover { background:color-mix(in srgb, var(--hs-band2) 70%, transparent); border-left-color:var(--hs-rule); }
+.holo-sb-line { display:flex; align-items:center; gap:.5rem; min-height:28px; }
+.holo-sb-line > img { width:26px; height:26px; flex:none; border:1px solid var(--hs-line); border-radius:4px; cursor:pointer; }
+.holo-sb-line > img:hover { border-color:var(--hs-rule); }
+.holo-sb-name { font:700 italic 15px var(--hs-display); color:var(--hs-strong) !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.holo-sb-name::after { content:"."; }
+.holo-sb-name:hover { color:var(--hs-head) !important; }
+.holo-sb-uses { flex:none; display:inline-flex; align-items:center; gap:3px; font:700 12px var(--hs-display); color:var(--hs-muted); white-space:nowrap; }
+.holo-sheet.application .holo-sb-uses input[type="text"] { flex:none; width:2em; height:20px; padding:0; text-align:center; font:700 12px var(--hs-display); color:var(--hs-strong); }
+.holo-sb-tag { flex:none; font:700 11px var(--hs-display); color:var(--hs-bar); white-space:nowrap; }
+.holo-sb-stats { flex:1; display:flex; justify-content:flex-end; gap:.7rem; font-size:12.5px; color:var(--hs-muted); white-space:nowrap; min-width:0; overflow:hidden; }
+.holo-sb-stats b { color:var(--hs-strong); font-family:var(--hs-display); }
+.holo-sb-dmg { color:var(--hs-text); overflow:hidden; text-overflow:ellipsis; }
+.holo-sb-line > .holo-controls { flex:none; display:flex; gap:.3rem; opacity:.35; transition:opacity .15s; }
+.holo-sb-entry:hover .holo-sb-line > .holo-controls { opacity:1; }
+.holo-sb-desc { margin:2px 0 0 34px; font-size:13.5px; line-height:1.5; color:var(--hs-text); }
+.holo-sb-desc p { margin:0 0 .35em; } .holo-sb-desc p:last-child { margin-bottom:0; }
+.holo-sb-desc em, .holo-sb-desc i { color:var(--hs-strong); }
+.holo-npc .holo-favs .holo-fav-item .holo-recharge { margin-left:auto; }

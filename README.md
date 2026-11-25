@@ -202,6 +202,15 @@ Settings (per player): when to show it (always, only in combat, never), colour t
 - **Boot sound**: optional audio played when the datapad opens.
 - **Datapad & tablet size** (per player): scales the datapad and the character sheet tablet. Default 85%. The Combat HUD has its own size setting (default 85%).
 
+## NPC stat block sheet
+An optional NPC sheet on the same datapad tablet as the character sheet. Pick **Holo-Terminal Stat Block (SW5e NPC)** in an NPC's sheet settings (gear button), or make it the default under *Configure Settings → Core → Sheet Configuration*.
+
+- **Stat Block** tab: ability scores with their saves under them (proficient saves in gold), then a gold-framed block with speed, saves, skills (*all skills* opens the full list), resistances, languages, senses and challenge. Every save, skill and ability rolls when clicked.
+- **Traits, Actions, Bonus Actions, Reactions, Legendary and Lair Actions** list each feature with its text inline, like a printed stat block. Click a name or icon to use it. Attacks show to-hit, range and damage; recharge abilities show *Recharge 5–6* (green when ready, click to roll the recharge); limited uses can be edited in place.
+- **Sidebar**: portrait, AC, initiative, speed, proficiency, HP (type -5 or +5), the HP formula with a dice button that rolls new hit points, force and tech points, legendary action and resistance pips, and a quick list of attacks.
+- **Edit** (padlock): name, alignment, CR (1/8 works), HP max and formula, AC, ability scores, legendary maximums, plus buttons for dnd5e's own armor, speed, senses, type and trait editors. The **+** beside each section adds a new trait or action of that kind.
+- **Powers**, **Gear**, **Effects** and **Notes** tabs work as on the character sheet.
+
 ## Macro / Region API
 ```js
 const api = game.modules.get("holo-terminal").api;
