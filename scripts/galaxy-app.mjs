@@ -339,18 +339,20 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return (this._sectorArt = { fills: [...fills].map(([name, path]) => ({ name, path, color: color.get(name) })), border, names: S.names });
   }
   #drawSectors(c, g, z) {
-    if (!g.sectors) return;
+    if (!g.sectors || !game.settings.get(MODULE_ID, "galaxyCanonRegions")) return;
     const art = this.#sectorArt(g), [ox, oy] = this.toScreen(0, 0);
     c.save(); c.translate(ox, oy); c.scale(z, z);
-    for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, 0.07); c.fill(f.path); }
-    c.lineWidth = 1.2 / z; c.lineJoin = "round"; c.strokeStyle = "rgba(240,212,96,.75)"; c.stroke(art.border);
+    // Coloured regions with light borders; fainter when the main region bands are drawn on top.
+    const a = this.show.regions ? 0.13 : 0.3;
+    for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path); }
+    c.lineWidth = 2 / z; c.lineJoin = "round"; c.strokeStyle = "rgba(240,244,248,.7)"; c.stroke(art.border);
     c.restore();
     if (!this.show.regionLabels) return;
-    this.#placeLabels(c, art.names, z, "600");
+    this.#placeLabels(c, art.names.map((n) => ({ ...n, name: n.name.toUpperCase(), color: "#f3f6f8" })), z, "800");
   }
   /** Draws area names in their colour, nudging each off any label already placed. */
   #placeLabels(c, list, z, weight = "italic 600") {
-    c.font = `${weight} ${Math.min(14, Math.max(10, 8 + z * 5))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
+    c.font = `${weight} ${Math.min(weight === "800" ? 18 : 14, Math.max(10, (weight === "800" ? 10 : 8) + z * 5))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
     const placed = (this._labelBoxes ??= []);
     for (const s of list) {
       const [x0, y0] = this.toScreen(s.label.x, s.label.y);

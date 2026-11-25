@@ -24,6 +24,9 @@ export function registerGalaxySettings() {
     scope: "world", config: true, type: Number, default: 6 });
   game.settings.register(MODULE_ID, "galaxyClass", { name: "Galaxy map: default hyperdrive class", hint: "Used for route estimates until a ship is chosen.",
     scope: "world", config: true, type: Number, default: 2 });
+  game.settings.register(MODULE_ID, "galaxyCanonRegions", { name: "Galaxy map: canon regions",
+    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region layout after the map in Star Wars: The Galactic Explorer's Guide (Lucasfilm), as shown on Wookieepedia; planet and hyperlane data from Wookieepedia (CC BY-SA 3.0).",
+    scope: "world", config: true, type: Boolean, default: true, onChange: () => Hooks.callAll(GALAXY_HOOK) });
 }
 
 /* ---------- helpers ---------- */
@@ -240,30 +243,39 @@ export function buildBands(planets, ringInfo) {
 const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
 
 /**
- * The six canon regions (The Galactic Explorer's Guide), laid out on the ring cells (5-degree slices of each main band).
- * - The Slice runs between the Perlemian Trade Route and the Corellian Run: in each ring its edges are where those
- *   two lanes' worlds actually sit, so it fans out from the Colonies to the Outer Rim.
- * - The rest of each ring, going clockwise from the Corellian Run (south, west, north), is split in canon order:
- *   Trailing Sectors, Western Reaches, the Interior, Unknown Regions, New Territories. The split points are chosen to
- *   agree with as many worlds' listed regions as possible; the Interior is strongly favoured in the inner rings.
+ * The six canon regions, laid out on the ring cells (5-degree slices of each main band). The layout follows the region
+ * map in Star Wars: The Galactic Explorer's Guide (as shown on Wookieepedia): the Interior fills the middle, the Slice
+ * cuts in from the east between the Perlemian Trade Route and the Corellian Run, and the outer rings run, clockwise from
+ * the Slice, through the Trailing Sectors, Western Reaches, Interior (where it reaches out), Unknown Regions and New
+ * Territories. Each ring is split in that order where it best agrees with: the worlds that map places in each region
+ * (strong anchors), each world's listed region on Wookieepedia, and the two lanes that bound the Slice.
  * Returns { n, cx, cy, rings: [{ inner, outer }], cells: (string|null)[][], names: [{name, color, label}] }.
  */
 export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
-export const CANON_COLOR = { "The Interior": "#ffd36b", "New Territories": "#7ee0c3", "The Slice": "#ff7eb6", "Trailing Sectors": "#6fd3ff", "Western Reaches": "#c5e86c", "Unknown Regions": "#b39dff" };
-const RING_ORDER = ["Trailing Sectors", "Western Reaches", "The Interior", "Unknown Regions", "New Territories"];
+export const CANON_COLOR = { "The Interior": "#e8b04a", "New Territories": "#d94a6a", "The Slice": "#4fa58f", "Trailing Sectors": "#9b6cc4", "Western Reaches": "#e3784a", "Unknown Regions": "#4f9fcf" };
+const RING_ORDER = ["The Slice", "Trailing Sectors", "Western Reaches", "The Interior", "Unknown Regions", "New Territories"];
+/** Worlds the Galactic Explorer's Guide map places in each region. */
+const CANON_ANCHORS = {
+  "New Territories": ["Dantooine", "Cantonica", "Yavin 4", "Dathomir", "Ithor", "Ord Mantell", "Mandalore"],
+  "The Slice": ["Felucia", "Mon Cala", "Lothal", "Kashyyyk", "Kessel", "Toydaria", "Nal Hutta", "Bothawui", "Scarif", "Rodia", "Tatooine", "Geonosis"],
+  "The Interior": ["Coruscant", "Alderaan", "Corellia", "Hosnian Prime", "Jakku", "Takodana"],
+  "Trailing Sectors": ["Naboo", "Crait", "D'Qar"],
+  "Western Reaches": ["Bespin", "Hoth", "Mustafar", "Sullust", "Dagobah", "Utapau"],
+  "Unknown Regions": ["Ilum", "Csilla", "Jedha", "Ahch-To", "Batuu", "Endor"]
+};
 
 export function buildSectors(planets, B) {
   const N = B.n, K = B.bands.length, { cx, cy } = B, TAU = Math.PI * 2;
   const rings = B.bands.map((b, k) => ({ outer: b.r, inner: k ? B.bands[k - 1].r : new Array(N).fill(0) }));
   const place = (p) => {
     const ang = (Math.atan2(p.y - cy, p.x - cx) + TAU) % TAU, a = Math.floor((ang / TAU) * N) % N;
-    const d = Math.hypot(p.x - cx, p.y - cy);
-    return { ang, a, k: rings.findIndex((r) => d <= r.outer[a]) };
+    const d = Math.hypot(p.x - cx, p.y - cy), k = rings.findIndex((r) => d <= r.outer[a]);
+    return { ang, a, k: k < 0 ? K - 1 : k };
   };
   // Lane angle per ring: the circular median of the lane's worlds in that ring, filled in from neighbouring rings.
   const laneAngles = (route) => {
     const per = Array.from({ length: K }, () => []);
-    for (const p of planets) if (p.routes?.includes(route)) { const { ang, k } = place(p); if (k >= 0) per[k].push(ang); }
+    for (const p of planets) if (p.routes?.includes(route)) { const { ang, k } = place(p); per[k].push(ang); }
     const out = per.map((angs) => {
       if (angs.length < 2) return null;
       const mean = Math.atan2(angs.reduce((t, a) => t + Math.sin(a), 0), angs.reduce((t, a) => t + Math.cos(a), 0));
@@ -274,42 +286,50 @@ export function buildSectors(planets, B) {
     return out;
   };
   const perl = laneAngles("Perlemian Trade Route"), corr = laneAngles("Corellian Run");
-  // Region votes per ring cell from the worlds' listed regions.
   const votes = Array.from({ length: K }, () => Array.from({ length: N }, () => new Map()));
+  const add = (k, a, n, w) => { if (k < 0 || k >= K) return; const m = votes[k][(a + N) % N]; m.set(n, (m.get(n) ?? 0) + w); };
+  // Each world's listed region.
   for (const p of planets) {
-    const names = (p.subregions ?? []).filter((n) => RING_ORDER.includes(n));
+    const names = (p.subregions ?? []).filter((n) => CANON_REGIONS.includes(n));
     if (p.region === "Unknown Regions" && !names.includes("Unknown Regions")) names.push("Unknown Regions");
     if (!names.length) continue;
-    const { a, k } = place(p); if (k < 0) continue;
-    for (const [da, w] of [[0, 1], [-1, 0.4], [1, 0.4]]) { const m = votes[k][(a + da + N) % N]; for (const n of names) m.set(n, (m.get(n) ?? 0) + w); }
+    const { a, k } = place(p);
+    for (const n of names) { add(k, a, n, 1); add(k, a - 1, n, 0.4); add(k, a + 1, n, 0.4); }
   }
-  const interiorPrior = [9, 3, 2, 1.5, 0.35, 0, 0];
+  // The map's own worlds: strong anchors that also pull on the neighbouring rings.
+  const byName = new Map(planets.map((p) => [p.name, p]));
+  for (const [n, list] of Object.entries(CANON_ANCHORS)) for (const w of list) {
+    const p = byName.get(w); if (!p) continue;
+    const { a, k } = place(p);
+    for (let da = -2; da <= 2; da++) { add(k, a + da, n, da ? 4 : 8); add(k - 1, a + da, n, 1.5); add(k + 1, a + da, n, 1.5); }
+  }
+  // The Slice between its two lanes, from the Colonies outward.
+  for (let k = 2; k < K; k++) {
+    if (perl[k] === null || corr[k] === null) continue;
+    const s0 = Math.round((perl[k] / TAU) * N), s1 = Math.round((corr[k] / TAU) * N), width = (s1 - s0 + N) % N;
+    if (width < 2 || width > N / 2) continue;
+    for (let i = 0; i < width; i++) add(k, s0 + i, "The Slice", k <= 3 ? 1 : 1.5);
+  }
+  // The Interior fills the middle.
+  [40, 30, 2.2, 1.6, 0.4, 0, 0].forEach((w, k) => { if (w && k < K) for (let a = 0; a < N; a++) add(k, a, "The Interior", w); });
   const cells = [];
+  const L = RING_ORDER.length;
   for (let k = 0; k < K; k++) {
-    const row = new Array(N).fill(null);
-    // The Slice: from the Perlemian clockwise to the Corellian Run, when that is a real wedge (both lanes start at
-    // Coruscant, so in the innermost rings they overlap and there is no Slice yet).
-    let s0 = null, s1 = null;
-    if (k > 0 && perl[k] !== null && corr[k] !== null) {
-      const width = (corr[k] - perl[k] + TAU) % TAU;
-      if (width > TAU / 36 && width < TAU / 2) { s0 = Math.round((perl[k] / TAU) * N) % N; s1 = Math.round((corr[k] / TAU) * N) % N; }
-    }
-    if (s0 !== null) for (let a = s0; a !== s1; a = (a + 1) % N) row[a] = "The Slice";
-    // The rest: split in canon order by dynamic programming (each cell's label index never goes back).
-    const arc = [];
-    for (let i = 0, a = s1 ?? Math.round(((corr[k] ?? 0) / TAU) * N) % N; i < N; i++, a = (a + 1) % N) if (!row[a]) arc.push(a);
-    const L = RING_ORDER.length, score = (a, l) => (votes[k][a].get(RING_ORDER[l]) ?? 0) + (RING_ORDER[l] === "The Interior" ? interiorPrior[k] ?? 0 : 0);
+    // Split the ring in canon order, starting at the Perlemian (the New Territories / Slice border): each cell's
+    // label index never goes back. Dynamic programming finds the split that agrees with the most votes.
+    const start = Math.round(((perl[k] ?? perl.find((v) => v !== null) ?? 0) / TAU) * N);
+    const arc = Array.from({ length: N }, (_, i) => (start + i) % N);
+    const score = (a, l) => votes[k][a].get(RING_ORDER[l]) ?? 0;
     const dp = arc.map(() => new Array(L).fill(-Infinity)), from = arc.map(() => new Array(L).fill(0));
     for (let l = 0; l < L; l++) dp[0][l] = score(arc[0], l);
-    for (let i = 1; i < arc.length; i++) for (let l = 0; l < L; l++) {
+    for (let i = 1; i < N; i++) for (let l = 0; l < L; l++) {
       let best = -Infinity, bl = 0;
       for (let q = 0; q <= l; q++) { const v = dp[i - 1][q] - (q === l ? 0 : 0.5); if (v > best) { best = v; bl = q; } }
       dp[i][l] = best + score(arc[i], l); from[i][l] = bl;
     }
-    if (arc.length) {
-      let l = dp.at(-1).indexOf(Math.max(...dp.at(-1)));
-      for (let i = arc.length - 1; i >= 0; i--) { row[arc[i]] = RING_ORDER[l]; l = from[i][l]; }
-    }
+    const row = new Array(N).fill(null);
+    let l = dp.at(-1).indexOf(Math.max(...dp.at(-1)));
+    for (let i = N - 1; i >= 0; i--) { row[arc[i]] = RING_ORDER[l]; l = from[i][l]; }
     cells.push(row);
   }
   // Labels: in the cell with the most same-region neighbours, preferring thick bands.
