@@ -401,6 +401,42 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   #drawLanes(c, g, z) {
     const zr = z / (this.minZ / 0.6), maxTier = zr > 3 ? 3 : zr > 1.6 ? 2 : 1;
+    if (!g.lanes[0]?.pts) return this.#drawRouteLanes(c, g, z, zr, maxTier);
+    // ArcGIS lanes: real shapes, culled to the view, one stroke per tier.
+    const [vx0, vy0] = this.toWorld(0, 0), [vx1, vy1] = this.toWorld(this.W, this.H);
+    const style = { 1: ["rgba(124,198,239,.6)", 1.6], 2: ["rgba(124,198,239,.38)", 1.1], 3: ["rgba(124,198,239,.2)", 1] };
+    const shown = g.lanes.filter((l) => l.tier <= maxTier && l.box[2] >= vx0 && l.box[0] <= vx1 && l.box[3] >= vy0 && l.box[1] <= vy1);
+    for (const t of [3, 2, 1]) {
+      c.beginPath();
+      for (const l of shown) {
+        if (l.tier !== t) continue;
+        for (let i = 0; i < l.pts.length; i += 2) { const [x, y] = this.toScreen(l.pts[i], l.pts[i + 1]); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+      }
+      c.strokeStyle = style[t][0]; c.lineWidth = style[t][1]; c.stroke();
+    }
+    if (!this.show.laneLabels || zr <= 1.3) return;
+    // Names along each long-enough segment, like the ArcGIS map; the same name isn't repeated within 220px.
+    c.save(); c.font = "italic 600 10px Bahnschrift, 'Segoe UI', sans-serif"; c.fillStyle = "rgba(124,198,239,.85)"; c.textAlign = "center";
+    const placed = new Map();
+    for (const l of shown) {
+      if (!l.name || l.tier > Math.min(2, maxTier) && zr < 5) continue;
+      const w = c.measureText(l.name).width + 16;
+      if (l.len * z < w) continue;
+      // Midpoint by length, and the direction of the piece it falls on.
+      let half = l.len / 2, i = 2;
+      for (; i < l.pts.length - 2; i += 2) { const d = Math.hypot(l.pts[i] - l.pts[i - 2], l.pts[i + 1] - l.pts[i - 1]); if (half <= d) break; half -= d; }
+      const ax = l.pts[i - 2], ay = l.pts[i - 1], bx = l.pts[i], by = l.pts[i + 1], seg = Math.hypot(bx - ax, by - ay) || 1;
+      const [mx, my] = this.toScreen(ax + (bx - ax) * (half / seg), ay + (by - ay) * (half / seg));
+      if (mx < -50 || my < -20 || mx > this.W + 50 || my > this.H + 20) continue;
+      const near = placed.get(l.name) ?? [];
+      if (near.some(([x, y]) => Math.hypot(x - mx, y - my) < 220)) continue;
+      near.push([mx, my]); placed.set(l.name, near);
+      let ang = Math.atan2(by - ay, bx - ax); if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI;
+      c.save(); c.translate(mx, my); c.rotate(ang); c.fillText(l.name, 0, -4); c.restore();
+    }
+    c.restore();
+  }
+  #drawRouteLanes(c, g, z, zr, maxTier) {
     for (const lane of g.lanes) {
       if (lane.tier > maxTier) continue;
       const P = (k) => this.pmap.get(k) ?? this.galaxy.byKey.get(k);
@@ -469,8 +505,13 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #drawRoute(c, z) {
     const pts = this.route.path;
     c.save(); c.setLineDash([8, 5]); c.lineWidth = 2.5; c.strokeStyle = "#e69a28"; c.shadowColor = "#e69a28"; c.shadowBlur = 8;
-    c.beginPath(); pts.forEach((p, i) => { const [x, y] = this.toScreen(p.x, p.y); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); c.restore();
-    for (const p of pts) { const [x, y] = this.toScreen(p.x, p.y); c.fillStyle = "#e69a28"; c.beginPath(); c.arc(x, y, 3.5, 0, Math.PI * 2); c.fill(); }
+    c.beginPath();
+    pts.forEach((p, i) => {
+      if (i && p.via) for (let k = 0; k < p.via.length; k += 2) { const [vx, vy] = this.toScreen(p.via[k], p.via[k + 1]); c.lineTo(vx, vy); }
+      const [x, y] = this.toScreen(p.x, p.y); i ? c.lineTo(x, y) : c.moveTo(x, y);
+    });
+    c.stroke(); c.restore();
+    for (const p of pts) { if (!p.name && p !== pts[0] && p !== pts.at(-1)) continue; const [x, y] = this.toScreen(p.x, p.y); c.fillStyle = "#e69a28"; c.beginPath(); c.arc(x, y, 3.5, 0, Math.PI * 2); c.fill(); }
   }
 
   /* ---------- planet / route actions ---------- */

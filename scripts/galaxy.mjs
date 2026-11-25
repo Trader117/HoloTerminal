@@ -2,10 +2,12 @@ import { MODULE_ID } from "./store.mjs";
 
 /* Galaxy map data.
    Planets come from data/planets.json, built from Wookieepedia (CC BY-SA 3.0; see data/ATTRIBUTION.md).
-   Each row: [title, grid, region, sector, system, flags, weight, class, climate, terrain, routes]
+   Each row: [title, grid, region, sector, system, flags, weight, class, climate, terrain, routes, subregions, x, y]
    flags: 1 = Legends-only, 2 = canon and Legends both, 0 = canon only.
-   Positions: one grid square = 100 map units. A planet sits inside its square at a spot seeded from its system's name,
-   so worlds in the same system cluster together. The GM can drag any planet anywhere. */
+   Positions: one grid square = 100 map units. x, y come from Henry Bernberg's Star Wars galaxy map (ArcGIS) for the
+   ~4,800 worlds it plots (see tools/arcgis-import.py). Worlds it doesn't plot sit next to a plotted world of the same
+   system, or failing that inside their grid square at a spot seeded from the system's name. The GM can drag any planet.
+   Hyperlanes come from data/hyperlanes.json (the same ArcGIS map's Hyperspace layer). */
 
 export const SQ = 100;
 export const GALAXY_HOOK = `${MODULE_ID}.galaxy`;
@@ -25,7 +27,7 @@ export function registerGalaxySettings() {
   game.settings.register(MODULE_ID, "galaxyClass", { name: "Galaxy map: default hyperdrive class", hint: "Used for route estimates until a ship is chosen.",
     scope: "world", config: true, type: Number, default: 2 });
   game.settings.register(MODULE_ID, "galaxyCanonRegions", { name: "Galaxy map: canon regions",
-    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region outlines traced from Henry Bernberg's Star Wars galaxy map (ArcGIS); planet and hyperlane data from Wookieepedia (CC BY-SA 3.0).",
+    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region outlines, planet positions and hyperspace lanes from Henry Bernberg's Star Wars galaxy map (ArcGIS); planet details from Wookieepedia (CC BY-SA 3.0).",
     scope: "world", config: true, type: Boolean, default: true, onChange: () => Hooks.callAll(GALAXY_HOOK) });
 }
 
@@ -47,26 +49,28 @@ export const gridLabel = (x, y) => `${String.fromCharCode(65 + Math.floor(x / SQ
 let cache = null;
 export async function loadGalaxy() {
   if (cache) return cache;
-  const [rows, canon] = await Promise.all([
+  const [rows, canon, lanes] = await Promise.all([
     fetch(`modules/${MODULE_ID}/data/planets.json`).then((r) => r.json()).catch(() => []),
-    fetch(`modules/${MODULE_ID}/data/canon-regions.json`).then((r) => r.json()).catch(() => null)
+    fetch(`modules/${MODULE_ID}/data/canon-regions.json`).then((r) => r.json()).catch(() => null),
+    fetch(`modules/${MODULE_ID}/data/hyperlanes.json`).then((r) => r.json()).catch(() => null)
   ]);
-  cache = buildGalaxy(rows, canon);
+  cache = buildGalaxy(rows, canon, lanes);
   return cache;
 }
 export function resetGalaxyCache() { cache = null; }
 
 /** Merges canon and Legends pages, places planets, and builds lanes and region rings. */
-export function buildGalaxy(rows, canon = null) {
+export function buildGalaxy(rows, canon = null, laneData = null) {
   const byKey = new Map();
   for (const r of rows) {
-    const [title, grid, region, sector, system, legendsOnly, weight, cls, climate, terrain, routes, subs] = r;
+    const [title, grid, region, sector, system, legendsOnly, weight, cls, climate, terrain, routes, subs, ax, ay] = r;
     const g = parseGrid(grid);
     if (!g) continue;
     const key = slug(title), legends = !!legendsOnly;
     const prev = byKey.get(key);
     const entry = { key, title, name: baseName(title), grid: `${String.fromCharCode(65 + g.col)}-${g.row + 1}`, g, region: normRegion(region), sector: /^none$/i.test(sector ?? "") ? "" : sector, system,
-      weight: weight ?? 0, cls, climate, terrain, routes: routes ? routes.split("|").map((x) => x.replace(/\/Legends$/, "")) : [], subregions: subs ? subs.split("|") : [], canon: !legends, legends };
+      weight: weight ?? 0, cls, climate, terrain, routes: routes ? routes.split("|").map((x) => x.replace(/\/Legends$/, "")) : [], subregions: subs ? subs.split("|") : [], canon: !legends, legends,
+      ax: Number.isFinite(ax) ? ax : null, ay: Number.isFinite(ay) ? ay : null };
     if (!prev) { byKey.set(key, entry); continue; }
     // Keep the canon page's data; fill gaps from Legends; mark as in both.
     const [keep, other] = prev.canon ? [prev, entry] : [entry, prev];
@@ -74,12 +78,24 @@ export function buildGalaxy(rows, canon = null) {
     keep.routes = [...new Set([...keep.routes, ...other.routes])];
     keep.subregions = [...new Set([...keep.subregions, ...other.subregions])];
     keep.weight = Math.max(keep.weight, other.weight);
+    if (keep.ax == null && other.ax != null) { keep.ax = other.ax; keep.ay = other.ay; keep.grid = other.grid; keep.g = other.g; }
     keep.canon = prev.canon || entry.canon; keep.legends = prev.legends || entry.legends || !entry.canon || !prev.canon;
     if (!keep.canon) keep.title = other.title;
     byKey.set(key, keep);
   }
   const planets = [...byKey.values()];
+  // Worlds the ArcGIS map plots go exactly where it puts them.
+  const sysAnchor = new Map();
+  for (const p of planets) if (p.ax != null) { p.x = p.ax; p.y = p.ay; p.placed = true; if (p.system && !sysAnchor.has(p.system)) sysAnchor.set(p.system, p); }
   for (const p of planets) {
+    if (p.placed) continue;
+    // Same system as a plotted world (and in or next to the same square): sit just beside it.
+    const a = p.system && sysAnchor.get(p.system);
+    if (a && Math.abs(a.g.col - p.g.col) <= 1 && Math.abs(a.g.row - p.g.row) <= 1) {
+      const h = hash(p.key), ang = rand01(h) * Math.PI * 2, r = 1.2 + rand01(h ^ 77) * 1.6;
+      p.x = a.x + Math.cos(ang) * r; p.y = a.y + Math.sin(ang) * r;
+      continue;
+    }
     const seed = hash(p.system || p.key);
     const sx = 0.15 + rand01(seed) * 0.7, sy = 0.15 + rand01(seed ^ 0x9e3779b9) * 0.7;
     const off = p.system ? (rand01(hash(p.key)) - 0.5) * 0.08 : 0, off2 = p.system ? (rand01(hash(p.key) ^ 77) - 0.5) * 0.08 : 0;
@@ -93,10 +109,53 @@ export function buildGalaxy(rows, canon = null) {
   const rings = buildRings(planets);
   const bands = buildBands(planets, rings), sectors = canon ? buildSectors(canon) : null;
   const wedgeNames = new Set(CANON_REGIONS);
-  return { sectors, subregions: buildSubregions(planets, cols, rows_, { skip: wedgeNames }), planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands, zones: buildZones(planets, cols, rows_, rings) };
+  return { sectors, subregions: buildSubregions(planets, cols, rows_, { skip: wedgeNames }), planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: laneData?.lanes ? buildArcLanes(laneData, planets) : buildLanes(planets), rings, bands, zones: buildZones(planets, cols, rows_, rings) };
 }
 
-/** Hyperlanes: every route named by at least 3 planets. The planets are joined by a minimum spanning tree, which
+/**
+ * Hyperlanes from the ArcGIS map: one entry per lane segment, with its real shape.
+ * Each segment's ends are tied to the plotted world sitting on them (within 0.8 units), or else to a junction shared
+ * with other segments ending at the same spot, so routes can be plotted across the network.
+ * Returns [{ name, tier, pts: [x, y, ...], a, b, len, box }] where a/b are planet keys or "@n" junction ids.
+ */
+export function buildArcLanes(data, planets) {
+  const CELL = 5, SNAP = 0.8, hashP = new Map(), hashJ = new Map(), junctions = [];
+  const ck = (x, y) => `${Math.floor(x / CELL)},${Math.floor(y / CELL)}`;
+  for (const p of planets) if (p.placed) { const k = ck(p.x, p.y); if (!hashP.has(k)) hashP.set(k, []); hashP.get(k).push(p); }
+  const nearIn = (h, x, y) => {
+    let best = null, bd = SNAP;
+    const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const q of h.get(`${cx + i},${cy + j}`) ?? []) {
+      const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = q; }
+    }
+    return best;
+  };
+  const nodeAt = (x, y) => {
+    const p = nearIn(hashP, x, y); if (p) return p.key;
+    const j = nearIn(hashJ, x, y); if (j) return j.key;
+    const n = { key: `@${junctions.length}`, x, y }; junctions.push(n);
+    const k = ck(x, y); if (!hashJ.has(k)) hashJ.set(k, []); hashJ.get(k).push(n);
+    return n.key;
+  };
+  const lanes = [];
+  for (const l of data.lanes) {
+    const tier = l.z <= 1 ? 1 : l.z <= 3 ? 2 : 3;
+    for (const pts of l.p) {
+      if (pts.length < 4) continue;
+      let len = 0, x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (let i = 0; i < pts.length; i += 2) {
+        if (i) len += Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+        x0 = Math.min(x0, pts[i]); x1 = Math.max(x1, pts[i]); y0 = Math.min(y0, pts[i + 1]); y1 = Math.max(y1, pts[i + 1]);
+      }
+      lanes.push({ name: l.n || "", tier, pts, len, box: [x0, y0, x1, y1],
+        a: nodeAt(pts[0], pts[1]), b: nodeAt(pts.at(-2), pts.at(-1)) });
+    }
+  }
+  lanes.junctions = new Map(junctions.map((j) => [j.key, j]));
+  return lanes.sort((a, b) => b.tier - a.tier);
+}
+
+/** Fallback hyperlanes (no hyperlanes.json): every route named by at least 3 planets. The planets are joined by a minimum spanning tree, which
     follows the route's real shape without zig-zagging; gaps over 6 squares are left open. */
 export function buildLanes(planets) {
   const byRoute = new Map();
@@ -467,9 +526,21 @@ export function visiblePlanets(galaxy, s = state(), { gm = game.user.isGM } = {}
 export function plotRoute(galaxy, planets, from, to, hyperClass = 2) {
   const pmap = new Map(planets.map((p) => [p.key, p]));
   const nodes = new Map(); // key -> {x,y}
-  const edges = new Map(); // key -> [{to, w, lane}]
-  const addEdge = (a, b, w, lane) => { if (!edges.has(a)) edges.set(a, []); edges.get(a).push({ to: b, w, lane }); };
+  const edges = new Map(); // key -> [{to, w, lane, via}]
+  const addEdge = (a, b, w, lane, via = null) => { if (!edges.has(a)) edges.set(a, []); edges.get(a).push({ to: b, w, lane, via }); };
+  const junctions = galaxy.lanes.junctions;
   for (const lane of galaxy.lanes) {
+    if (lane.pts) { // ArcGIS lane segment: real shape, ends tied to worlds or junctions
+      const end = (k, i) => pmap.get(k) ?? junctions?.get(k) ?? { key: k, x: lane.pts[i], y: lane.pts[i + 1] };
+      const a = end(lane.a, 0), b = end(lane.b, lane.pts.length - 2);
+      if (!nodes.has(lane.a)) nodes.set(lane.a, a.name ? a : { ...a, key: null, name: null });
+      if (!nodes.has(lane.b)) nodes.set(lane.b, b.name ? b : { ...b, key: null, name: null });
+      const via = lane.pts.slice(2, -2), back = [];
+      for (let i = via.length - 2; i >= 0; i -= 2) back.push(via[i], via[i + 1]);
+      const w = (lane.len / SQ) * 0.5, name = lane.name || "Unnamed hyperlane";
+      addEdge(lane.a, lane.b, w, name, via); addEdge(lane.b, lane.a, w, name, back);
+      continue;
+    }
     for (const [ka, kb] of lane.edges) {
       const a = pmap.get(ka), b = pmap.get(kb);
       if (!a || !b) continue;
@@ -487,33 +558,38 @@ export function plotRoute(galaxy, planets, from, to, hyperClass = 2) {
   const nearest = (pt) => laneNodes.map(([k, n]) => [k, direct(pt, n)]).sort((a, b) => a[1] - b[1]).slice(0, 12);
   for (const [k, d] of nearest(from)) addEdge(S, k, d, null);
   for (const [k, d] of nearest(to)) addEdge(k, E, d, null);
-  // Dijkstra (graph is small: a few thousand nodes).
+  // Dijkstra with a binary heap (a few thousand nodes).
   const dist = new Map([[S, 0]]), prev = new Map(), done = new Set();
-  const queue = [[0, S]];
-  while (queue.length) {
-    queue.sort((a, b) => a[0] - b[0]);
-    const [d, k] = queue.shift();
+  const heap = new MinHeap(); heap.push(0, S);
+  while (heap.size) {
+    const [d, k] = heap.pop();
     if (done.has(k)) continue;
     done.add(k);
     if (k === E) break;
     for (const e of edges.get(k) ?? []) {
       const nd = d + e.w;
-      if (nd < (dist.get(e.to) ?? Infinity)) { dist.set(e.to, nd); prev.set(e.to, { k, lane: e.lane }); queue.push([nd, e.to]); }
+      if (nd < (dist.get(e.to) ?? Infinity)) { dist.set(e.to, nd); prev.set(e.to, { k, lane: e.lane, via: e.via }); heap.push(nd, e.to); }
     }
   }
   const path = [];
   let k = E;
-  while (k) { const n = nodes.get(k); const pv = prev.get(k); path.unshift({ x: n.x, y: n.y, key: n.key, name: n.name, lane: pv?.lane ?? null }); k = pv?.k; }
+  while (k) { const n = nodes.get(k); const pv = prev.get(k); path.unshift({ x: n.x, y: n.y, key: n.key ?? null, name: n.name ?? null, lane: pv?.lane ?? null, ...(pv?.via?.length ? { via: pv.via } : {}) }); k = pv?.k; }
   // Drop zero-length hops (start or end sitting on a lane world).
-  for (let i = path.length - 1; i > 0; i--) if (direct(path[i - 1], path[i]) < 0.01) { path[i - 1].name ??= path[i].name; path[i - 1].key ??= path[i].key; path.splice(i, 1); }
+  for (let i = path.length - 1; i > 0; i--) if (!path[i].via && direct(path[i - 1], path[i]) < 0.01) { path[i - 1].name ??= path[i].name; path[i - 1].key ??= path[i].key; path.splice(i, 1); }
   let squares = 0, laneSquares = 0;
-  for (let i = 1; i < path.length; i++) { const d = direct(path[i - 1], path[i]); squares += d; if (path[i].lane) laneSquares += d; }
+  const hop = (a, b) => { // along the lane's shape when there is one
+    if (!b.via) return direct(a, b);
+    let d = 0, x = a.x, y = a.y;
+    for (let i = 0; i < b.via.length; i += 2) { d += Math.hypot(b.via[i] - x, b.via[i + 1] - y); x = b.via[i]; y = b.via[i + 1]; }
+    return (d + Math.hypot(b.x - x, b.y - y)) / SQ;
+  };
+  for (let i = 1; i < path.length; i++) { const d = hop(path[i - 1], path[i]); squares += d; if (path[i].lane) laneSquares += d; }
   // Legs: consecutive hops on the same lane collapse into one line of the itinerary.
   const legs = [];
   for (let i = 1; i < path.length; i++) {
     const lane = path[i].lane, last = legs.at(-1);
-    if (last && last.lane && last.lane === lane) { last.to = path[i].name; last.stops++; }
-    else legs.push({ lane, from: path[i - 1].name, to: path[i].name, stops: 1 });
+    if (last && last.lane && last.lane === lane) { if (path[i].name) { last.to = path[i].name; last.stops++; } }
+    else legs.push({ lane, from: path[i - 1].name ?? gridLabel(path[i - 1].x, path[i - 1].y), to: path[i].name ?? gridLabel(path[i].x, path[i].y), stops: 1 });
   }
   const effective = dist.get(E) ?? direct(from, to);
   const hours = effective * game.settings.get(MODULE_ID, "galaxyHours") * Math.max(0.25, Number(hyperClass) || 1);
@@ -524,4 +600,28 @@ export function formatHours(h) {
   if (h < 1) return `${Math.max(1, Math.round(h * 60))} minutes`;
   if (h < 48) return `${Math.round(h * 10) / 10} hours`;
   return `${Math.round((h / 24) * 10) / 10} days`;
+}
+
+/** Small binary min-heap of [priority, value]. */
+class MinHeap {
+  #a = [];
+  get size() { return this.#a.length; }
+  push(p, v) {
+    const a = this.#a; a.push([p, v]);
+    let i = a.length - 1;
+    while (i > 0) { const j = (i - 1) >> 1; if (a[j][0] <= a[i][0]) break; [a[i], a[j]] = [a[j], a[i]]; i = j; }
+  }
+  pop() {
+    const a = this.#a, top = a[0], last = a.pop();
+    if (a.length) {
+      a[0] = last; let i = 0;
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1; let m = i;
+        if (l < a.length && a[l][0] < a[m][0]) m = l;
+        if (r < a.length && a[r][0] < a[m][0]) m = r;
+        if (m === i) break; [a[i], a[m]] = [a[m], a[i]]; i = m;
+      }
+    }
+    return top;
+  }
 }
