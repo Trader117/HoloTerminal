@@ -180,6 +180,20 @@ Players see scrambled text and up to three ways in:
 
 Once decrypted, the text resolves letter by letter. Each player keeps what they've decrypted. The GM always sees the plain text, with an open padlock, and gets a whisper for every attempt.
 
+## Combat HUD
+An action bar along the bottom of the screen for the selected token (or your assigned character), built to be easy for new players:
+
+- **Character card**: portrait (click to open the sheet), HP bar with temp HP, AC, power DC and speed, plus **Checks & Saves**, **Short Rest** and **Long Rest** buttons. In combat it shows **YOUR TURN**, **Roll Initiative**, **End Turn** and, at 0 HP, **Death Save**.
+- **Action / Bonus Action / Reaction / Free & Other** boxes. Each one lists weapons, powers, features and items that take that kind of action, under labeled headings. Equipped weapons and prepared powers only.
+- **Anyone can**: Dash, Disengage, Dodge, Help, Hide, Search, Grapple/Shove, Ready and Opportunity Attack. Each posts a chat note with the rule; Hide, Search and Grapple roll the skill, and Dodge applies the Dodging status if your system has it.
+- **Ready / ✓ Used** light on each box. Using something marks it used; it resets when your turn starts. Click it to flip it yourself.
+- **Hover** anything for a plain-language tooltip (range, to hit, damage, uses left, description). **Right-click** opens the full item. The **?** button shows a short how-to.
+- **Macros**: drag macros onto the box to keep them per character; right-click to remove.
+- **Ignite Saber** appears only for characters carrying a lightweapon (any weapon named lightsaber, saberstaff, shoto, lightfoil, saberwhip, lightring and so on). Click it to ignite straight away (blue until you pick a colour): the token gets a pulsing glow and plays the ignition sound. Click again to switch it off, which restores the token's previous light. Shift-click to choose the blade colour; if the saber is already lit it just changes colour. The token must be on the scene. The GM sets the ignite and switch-off sounds in module settings (defaults `media/home/lightsaber-ignition.mp3` and `media/home/lightsaber-deactivation.mp3`).
+- Drag the grip on the left to move the bar. **Alt+H** shows or hides it.
+
+Settings (per player): when to show it (always, only in combat, never), colour theme (defaults to the shared SW5e Database look; the old holo colours are still available), size, and whether to show the common actions.
+
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.
 - **Slicing skill**: default `inv` (Investigation) on dnd5e, `tec` (Technology) on the SW5e system. Any skill key the system knows works.

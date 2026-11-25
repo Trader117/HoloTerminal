@@ -14,12 +14,14 @@
   },
   "esmodules": [
     "scripts/main.mjs",
-    "sheet/scripts/sheet.mjs"
+    "sheet/scripts/sheet.mjs",
+    "scripts/hud/hud.mjs"
   ],
   "styles": [
     "styles/theme.css",
     "styles/holo-terminal.css",
-    "sheet/styles/sheet.css"
+    "sheet/styles/sheet.css",
+    "styles/hud.css"
   ],
   "languages": [
     {

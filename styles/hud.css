@@ -1,0 +1,133 @@
+/* Holo-Terminal Combat HUD. Original design: a wide graphite tablet (same frame, keys and readout as the datapad)
+   with the shared SW5e Database theme from styles/theme.css on its screen. */
+#htc-hud { position: fixed; z-index: 70; left: 120px; bottom: 80px; pointer-events: none; --htc-scale: 1;
+  font-size: calc(13px * var(--htc-scale)); display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .7)); }
+#htc-hud, #htc-hud .ht-screen {
+  --htc-tile: var(--ht-panel-2, #1b232b); --htc-band: var(--ht-band-2, #222d37); --htc-line: var(--ht-line, #27323c);
+  --htc-text: var(--ht-text, #dce3e9); --htc-strong: var(--ht-strong, #f3f6f8); --htc-muted: var(--ht-muted, #8f9ca8);
+  --htc-head: var(--ht-red, #ff5146); --htc-rule: var(--ht-blue, #2aa3df);
+  --htc-hover: var(--ht-blue, #2aa3df); --htc-hover-soft: var(--ht-blue-soft, rgba(42, 163, 223, .2));
+  --htc-hp: var(--ht-good, #4cc38a); --htc-hurt: var(--ht-warn, #ff9f43); --htc-crit: var(--ht-red, #ff5146);
+  --htc-gold: var(--ht-gold, #e69a28); --htc-gold-text: var(--ht-gold-text, #ebe2cf);
+  --htc-font: var(--ht-font-body, "Segoe UI", "Open Sans", system-ui, sans-serif);
+  --htc-font-head: var(--ht-font-display, "Bahnschrift", "Segoe UI", system-ui, sans-serif); }
+#htc-hud > * { pointer-events: auto; }
+#htc-hud a { color: inherit; text-decoration: none; cursor: pointer; }
+.htc-dim { color: var(--htc-muted); }
+
+/* ---------- tablet frame (reuses .ht-device / .ht-screen / .ht-keys / .ht-key / .ht-readout) ---------- */
+#htc-hud .htc-device { height: auto; padding: 0 22px 12px; border-radius: 22px; }
+#htc-hud .htc-device.htc-turn { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px #050607, 0 0 0 2px var(--htc-gold), 0 0 18px rgba(230, 154, 40, .45); }
+.htc-grip { height: 18px; display: flex; align-items: center; justify-content: center; }
+.htc-bezel-label { font: 700 9px var(--htc-font-head); letter-spacing: 2px; text-transform: uppercase; color: #6c7883; pointer-events: none; }
+#htc-hud .htc-screen { flex: none; flex-direction: row; align-items: stretch; height: calc(196px * var(--htc-scale)); font: inherit; font-family: var(--htc-font); }
+.htc-screen > * { border-right: 1px solid var(--htc-line); }
+.htc-screen > *:last-child { border-right: none; }
+
+/* screen buttons (Ready/Used pips, drawer close) */
+#htc-hud .ht-screen button { font: 600 .72em var(--htc-font-head); text-transform: uppercase; letter-spacing: .04em; line-height: 1.5;
+  color: var(--htc-strong); background: var(--htc-tile); border: 1px solid var(--htc-line); border-radius: 4px; padding: 0 6px; width: auto; height: auto; margin: 0; }
+#htc-hud .ht-screen button:hover { border-color: var(--htc-hover); background: var(--htc-hover-soft); }
+
+/* bottom keys */
+#htc-hud .htc-controls { padding-top: 10px; gap: 8px; }
+#htc-hud .htc-controls .ht-key { height: 38px; }
+#htc-hud .htc-controls .ht-key.htc-key-wide { width: auto; min-width: 64px; padding: 3px 8px 2px; }
+#htc-hud .ht-key.htc-key-attn { color: var(--htc-gold); }
+#htc-hud .ht-key.htc-key-danger { color: var(--htc-crit); }
+.htc-readout { min-width: 110px; height: 38px !important; font-size: 13px !important; }
+.htc-readout-turn { color: #ffe2b0 !important; text-shadow: 0 0 6px rgba(230, 154, 40, .9) !important; animation: htc-pulse 1.4s ease-in-out infinite; }
+.htc-readout-idle { color: #7f93a3 !important; text-shadow: none !important; }
+@keyframes htc-pulse { 50% { opacity: .6; } }
+
+/* lightsaber key */
+.htc-saber-blade { display: block; width: 24px; height: 4px; margin: 5px 0 3px; border-radius: 2px; background: #5b636b; border-left: 6px solid #3a4046; }
+.htc-saber-on .htc-saber-blade, .htc-saber:hover .htc-saber-blade { background: #fff; box-shadow: 0 0 4px var(--saber), 0 0 9px var(--saber); }
+#htc-hud .ht-key.htc-saber-on { color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -2px 0 var(--saber), 0 0 8px var(--saber); }
+
+/* ---------- character card ---------- */
+.htc-card { display: flex; gap: 8px; padding: 8px; width: calc(290px * var(--htc-scale)); flex: none; }
+.htc-portrait { position: relative; flex: none; width: calc(84px * var(--htc-scale)); height: calc(110px * var(--htc-scale));
+  border: 1px solid var(--htc-line); border-radius: 6px; cursor: pointer; overflow: hidden; background: var(--ht-bg, #0e1216); }
+.htc-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; border: none; }
+.htc-portrait:hover { border-color: var(--htc-hover); }
+.htc-turn-flag { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font: 700 .75em var(--htc-font-head); letter-spacing: .1em;
+  background: var(--htc-gold); color: #111; }
+.htc-ident { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.htc-name { font: 700 1.3em/1.15 var(--htc-font-head); text-transform: uppercase; letter-spacing: .02em; color: var(--htc-head);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-bottom: 2px; border-bottom: 2px solid var(--htc-rule); }
+.htc-sub { font-size: .82em; font-style: italic; color: #8fb9d3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.htc-hp { --bar: var(--htc-hp); }
+.htc-hp-hurt { --bar: var(--htc-hurt); } .htc-hp-crit { --bar: var(--htc-crit); }
+.htc-hp-bar { height: 7px; background: rgba(0, 0, 0, .35); border: 1px solid var(--htc-line); border-radius: 3px; overflow: hidden; }
+.htc-hp-bar span { display: block; height: 100%; background: var(--bar); box-shadow: 0 0 6px var(--bar); transition: width .3s; }
+.htc-hp-text { font-weight: 700; color: var(--htc-strong); } .htc-hp-text i { color: var(--bar); }
+.htc-hp-text em { color: var(--htc-muted); font-weight: normal; font-size: .85em; }
+.htc-stats { display: flex; gap: 4px; }
+.htc-stat { flex: 1; text-align: center; padding: 1px 2px; display: flex; flex-direction: column;
+  background: rgba(31, 27, 22, .75); border: 1px solid var(--htc-line); border-top: 2px solid var(--htc-gold); border-radius: 3px; }
+.htc-stat label { font: 700 .66em var(--htc-font-head); letter-spacing: .08em; text-transform: uppercase; color: var(--htc-muted); }
+.htc-stat b { font-size: 1.05em; color: var(--htc-gold-text); }
+.htc-dying { font: 700 .85em var(--htc-font-head); color: var(--htc-crit); }
+
+/* ---------- help ---------- */
+.htc-help { padding: 8px 10px; width: calc(260px * var(--htc-scale)); flex: none; font-size: .88em; overflow-y: auto; scrollbar-width: thin; }
+.htc-help h4 { margin: 0 0 4px; padding-bottom: 2px; border-bottom: 2px solid var(--htc-rule); color: var(--htc-head);
+  font: 700 1.05em var(--htc-font-head); text-transform: uppercase; }
+.htc-help ul { margin: 0; padding-left: 1.1em; } .htc-help li { margin: 2px 0; } .htc-help b { color: var(--htc-strong); }
+
+/* ---------- action boxes ---------- */
+.htc-group { --cols: 2; display: flex; flex-direction: column; flex: none; min-width: calc(195px * var(--htc-scale));
+  width: calc(var(--cols) * 68px * var(--htc-scale) + 18px); overflow: hidden; }
+.htc-group-head { display: flex; flex-wrap: nowrap; flex: none; min-height: 2.1em; justify-content: space-between; align-items: center; gap: 6px;
+  padding: 5px 8px 3px; border-bottom: 2px solid var(--htc-rule); }
+.htc-group-label { cursor: help; white-space: nowrap; font: 700 1em var(--htc-font-head); text-transform: uppercase; letter-spacing: .04em; color: var(--htc-head); }
+#htc-hud .ht-screen .htc-pip { color: var(--htc-hp); border-color: var(--htc-hp); background: transparent; }
+.htc-used .htc-group-label { color: var(--htc-muted); }
+#htc-hud .ht-screen .htc-used .htc-pip { color: var(--htc-muted); border-color: var(--htc-line); background: var(--htc-band); }
+.htc-used .htc-group-body { opacity: .5; }
+.htc-group-body { padding: 4px 8px 6px; overflow-y: auto; scrollbar-width: thin; flex: 1 1 auto; min-height: 0; }
+.htc-section + .htc-section { margin-top: 5px; }
+.htc-section-label { font: 700 .68em var(--htc-font-head); text-transform: uppercase; letter-spacing: .1em; color: var(--htc-gold);
+  border-bottom: 1px solid var(--htc-line); margin-bottom: 3px; }
+.htc-tiles { display: grid; grid-template-columns: repeat(var(--cols, 2), calc(64px * var(--htc-scale))); gap: 4px; }
+.htc-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 2px;
+  border: 1px solid var(--htc-line); background: var(--htc-tile); border-radius: 5px; transition: border-color .15s, box-shadow .15s; }
+.htc-tile:hover { border-color: var(--htc-hover); box-shadow: 0 0 8px rgba(42, 163, 223, .45); }
+.htc-tile img { width: calc(40px * var(--htc-scale)); height: calc(40px * var(--htc-scale)); border: 1px solid var(--htc-line); border-radius: 4px; object-fit: cover; }
+.htc-tile > i { font-size: calc(22px * var(--htc-scale)); height: calc(40px * var(--htc-scale)); line-height: calc(40px * var(--htc-scale)); color: var(--htc-rule); }
+.htc-tile-name { font-size: .72em; line-height: 1.15; text-align: center; max-height: 2.3em; overflow: hidden; word-break: break-word; color: var(--htc-strong); }
+.htc-badge { position: absolute; top: 1px; right: 1px; font-size: .68em; background: var(--htc-rule); color: #fff; padding: 0 4px; border-radius: 3px; font-weight: 700; }
+.htc-depleted { opacity: .35; filter: grayscale(1); }
+.htc-empty { font-size: .8em; color: var(--htc-muted); font-style: italic; padding: 6px 2px; }
+.htc-dropzone { grid-column: 1 / -1; border: 1px dashed var(--htc-line); border-radius: 5px; text-align: center; font-style: normal; }
+.htc-macros { --cols: 2; }
+.htc-tiles-basic { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(128px * var(--htc-scale)), 1fr)); gap: 3px; }
+.htc-tiles-basic .htc-tile { width: auto; flex-direction: row; gap: 5px; padding: 2px 5px; }
+.htc-tiles-basic .htc-tile > i { font-size: 1em; height: auto; line-height: 1.4; width: 1.2em; text-align: center; }
+.htc-tiles-basic .htc-tile-name { font-size: .8em; text-align: left; white-space: nowrap; }
+
+/* ---------- checks & saves (a smaller tablet above the HUD) ---------- */
+#htc-hud .htc-drawer { height: auto; padding: 12px 18px; border-radius: 18px; max-width: calc(100vw - 160px); }
+#htc-hud .htc-drawer .ht-screen { padding: 8px 10px; }
+.htc-drawer-head { display: flex; gap: 10px; align-items: center; border-bottom: 2px solid var(--htc-rule); padding-bottom: 3px; margin-bottom: 6px; }
+.htc-drawer-head > span:first-child { font: 700 1.15em var(--htc-font-head); text-transform: uppercase; color: var(--htc-head); }
+.htc-drawer-head .htc-dim { flex: 1; font-size: .85em; font-style: italic; }
+.htc-drawer-cols { display: flex; gap: 14px; align-items: flex-start; }
+.htc-drawer-col { min-width: 150px; max-height: calc(240px * var(--htc-scale)); overflow-y: auto; scrollbar-width: thin; }
+.htc-drawer-col h5 { margin: 0 0 3px; font: 700 .78em var(--htc-font-head); color: var(--htc-gold); text-transform: uppercase; letter-spacing: .08em; border: none; }
+.htc-skills { columns: 2; column-gap: 14px; min-width: 320px; } .htc-skills h5 { column-span: all; }
+.htc-roll { display: flex; justify-content: space-between; gap: 8px; padding: 1px 6px; border-left: 2px solid transparent; break-inside: avoid; color: var(--htc-text); }
+.htc-roll:nth-of-type(even) { background: var(--htc-band); }
+.htc-roll:hover { border-left-color: var(--htc-hover); background: var(--htc-hover-soft); }
+.htc-roll b { color: var(--htc-strong); }
+.htc-prof span { color: var(--htc-strong); font-weight: 600; } .htc-prof b { color: var(--htc-rule); }
+
+/* ---------- tooltips (Foundry's tooltip) and chat ---------- */
+.htc-tip { max-width: 320px; text-align: left; }
+.htc-tip h4 { margin: 0 0 2px; font-size: 1.05em; border: none; text-transform: uppercase; color: var(--ht-red, #ff5146); font-family: var(--ht-font-display, inherit); }
+.htc-tip p { margin: 2px 0; }
+.htc-tip-meta { font-weight: 600; color: var(--ht-gold-text, #ebe2cf); }
+.htc-tip-keys { font-size: .85em; opacity: .7; font-style: italic; }
+.htc-chat p { margin: 2px 0; } .htc-chat-rule { font-size: .9em; font-style: italic; opacity: .85; }
