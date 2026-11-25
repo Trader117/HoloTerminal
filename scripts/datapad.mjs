@@ -59,7 +59,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 430, height: 660 },
     actions: {
       home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
-      go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab,
+      go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab, pingBody: DatapadApp.#pingBody,
       login: DatapadApp.#login, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
@@ -369,6 +369,15 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _ctx_shops() {
     const shops = list("shops").filter((s) => game.user.isGM || (!s.hidden && onScene(s)));
     return { title: "Markets", shops, sceneName: canvas.scene?.name };
+  }
+
+  /** Salvage: click a body's portrait to ping and pan to it on the map. */
+  static #pingBody(e, el) {
+    const t = canvas.scene?.tokens.get(el.dataset.token);
+    if (!t) return;
+    const c = t.object?.center ?? { x: t.x + (t.width * canvas.grid.size) / 2, y: t.y + (t.height * canvas.grid.size) / 2 };
+    canvas.animatePan({ x: c.x, y: c.y, duration: 500 });
+    canvas.ping(c, { style: "pulse", color: game.user.color });
   }
 
   _ctx_salvage(ctx, actor) {
