@@ -25,7 +25,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/galaxy.hbs` } };
 
   galaxy = null; planets = []; view = null; selected = null; hover = null; route = null; routeFrom = null; ctx = null;
-  show = { grid: true, lanes: true, regions: true, labels: true };
+  show = { grid: true, lanes: true, regions: true, subregions: true, labels: true };
   query = ""; moving = null; menuAt = null; #raf = 0; #fly = null;
 
   constructor(o) {
@@ -76,7 +76,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       routeFrom: this.routeFrom ? (this.routeFrom.name ?? G.gridLabel(this.routeFrom.x, this.routeFrom.y)) : null,
       moving: this.moving ? this.pmap.get(this.moving)?.name : null,
       card: p && {
-        ...p, regionColor: G.REGION_COLOR[p.region] ?? "#2aa3df", here: shipKey === p.key,
+        ...p, subText: (p.subregions ?? []).join(", "), regionColor: G.REGION_COLOR[p.region] ?? "#2aa3df", here: shipKey === p.key,
         badge: p.custom ? "Custom" : p.canon && p.legends ? "Canon + Legends" : p.canon ? "Canon" : "Legends",
         routesText: (p.routes ?? []).join(", "), showNotes: game.user.isGM || p.notesPublic, linkName: p.link ? (fromUuidSync?.(p.link)?.name ?? "Linked") : null,
         wiki: !p.custom
@@ -203,7 +203,9 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const glow = c.createRadialGradient(ccx, ccy, 0, ccx, ccy, outer * z * 1.1);
     glow.addColorStop(0, "rgba(255,226,170,.30)"); glow.addColorStop(0.25, "rgba(230,154,40,.10)"); glow.addColorStop(0.7, "rgba(42,163,223,.07)"); glow.addColorStop(1, "rgba(4,8,12,0)");
     c.fillStyle = glow; c.beginPath(); c.arc(ccx, ccy, outer * z * 1.1, 0, Math.PI * 2); c.fill();
+    this._labelBoxes = [];
     if (this.show.regions) this.#drawZones(c, g, z);
+    if (this.show.subregions) this.#drawSubregions(c, g, z);
     if (this.show.grid) this.#drawGrid(c, g, z);
     if (this.show.lanes) this.#drawLanes(c, g, z);
     if (this.route) this.#drawRoute(c, z);
@@ -278,11 +280,50 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const l of art.labels) {
       const [x, y] = this.toScreen(l.x, l.y);
       if (placed.some(([px, py]) => Math.abs(px - x) < 140 && Math.abs(py - y) < 16)) continue;
-      placed.push([x, y]);
+      placed.push([x, y]); this._labelBoxes.push([x, y, c.measureText(l.region.toUpperCase()).width]);
       if (x < -100 || y < -20 || x > this.W + 100 || y > this.H + 20) continue;
       const t = l.region.toUpperCase();
       c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.85)"; c.strokeText(t, x, y + 4);
       c.fillStyle = this.#alpha(G.REGION_COLOR[l.region], 0.95); c.fillText(t, x, y + 4);
+    }
+    c.textAlign = "left";
+  }
+  /** Named sub-regions: a faint tint and a dashed outline each, built once. */
+  #subArt(g) {
+    if (this._subArt) return this._subArt;
+    return (this._subArt = (g.subregions ?? []).map((s) => {
+      const img = document.createElement("canvas"); img.width = s.W; img.height = s.H;
+      const ic = img.getContext("2d"), data = ic.createImageData(s.W, s.H), n = Number.parseInt(s.color.slice(1), 16);
+      for (let k = 0; k < s.mask.length; k++) if (s.mask[k]) data.data.set([n >> 16, (n >> 8) & 255, n & 255, 22], k * 4);
+      ic.putImageData(data, 0, 0);
+      const path = new Path2D();
+      for (const l of s.lines) { path.moveTo(l[0], l[1]); for (let k = 2; k < l.length; k += 2) path.lineTo(l[k], l[k + 1]); path.closePath(); }
+      return { ...s, img, path };
+    }));
+  }
+  #drawSubregions(c, g, z) {
+    const art = this.#subArt(g), [ox, oy] = this.toScreen(0, 0);
+    c.save(); c.translate(ox, oy); c.scale(z, z);
+    c.imageSmoothingEnabled = true;
+    for (const s of art) c.drawImage(s.img, s.ox, s.oy, s.W * s.cell, s.H * s.cell);
+    c.lineWidth = 1.3 / z; c.setLineDash([7 / z, 5 / z]);
+    for (const s of art) { c.strokeStyle = this.#alpha(s.color, 0.8); c.stroke(s.path); }
+    c.setLineDash([]); c.restore();
+    if (!this.show.labels) return;
+    c.font = `italic 600 ${Math.min(14, Math.max(10, 8 + z * 5))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
+    const placed = this._labelBoxes ?? [];
+    for (const s of art) {
+      const [x0, y0] = this.toScreen(s.label.x, s.label.y);
+      if (x0 < -100 || y0 < -20 || x0 > this.W + 100 || y0 > this.H + 20) continue;
+      const w = c.measureText(s.name).width;
+      const clear = ([x, y]) => !placed.some(([px, py, pw]) => Math.abs(px - x) < (pw + w) / 2 + 6 && Math.abs(py - y) < 16);
+      // Nudge off a clash with another label, but stay close to the area's centre.
+      const spot = [[0, 0], [0, 18], [0, -18], [0, 34], [0, -34]].map(([a, b]) => [x0 + a, y0 + b]).find(clear);
+      if (!spot) continue;
+      const [x, y] = spot;
+      placed.push([x, y, w]);
+      c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.85)"; c.strokeText(s.name, x, y + 4);
+      c.fillStyle = this.#alpha(s.color, 0.95); c.fillText(s.name, x, y + 4);
     }
     c.textAlign = "left";
   }

@@ -54,18 +54,19 @@ export function resetGalaxyCache() { cache = null; }
 export function buildGalaxy(rows) {
   const byKey = new Map();
   for (const r of rows) {
-    const [title, grid, region, sector, system, legendsOnly, weight, cls, climate, terrain, routes] = r;
+    const [title, grid, region, sector, system, legendsOnly, weight, cls, climate, terrain, routes, subs] = r;
     const g = parseGrid(grid);
     if (!g) continue;
     const key = slug(title), legends = !!legendsOnly;
     const prev = byKey.get(key);
-    const entry = { key, title, name: baseName(title), grid: `${String.fromCharCode(65 + g.col)}-${g.row + 1}`, g, region: normRegion(region), sector, system,
-      weight: weight ?? 0, cls, climate, terrain, routes: routes ? routes.split("|").map((x) => x.replace(/\/Legends$/, "")) : [], canon: !legends, legends };
+    const entry = { key, title, name: baseName(title), grid: `${String.fromCharCode(65 + g.col)}-${g.row + 1}`, g, region: normRegion(region), sector: /^none$/i.test(sector ?? "") ? "" : sector, system,
+      weight: weight ?? 0, cls, climate, terrain, routes: routes ? routes.split("|").map((x) => x.replace(/\/Legends$/, "")) : [], subregions: subs ? subs.split("|") : [], canon: !legends, legends };
     if (!prev) { byKey.set(key, entry); continue; }
     // Keep the canon page's data; fill gaps from Legends; mark as in both.
     const [keep, other] = prev.canon ? [prev, entry] : [entry, prev];
     for (const f of ["region", "sector", "system", "cls", "climate", "terrain"]) keep[f] ||= other[f];
     keep.routes = [...new Set([...keep.routes, ...other.routes])];
+    keep.subregions = [...new Set([...keep.subregions, ...other.subregions])];
     keep.weight = Math.max(keep.weight, other.weight);
     keep.canon = prev.canon || entry.canon; keep.legends = prev.legends || entry.legends || !entry.canon || !prev.canon;
     if (!keep.canon) keep.title = other.title;
@@ -84,7 +85,8 @@ export function buildGalaxy(rows) {
   sorted.forEach((p, i) => { p.rank = i; });
   const cols = Math.max(21, ...planets.map((p) => p.g.col + 1)), rows_ = Math.max(21, ...planets.map((p) => p.g.row + 1));
   const rings = buildRings(planets);
-  return { planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands: buildBands(planets, rings), zones: buildZones(planets, cols, rows_, rings) };
+  return { planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands: buildBands(planets, rings), zones: buildZones(planets, cols, rows_, rings),
+    subregions: buildSubregions(planets, cols, rows_) };
 }
 
 /** Hyperlanes: every route named by at least 3 planets. The planets are joined by a minimum spanning tree, which
@@ -231,6 +233,161 @@ export function buildBands(planets, ringInfo) {
     prev = r;
   });
   return { cx, cy, n: N, bands: out };
+}
+
+/** Colours for the named sub-regions, picked to stand apart from the main region bands. */
+const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
+
+/**
+ * Named sub-regions (Hutt Space, The Slice, Western Reaches...): each one with at least 8 member worlds gets an area
+ * where its members outweigh other worlds nearby (closed, specks dropped, holes filled), and a smooth outline traced
+ * from that area. Returns [{ name, color, count, W, H, cell, ox, oy, mask, lines: [[x,y,...]], label: {x,y} }].
+ */
+export function buildSubregions(planets, cols, rows, { min = 8 } = {}) {
+  const res = 6, cell = SQ / res, R = SQ * 1.3, GW = cols * res, GH = rows * res, rc = Math.ceil(R / cell);
+  // Splat each world's influence onto the cells around it (only worlds that name a sub-region take part in the vote).
+  const splat = (pts, into) => {
+    for (const p of pts) {
+      const ci = Math.floor(p.x / cell), cj = Math.floor(p.y / cell);
+      for (let j = Math.max(0, cj - rc); j <= Math.min(GH - 1, cj + rc); j++) for (let i = Math.max(0, ci - rc); i <= Math.min(GW - 1, ci + rc); i++) {
+        const d = Math.hypot(p.x - (i + 0.5) * cell, p.y - (j + 0.5) * cell); if (d > R) continue;
+        into[j * GW + i] += 1 / (d / SQ + 0.3) ** 2;
+      }
+    }
+    return into;
+  };
+  const labelled = planets.filter((p) => p.subregions?.length);
+  const allW = splat(labelled, new Float32Array(GW * GH));
+  const groups = new Map();
+  for (const p of labelled) for (const n of p.subregions) { if (!groups.has(n)) groups.set(n, []); groups.get(n).push(p); }
+  const out = [];
+  const names = [...groups.keys()].filter((n) => groups.get(n).length >= min).sort((a, b) => groups.get(b).length - groups.get(a).length);
+  names.forEach((name, idx) => {
+    const mem = groups.get(name);
+    const winW = splat(mem, new Float32Array(GW * GH));
+    // Working window: the members' extent plus a margin, in cells.
+    const pad = 4 * res;
+    const i0 = Math.max(0, Math.floor(Math.min(...mem.map((p) => p.x)) / cell) - pad), j0 = Math.max(0, Math.floor(Math.min(...mem.map((p) => p.y)) / cell) - pad);
+    const i1 = Math.min(GW, Math.ceil(Math.max(...mem.map((p) => p.x)) / cell) + pad), j1 = Math.min(GH, Math.ceil(Math.max(...mem.map((p) => p.y)) / cell) + pad);
+    const W = i1 - i0, H = j1 - j0;
+    // A cell belongs when the members are a clear share of the worlds there. Small areas often sit inside bigger
+    // ones (Tion Cluster inside The Slice), so the share needed scales with how common the area is overall.
+    const share = Math.min(0.4, (6 * mem.length) / labelled.length);
+    let m = new Uint8Array(W * H);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const k = (j + j0) * GW + i + i0, win = winW[k];
+      if (win >= 1.2 && win >= allW[k] * share) m[j * W + i] = 1;
+    }
+    const morph = (src, grow) => {
+      const o = new Uint8Array(W * H);
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+        let hit = !grow;
+        for (let a = -1; a <= 1 && hit !== grow; a++) for (let b = -1; b <= 1; b++) {
+          const ii = i + a, jj = j + b, v = ii >= 0 && jj >= 0 && ii < W && jj < H ? src[jj * W + ii] : 0;
+          if (grow ? v : !v) { hit = grow; break; }
+        }
+        o[j * W + i] = hit ? 1 : 0;
+      }
+      return o;
+    };
+    // Closing joins nearby clusters into one area.
+    for (let k = 0; k < 3; k++) m = morph(m, true);
+    for (let k = 0; k < 3; k++) m = morph(m, false);
+    // Components: keep those holding a fair share of the members.
+    const comp = new Int32Array(W * H).fill(-1), sizes = [];
+    for (let s0 = 0; s0 < W * H; s0++) {
+      if (!m[s0] || comp[s0] >= 0) continue;
+      const id = sizes.length, st = [s0]; comp[s0] = id; let n = 0;
+      while (st.length) {
+        const k = st.pop(); n++;
+        const i = k % W, j = (k - i) / W;
+        for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const ii = i + a, jj = j + b, kk = jj * W + ii;
+          if (ii < 0 || jj < 0 || ii >= W || jj >= H || !m[kk] || comp[kk] >= 0) continue;
+          comp[kk] = id; st.push(kk);
+        }
+      }
+      sizes.push(n);
+    }
+    const hold = new Array(sizes.length).fill(0);
+    for (const p of mem) { const i = Math.floor(p.x / cell) - i0, j = Math.floor(p.y / cell) - j0; if (i >= 0 && j >= 0 && i < W && j < H && comp[j * W + i] >= 0) hold[comp[j * W + i]]++; }
+    const need = Math.max(4, Math.ceil(mem.length * 0.08));
+    for (let k = 0; k < W * H; k++) m[k] = comp[k] >= 0 && hold[comp[k]] >= need ? 1 : 0;
+    // Fill holes: anything not reachable from the window's edge through empty cells.
+    const outside = new Uint8Array(W * H), st = [];
+    for (let i = 0; i < W; i++) for (const j of [0, H - 1]) if (!m[j * W + i]) { outside[j * W + i] = 1; st.push(j * W + i); }
+    for (let j = 0; j < H; j++) for (const i of [0, W - 1]) if (!m[j * W + i] && !outside[j * W + i]) { outside[j * W + i] = 1; st.push(j * W + i); }
+    while (st.length) {
+      const k = st.pop(), i = k % W, j = (k - i) / W;
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const ii = i + a, jj = j + b, kk = jj * W + ii;
+        if (ii < 0 || jj < 0 || ii >= W || jj >= H || m[kk] || outside[kk]) continue;
+        outside[kk] = 1; st.push(kk);
+      }
+    }
+    let total = 0;
+    for (let k = 0; k < W * H; k++) { if (!outside[k]) m[k] = 1; total += m[k]; }
+    if (!total) return;
+    // Smooth field, then trace the 0.5 contour (marching squares) and chain the pieces into polylines.
+    let f = Float32Array.from(m);
+    for (let pass = 0; pass < 2; pass++) {
+      const n = new Float32Array(W * H);
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+        let t = 0; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const ii = i + a, jj = j + b; t += ii >= 0 && jj >= 0 && ii < W && jj < H ? f[jj * W + ii] : 0; }
+        n[j * W + i] = t / 9;
+      }
+      f = n;
+    }
+    const lines = contour(f, W, H, 0.5).map((l) => l.map((v, k) => Math.round((k % 2 ? (v + j0 + 0.5) : (v + i0 + 0.5)) * cell)));
+    // Label: the cell deepest inside the area (furthest from its edge).
+    let best = null, bd = -1;
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      if (!m[j * W + i]) continue;
+      let d = 0;
+      while (d < 40) { const r = d + 1; if (i - r < 0 || j - r < 0 || i + r >= W || j + r >= H || !m[j * W + i - r] || !m[j * W + i + r] || !m[(j - r) * W + i] || !m[(j + r) * W + i]) break; d++; }
+      if (d > bd) { bd = d; best = [i, j]; }
+    }
+    out.push({ name, color: SUB_COLORS[idx % SUB_COLORS.length], count: mem.length, W, H, cell, ox: i0 * cell, oy: j0 * cell, mask: m, lines,
+      label: { x: (best[0] + i0 + 0.5) * cell, y: (best[1] + j0 + 0.5) * cell } });
+  });
+  return out;
+}
+
+/** Marching squares over a W×H field at level t. Returns closed or open polylines as flat [x0,y0,x1,y1...] in cell units. */
+function contour(f, W, H, t) {
+  const at = (i, j) => (i < 0 || j < 0 || i >= W || j >= H ? 0 : f[j * W + i]);
+  const segs = [];
+  const lerp = (a, b) => (t - a) / (b - a);
+  for (let j = -1; j < H; j++) for (let i = -1; i < W; i++) {
+    const a = at(i, j), b = at(i + 1, j), c = at(i + 1, j + 1), d = at(i, j + 1);
+    const code = (a > t ? 8 : 0) | (b > t ? 4 : 0) | (c > t ? 2 : 0) | (d > t ? 1 : 0);
+    if (!code || code === 15) continue;
+    const T = [i + lerp(a, b), j], Rt = [i + 1, j + lerp(b, c)], B = [i + lerp(d, c), j + 1], L = [i, j + lerp(a, d)];
+    const map = { 1: [[L, B]], 2: [[B, Rt]], 3: [[L, Rt]], 4: [[T, Rt]], 5: [[L, T], [B, Rt]], 6: [[T, B]], 7: [[L, T]], 8: [[L, T]], 9: [[T, B]], 10: [[L, B], [T, Rt]], 11: [[T, Rt]], 12: [[L, Rt]], 13: [[B, Rt]], 14: [[L, B]] };
+    for (const s of map[code]) segs.push(s);
+  }
+  // Chain segments by shared endpoints.
+  const key = (p) => `${p[0].toFixed(3)},${p[1].toFixed(3)}`;
+  const ends = new Map();
+  segs.forEach((s, k) => { for (const p of s) { const q = key(p); if (!ends.has(q)) ends.set(q, []); ends.get(q).push(k); } });
+  const used = new Uint8Array(segs.length), lines = [];
+  for (let k0 = 0; k0 < segs.length; k0++) {
+    if (used[k0]) continue;
+    used[k0] = 1;
+    const pts = [segs[k0][0], segs[k0][1]];
+    for (const dir of [1, 0]) {
+      for (;;) {
+        const tip = dir ? pts.at(-1) : pts[0];
+        const nk = (ends.get(key(tip)) ?? []).find((k) => !used[k]);
+        if (nk === undefined) break;
+        used[nk] = 1;
+        const s = segs[nk], nxt = key(s[0]) === key(tip) ? s[1] : s[0];
+        dir ? pts.push(nxt) : pts.unshift(nxt);
+      }
+    }
+    if (pts.length > 3) lines.push(pts.flat());
+  }
+  return lines;
 }
 
 /** Region rings: centred on the Deep Core, radius = 80th-percentile distance of each region's planets. */

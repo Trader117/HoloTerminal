@@ -9,6 +9,7 @@
       <button type="button" data-action="toggle" data-key="grid" class="{{#if show.grid}}on{{/if}}" title="Grid"><i class="fas fa-border-all"></i></button>
       <button type="button" data-action="toggle" data-key="lanes" class="{{#if show.lanes}}on{{/if}}" title="Hyperlanes"><i class="fas fa-route"></i></button>
       <button type="button" data-action="toggle" data-key="regions" class="{{#if show.regions}}on{{/if}}" title="Regions"><i class="fas fa-circle-notch"></i></button>
+      <button type="button" data-action="toggle" data-key="subregions" class="{{#if show.subregions}}on{{/if}}" title="Sub-regions (Hutt Space, The Slice...)"><i class="fas fa-draw-polygon"></i></button>
       <button type="button" data-action="toggle" data-key="labels" class="{{#if show.labels}}on{{/if}}" title="Labels"><i class="fas fa-font"></i></button>
       {{#if ship}}<button type="button" data-action="findShip" title="Find the party ship"><i class="fas fa-location-arrow"></i></button>{{/if}}
       <button type="button" data-action="fit" title="Whole galaxy"><i class="fas fa-expand"></i></button>
@@ -29,6 +30,7 @@
       <h2>{{card.name}}</h2>
       <div class="ht-gx-badges"><span class="ht-gx-badge">{{card.grid}}</span><span class="ht-gx-badge ht-gx-{{#if card.canon}}canon{{else}}leg{{/if}}">{{card.badge}}</span>{{#if card.here}}<span class="ht-gx-badge ht-gx-here">Party here</span>{{/if}}</div>
       <dl>
+        {{#if card.subText}}<dt>Area</dt><dd>{{card.subText}}</dd>{{/if}}
         {{#if card.sector}}<dt>Sector</dt><dd>{{card.sector}}</dd>{{/if}}
         {{#if card.system}}<dt>System</dt><dd>{{card.system}}</dd>{{/if}}
         {{#if card.cls}}<dt>Class</dt><dd>{{card.cls}}</dd>{{/if}}

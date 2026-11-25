@@ -79,7 +79,9 @@ Open it from the globe button in the Token controls, from the datapad's **Galaxy
 
 - **6,928 worlds** with their real grid squares (A–V × 1–21), canon and Legends, from Wookieepedia (see `data/ATTRIBUTION.md`). The best-known worlds are labelled first, and more appear as you zoom in.
 - **190 hyperspace lanes** built from each planet's listed routes. The big trade routes show at every zoom; smaller lanes appear as you zoom in.
-- **Regions:** shaded bands with borders from the Deep Core out to the Outer Rim, shaped by where each region's planets actually are. The Unknown Regions and Wild Space are drawn where their planets cluster. Regions, the grid, labels and lanes can each be turned on or off. Search finds any planet and flies to it.
+- **Regions:** shaded bands with borders from the Deep Core out to the Outer Rim, shaped by where each region's planets actually are. The Unknown Regions and Wild Space are drawn where their planets cluster.
+- **Sub-regions:** named areas such as Hutt Space, The Slice, the Western Reaches, the Trailing Sectors, the Corporate Sector, the Tion Cluster and the Galactic Frontier, each with a dashed outline and its own colour. An area is outlined where its member worlds outweigh the worlds around them, so the shapes follow the data. Planet cards list the areas a world belongs to.
+- Regions, sub-regions, the grid, labels and lanes can each be turned on or off. Search finds any planet and flies to it.
 - **Planet cards** show the grid square, region, sector, system, class, climate, terrain and routes, plus a canon or Legends badge and a link to the Wookieepedia article.
 - **Nav computer:** *Plot course here* finds the fastest route from the party ship (or a chosen start) using the lanes. It shows an estimated time from the hyperdrive class and lists each leg. The GM can show a route to every player.
 - **Pins:** right-click to add a private pin. The GM can also add pins that everyone sees.
