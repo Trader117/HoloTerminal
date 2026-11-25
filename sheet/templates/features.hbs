@@ -1,0 +1,7 @@
+<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="features">
+  <h3 class="holo-h">Features <a data-action="createItem" data-type="feat"><i class="fa-solid fa-plus"></i></a></h3>
+  {{#each featureGroups}}
+  <h4 class="holo-lvl">{{label}}</h4>
+  <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
+  {{else}}<p class="holo-dim">{{localize "HOLOSHEET.Empty"}}</p>{{/each}}
+</section>

@@ -1,0 +1,14 @@
+{
+  "HOLOSHEET": {
+    "SheetLabel": "Holo-Terminal Dossier (SW5e)",
+    "Tab": { "Overview": "Dossier", "Combat": "Combat", "Powers": "Powers", "Gear": "Gear", "Features": "Features", "Bio": "Bio" },
+    "Theme": { "cyan": "Holo Cyan", "amber": "Amber", "red": "Sith Red", "green": "Green" },
+    "ForcePoints": "Force Points", "TechPoints": "Tech Points", "Superiority": "Superiority Dice",
+    "Credits": "Credits", "AtWill": "At-will", "Level": "Level", "Cost": "Cost",
+    "Weapons": "Weapons", "Actions": "Actions & Reactions", "Maneuvers": "Maneuvers",
+    "ShortRest": "Short Rest", "LongRest": "Long Rest", "DeathSaves": "Death Saves",
+    "Empty": "Nothing here. Drag items onto the sheet.",
+    "ConfirmDelete": "Delete {name}?",
+    "NoPowers": "No powers known."
+  }
+}

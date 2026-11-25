@@ -1,0 +1,101 @@
+/* Holo-Dossier: original holographic datapad look; palette matches Datastream Console themes. */
+.holo-sheet { --holo-fg:#5ef2ff; --holo-bg:#04121a; --holo-panel:rgba(94,242,255,.06); --holo-dim:rgba(94,242,255,.55);
+  --holo-force:#7fb8ff; --holo-tech:#ffd166; --holo-sup:#c08bff; --holo-hp:#5effa0;
+  --holo-lgt:#6fc3ff; --holo-uni:#b9a7ff; --holo-drk:#ff5a6e; --holo-tec:#ffd166; }
+.holo-sheet.holo-theme-amber { --holo-fg:#ffb347; --holo-bg:#140b02; --holo-panel:rgba(255,179,71,.07); --holo-dim:rgba(255,179,71,.55); }
+.holo-sheet.holo-theme-red { --holo-fg:#ff5a5a; --holo-bg:#160303; --holo-panel:rgba(255,90,90,.07); --holo-dim:rgba(255,90,90,.55); }
+.holo-sheet.holo-theme-green { --holo-fg:#6dff7a; --holo-bg:#031405; --holo-panel:rgba(109,255,122,.07); --holo-dim:rgba(109,255,122,.55); }
+
+.holo-sheet .window-content { padding:0; background:var(--holo-bg); color:var(--holo-fg); font-family:"Courier New",monospace;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px); display:flex; flex-direction:column; overflow:hidden; }
+.holo-sheet input, .holo-sheet select, .holo-sheet button { font-family:inherit; color:var(--holo-fg); background:transparent;
+  border:1px solid var(--holo-dim); border-radius:2px; }
+.holo-sheet select option { background:var(--holo-bg); }
+.holo-sheet input:focus { outline:none; border-color:var(--holo-fg); box-shadow:0 0 6px var(--holo-fg); }
+.holo-sheet button:hover, .holo-sheet a:hover { text-shadow:0 0 6px var(--holo-fg); }
+.holo-sheet a { color:var(--holo-fg); cursor:pointer; }
+.holo-dim { color:var(--holo-dim); }
+.holo-on { color:var(--holo-bg) !important; background:var(--holo-fg); text-shadow:none !important; }
+
+/* header */
+.holo-header { display:flex; gap:.75rem; padding:.75rem; border-bottom:1px solid var(--holo-fg); flex:0 0 auto; }
+.holo-portrait { width:110px; height:110px; object-fit:cover; border:1px solid var(--holo-fg); box-shadow:0 0 10px var(--holo-fg) inset; cursor:pointer; filter:saturate(.85); }
+.holo-ident { flex:1; display:flex; flex-direction:column; gap:.35rem; min-width:0; }
+.holo-row { display:flex; gap:.5rem; }
+.holo-name { flex:1; font-size:1.5em; text-transform:uppercase; letter-spacing:.12em; border:none !important; border-bottom:1px solid var(--holo-dim) !important; text-shadow:0 0 6px var(--holo-fg); height:auto; }
+.holo-theme-select { width:auto; height:1.8em; }
+.holo-sub { display:flex; flex-wrap:wrap; gap:.25rem 1rem; color:var(--holo-dim); text-transform:uppercase; font-size:.85em; }
+.holo-sub input { width:5em; height:1.4em; }
+.holo-vitals { display:flex; gap:.4rem; flex-wrap:wrap; }
+.holo-stat { background:var(--holo-panel); border:1px solid var(--holo-dim); padding:.2rem .5rem; text-align:center; min-width:62px; display:flex; flex-direction:column; }
+.holo-stat label { font-size:.7em; color:var(--holo-dim); letter-spacing:.1em; }
+.holo-stat b { font-size:1.2em; }
+.holo-click { cursor:pointer; } .holo-click:hover { border-color:var(--holo-fg); }
+.holo-stat.holo-on label { color:var(--holo-bg); }
+.holo-hp { flex:1 1 180px; text-align:left; --bar:var(--holo-hp); }
+.holo-hp-nums { display:flex; gap:.3rem; align-items:center; }
+.holo-hp-nums input { width:4em; height:1.5em; text-align:center; font-size:1.1em; }
+.holo-hp-nums .holo-temp { width:3.5em; font-size:.9em; }
+.holo-bar { height:6px; background:rgba(255,255,255,.08); margin:.2rem 0; overflow:hidden; }
+.holo-bar span { display:block; height:100%; background:var(--bar,var(--holo-fg)); box-shadow:0 0 6px var(--bar,var(--holo-fg)); transition:width .3s; }
+.holo-pools { display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end; }
+.holo-pool { flex:1 1 150px; font-size:.85em; }
+.holo-pool label { display:block; color:var(--holo-dim); text-transform:uppercase; letter-spacing:.08em; }
+.holo-pool input { width:3.5em; height:1.4em; text-align:center; }
+.holo-force { --bar:var(--holo-force); } .holo-tech { --bar:var(--holo-tech); } .holo-sup { --bar:var(--holo-sup); }
+.holo-rest { display:flex; gap:.25rem; } .holo-rest button { font-size:.8em; padding:0 .4rem; line-height:1.8em; }
+.holo-death { display:flex; gap:.75rem; align-items:center; color:var(--holo-drk); }
+.holo-death input { width:2.5em; height:1.4em; }
+
+/* tabs */
+.holo-tabs { display:flex; gap:0; border-bottom:1px solid var(--holo-dim); flex:0 0 auto; }
+.holo-tabs a { flex:1; text-align:center; padding:.35rem 0; text-transform:uppercase; letter-spacing:.12em; font-size:.85em; color:var(--holo-dim); border-right:1px solid rgba(255,255,255,.05); }
+.holo-tabs a.active { color:var(--holo-bg); background:var(--holo-fg); text-shadow:none; }
+.holo-body { padding:.75rem; overflow-y:auto; flex:1; }
+.holo-body.tab:not(.active) { display:none; }
+.holo-h { border-bottom:1px solid var(--holo-dim); text-transform:uppercase; letter-spacing:.15em; font-size:1em; margin:.75rem 0 .35rem; display:flex; justify-content:space-between; font-family:inherit; color:var(--holo-fg); }
+.holo-h:first-child { margin-top:0; }
+.holo-lvl { font-size:.8em; text-transform:uppercase; color:var(--holo-dim); margin:.5rem 0 .15rem; letter-spacing:.1em; border:none; font-family:inherit; }
+
+/* abilities & skills */
+.holo-abilities { display:grid; grid-template-columns:repeat(6,1fr); gap:.4rem; }
+.holo-ability { background:var(--holo-panel); border:1px solid var(--holo-dim); text-align:center; padding:.35rem .2rem; display:flex; flex-direction:column; gap:.15rem; align-items:center;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px); }
+.holo-abbr { letter-spacing:.15em; font-size:.85em; }
+.holo-mod { font-size:1.8em; cursor:pointer; text-shadow:0 0 8px var(--holo-fg); }
+.holo-ability input { width:3em; height:1.4em; text-align:center; }
+.holo-save { font-size:.75em; padding:0 .3rem; border:1px solid var(--holo-dim); }
+.holo-skills { list-style:none; margin:0; padding:0; columns:2; column-gap:1rem; }
+.holo-skills li { display:flex; gap:.4rem; align-items:center; padding:.15rem .25rem; cursor:pointer; break-inside:avoid; border-left:2px solid transparent; }
+.holo-skills li:hover { border-left-color:var(--holo-fg); background:var(--holo-panel); }
+.holo-skill-name { flex:1; }
+.holo-skills i { font-size:.7em; width:1em; }
+
+/* item lists */
+.holo-list { list-style:none; margin:0; padding:0; }
+.holo-item { border-left:2px solid var(--holo-dim); margin:.2rem 0; background:var(--holo-panel); }
+.holo-item:hover { border-left-color:var(--holo-fg); }
+.holo-item-row { display:flex; gap:.4rem; align-items:center; padding:.15rem .4rem; }
+.holo-item img { width:26px; height:26px; border:1px solid var(--holo-dim); cursor:pointer; flex:0 0 26px; }
+.holo-item img:hover { box-shadow:0 0 6px var(--holo-fg); }
+.holo-item-name { flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.holo-item-summary { flex:1; font-size:.8em; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.holo-controls { display:flex; gap:.35rem; font-size:.85em; }
+.holo-controls a { padding:0 .15rem; color:var(--holo-dim); } .holo-controls a.holo-on { color:var(--holo-bg); }
+.holo-desc { padding:.4rem .6rem .5rem 2.4rem; font-size:.9em; border-top:1px dashed var(--holo-dim); }
+.holo-badge { font-size:.7em; border:1px solid currentColor; padding:0 .25rem; text-transform:uppercase; }
+.holo-school-lgt { color:var(--holo-lgt); } .holo-school-uni { color:var(--holo-uni); } .holo-school-drk { color:var(--holo-drk); } .holo-school-tec { color:var(--holo-tec); }
+
+/* powers */
+.holo-casting { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+.holo-cast-block .holo-h { color:var(--bar); border-color:var(--bar); }
+.holo-school-cards { display:flex; gap:.3rem; flex-wrap:wrap; margin-bottom:.3rem; }
+.holo-school { border:1px solid currentColor; padding:.15rem .4rem; display:flex; gap:.4rem; font-size:.8em; }
+
+/* gear */
+.holo-wallet { display:flex; gap:1rem; align-items:center; background:var(--holo-panel); border:1px solid var(--holo-dim); padding:.4rem .6rem; }
+.holo-wallet input { width:8em; font-size:1.2em; text-align:right; }
+.holo-enc { flex:1; font-size:.8em; color:var(--holo-dim); }
+
+/* bio */
+.holo-bio prose-mirror, .holo-bio .editor-content { color:var(--holo-fg); font-family:inherit; min-height:300px; }
