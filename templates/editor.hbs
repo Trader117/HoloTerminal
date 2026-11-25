@@ -59,7 +59,7 @@
       </header>
       <div class="ht-form-grid">
         <label>From</label><input type="text" data-path="messages.{{i}}.from" value="{{from}}" placeholder="Who sent it">
-        <label>Message</label><textarea rows="3" data-path="messages.{{i}}.body" placeholder="What it says">{{body}}</textarea>
+        <label>Message</label>{{> htBody kind="messages" placeholder="What it says"}}
       </div>
       {{> htEncrypted kind="messages"}}
     </article>
@@ -79,7 +79,7 @@
         <button type="button" data-action="removeRow" data-list="files" data-index="{{i}}" title="Remove file"><i class="fas fa-trash"></i></button>
       </header>
       <div class="ht-form-grid">
-        <label>Contents</label><textarea rows="3" data-path="files.{{i}}.body" placeholder="What's in the file">{{body}}</textarea>
+        <label>Contents</label>{{> htBody kind="files" placeholder="What's in the file"}}
       </div>
       {{> htEncrypted kind="files"}}
     </article>

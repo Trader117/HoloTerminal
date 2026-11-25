@@ -1,4 +1,5 @@
 import { MODULE_ID, find, upsert } from "./store.mjs";
+import { bodyToHtml, linkedJournal, looksLikeHtml } from "./richtext.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -31,6 +32,33 @@ const ENCRYPTED_PARTIAL = `
 </div>`;
 if (!Handlebars.partials.htEncrypted) Handlebars.registerPartial("htEncrypted", ENCRYPTED_PARTIAL);
 
+/* The text box of a message or file: formatting buttons, preview, or a linked Journal page instead. */
+const BODY_PARTIAL = `
+<div class="ht-body-box" data-body="{{kind}}.{{i}}">
+  {{#if journal}}
+  <div class="ht-journal-link{{#if journalMissing}} ht-missing{{/if}}">
+    <i class="fas fa-book-open"></i>
+    {{#if journalMissing}}<span class="ht-warn">The linked journal page was deleted. Unlink it, or drop another page here.</span>
+    {{else}}<span>Shows the journal page <b>{{journalName}}</b>, with all its formatting. Edit the page to change the text.</span>{{/if}}
+    {{#unless journalMissing}}<button type="button" data-action="openJournal" data-list="{{kind}}" data-index="{{i}}" title="Open the journal page"><i class="fas fa-up-right-from-square"></i></button>{{/unless}}
+    <button type="button" data-action="unlinkJournal" data-list="{{kind}}" data-index="{{i}}" title="Stop using the journal page"><i class="fas fa-link-slash"></i></button>
+  </div>
+  {{else}}
+  <div class="ht-fmt-bar">
+    <button type="button" class="ht-primary" data-action="openBodyEditor" data-list="{{kind}}" data-index="{{i}}" title="Open a big editor with headings, lists, tables, bold, italic and more"><i class="fas fa-pen-to-square"></i> Open full editor</button>
+    <span class="ht-dim">or drag a Journal page onto this card</span>
+    <span class="ht-grow"></span>
+    {{#unless isHtml}}<button type="button" data-action="togglePreview" data-key="{{kind}}.{{i}}" class="{{#if previewOn}}active{{/if}}" title="See it as players will"><i class="fas fa-eye"></i> Preview</button>{{/unless}}
+  </div>
+  {{#if isHtml}}<div class="ht-preview ht-rich" data-action="openBodyEditor" data-list="{{kind}}" data-index="{{i}}" title="Click to edit">{{{previewHtml}}}</div>
+  {{else}}
+  {{#if previewOn}}<div class="ht-preview ht-rich">{{{previewHtml}}}</div>{{/if}}
+  <textarea rows="{{rows}}" data-path="{{kind}}.{{i}}.body" placeholder="{{placeholder}}" {{#if previewOn}}hidden{{/if}}>{{body}}</textarea>
+  {{/if}}
+  {{/if}}
+</div>`;
+if (!Handlebars.partials.htBody) Handlebars.registerPartial("htBody", BODY_PARTIAL);
+
 /**
  * Plain-language form editor for terminals, bounties, missions and contacts.
  * Works on a copy of the entry; nothing is saved until Save. Fields it doesn't know about are kept as they are.
@@ -39,12 +67,13 @@ if (!Handlebars.partials.htEncrypted) Handlebars.registerPartial("htEncrypted", 
 export class EntryEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     classes: ["ht-app"], window: { title: "Holo-Terminal editor", resizable: true },
-    position: { width: 640, height: 760 },
+    position: { width: 720, height: 820 },
     actions: {
       save: EntryEditorApp.#save, cancel: EntryEditorApp.#cancel, addRow: EntryEditorApp.#addRow, removeRow: EntryEditorApp.#removeRow,
       moveRow: EntryEditorApp.#moveRow, linkSelected: EntryEditorApp.#linkSelected, thisScene: EntryEditorApp.#thisScene,
       pickImage: EntryEditorApp.#pickImage, useActor: EntryEditorApp.#useActor, removeClaimant: EntryEditorApp.#removeClaimant,
-      showJson: EntryEditorApp.#showJson, showForm: EntryEditorApp.#showForm, pingControl: EntryEditorApp.#pingControl
+      openBodyEditor: EntryEditorApp.#openBodyEditor, togglePreview: EntryEditorApp.#togglePreview, openJournal: EntryEditorApp.#openJournal,
+      unlinkJournal: EntryEditorApp.#unlinkJournal, showJson: EntryEditorApp.#showJson, showForm: EntryEditorApp.#showForm, pingControl: EntryEditorApp.#pingControl
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/editor.hbs`, scrollable: [".ht-fe-body"] } };
@@ -56,6 +85,7 @@ export class EntryEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.docId = id;
     this.doc = foundry.utils.deepClone(find(kind, id) ?? { id });
     this.jsonMode = false;
+    this._preview = new Set();
     this.#normalise();
   }
   /** Older entries may use "encrypted": true; give those an object so the form can fill it in. */
@@ -90,7 +120,10 @@ export class EntryEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const chosen = new Set(d.scenes ?? []);
     const rows = (key, extra) => (d[key] ?? []).map((e, i, a) => {
       const enc = e.encrypted ? (typeof e.encrypted === "object" ? e.encrypted : {}) : null;
-      return { ...e, i, n: i + 1, first: i === 0, last: i === a.length - 1, isEnc: !!enc, enc: enc ?? {},
+      const jdoc = e.journal ? linkedJournal(e) : null, pkey = `${key}.${i}`;
+      return { ...e, i, n: i + 1, journalName: jdoc?.name, journalMissing: !!e.journal && !jdoc,
+        isHtml: looksLikeHtml(e.body), previewOn: this._preview.has(pkey), previewHtml: bodyToHtml(e.body),
+        rows: Math.min(16, Math.max(6, String(e.body ?? "").split("\n").length + 1)), first: i === 0, last: i === a.length - 1, isEnc: !!enc, enc: enc ?? {},
         encGameOpts: opts([["", "Same as the terminal's slicing game"], ...GAMES, ["none", "Can't be sliced (check or key only)"]], enc?.game ?? ""),
         encDiffOpts: opts([["", "Same as the terminal"], ...DIFFS], enc?.difficulty ?? ""), ...extra?.(e) };
     });
@@ -133,6 +166,11 @@ export class EntryEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       });
     }
+    for (const card of el.querySelectorAll(".ht-fcard")) {
+      card.addEventListener("dragover", (e) => { e.preventDefault(); card.classList.add("over"); });
+      card.addEventListener("dragleave", (e) => { if (!card.contains(e.relatedTarget)) card.classList.remove("over"); });
+      card.addEventListener("drop", (e) => this.#onCardDrop(e, card));
+    }
     const zone = el.querySelector(".ht-drop");
     zone?.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("over"); });
     zone?.addEventListener("dragleave", () => zone.classList.remove("over"));
@@ -173,6 +211,26 @@ export class EntryEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (on) e.encrypted = e._enc ?? { dc: 15 };
       else { if (typeof e.encrypted === "object") Object.defineProperty(e, "_enc", { value: e.encrypted, enumerable: false, configurable: true, writable: true }); delete e.encrypted; }
     }
+    this.render();
+  }
+
+  /** A Journal page (or entry) dropped on a message or file card becomes its text. */
+  async #onCardDrop(event, card) {
+    event.preventDefault(); event.stopPropagation();
+    card.classList.remove("over");
+    const data = getDragData(event);
+    if (!["JournalEntryPage", "JournalEntry"].includes(data?.type)) return ui.notifications.warn("Drop a Journal page (or a whole Journal entry) here.");
+    const doc = await fromUuid(data.uuid);
+    if (!doc) return;
+    if (doc.documentName === "JournalEntryPage" && doc.type !== "text") return ui.notifications.warn("Only text pages can be shown on a terminal.");
+    const [kind, i] = card.querySelector("[data-body]")?.dataset.body.split(".") ?? [];
+    this.#sync();
+    const entry = this.doc[kind]?.[Number(i)];
+    if (!entry) return;
+    entry.journal = doc.uuid;
+    if (kind === "files" && !entry.name) entry.name = `${doc.name}.txt`;
+    if (kind === "messages" && !entry.subject) entry.subject = doc.name;
+    ui.notifications.info(`This ${kind === "files" ? "file" : "message"} now shows the journal page "${doc.name}".`);
     this.render();
   }
 
@@ -283,6 +341,33 @@ export class EntryEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /** Opens the big formatted-text editor for one message or file. */
+  static #openBodyEditor(e, el) {
+    this.#sync();
+    const kind = el.dataset.list, i = Number(el.dataset.index), entry = this.doc[kind]?.[i];
+    if (!entry) return;
+    const title = kind === "files" ? entry.name || "file" : entry.subject || "message";
+    new BodyEditorApp({ title, html: bodyToHtml(entry.body), onSave: (html) => { entry.body = html; this._preview.delete(`${kind}.${i}`); this.render(); } }).render(true);
+  }
+  static #togglePreview(e, el) {
+    this.#sync();
+    const k = el.dataset.key;
+    if (this._preview.has(k)) this._preview.delete(k); else this._preview.add(k);
+    this.render();
+  }
+  static #openJournal(e, el) {
+    const entry = this.doc[el.dataset.list]?.[Number(el.dataset.index)];
+    const doc = linkedJournal(entry);
+    if (doc?.documentName === "JournalEntryPage") doc.parent?.sheet?.render(true, { pageId: doc.id });
+    else doc?.sheet?.render(true);
+  }
+  static #unlinkJournal(e, el) {
+    this.#sync();
+    const entry = this.doc[el.dataset.list]?.[Number(el.dataset.index)];
+    if (entry) delete entry.journal;
+    this.render();
+  }
+
   static #showJson() { this.#sync(); this.jsonMode = true; this.render(); }
   static #showForm() {
     const doc = this.#readJson();
@@ -320,4 +405,56 @@ function deletePath(obj, path) {
   const parts = path.split("."), last = parts.pop();
   const parent = parts.reduce((o, k) => o?.[k], obj);
   if (parent && typeof parent === "object") delete parent[last];
+}
+
+/* ---------- big text editor: Foundry's journal editor (ProseMirror) in its own window ---------- */
+export class BodyEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    classes: ["ht-app"], window: { title: "Edit text", icon: "fas fa-pen-to-square", resizable: true },
+    position: { width: 760, height: 680 },
+    actions: { saveBody: BodyEditorApp.#saveBody, cancelBody: BodyEditorApp.#cancelBody }
+  };
+  static PARTS = { main: { template: `modules/${MODULE_ID}/templates/body-editor.hbs` } };
+
+  constructor({ title, html, onSave }, options) {
+    super(options);
+    this.label = title; this.html = html ?? ""; this.onSave = onSave;
+  }
+  get title() { return `Edit text: ${this.label}`; }
+  async _prepareContext() { return { html: this.html }; }
+
+  async _onRender(context, options) {
+    super._onRender?.(context, options);
+    const target = this.element.querySelector(".ht-pm-target");
+    if (!target || this.editor) return;
+    const PM = globalThis.ProseMirror;
+    const TE = foundry.applications.ux?.TextEditor?.implementation ?? globalThis.TextEditor;
+    try {
+      const onSave = () => BodyEditorApp.#saveBody.call(this);
+      const plugins = {
+        menu: PM.ProseMirrorMenu.build(PM.defaultSchema, { compact: false, destroyOnSave: false, onSave }),
+        keyMaps: PM.ProseMirrorKeyMaps.build(PM.defaultSchema, { onSave })
+      };
+      this.editor = await TE.create({ engine: "prosemirror", target, plugins }, this.html);
+    } catch (err) {
+      console.warn("Holo-Terminal | rich editor unavailable, using a plain text box", err);
+      target.outerHTML = `<textarea class="ht-pm-fallback">${Handlebars.escapeExpression(this.html)}</textarea>`;
+    }
+  }
+
+  #content() {
+    if (this.editor?.view) return globalThis.ProseMirror.dom.serializeString(this.editor.view.state.doc.content);
+    return this.element.querySelector(".ht-pm-fallback")?.value ?? this.html;
+  }
+  static #saveBody() {
+    const html = this.#content();
+    this.onSave?.(html);
+    this.close();
+  }
+  static #cancelBody() { this.close(); }
+  async close(options) {
+    try { this.editor?.destroy?.(); } catch { /* already gone */ }
+    this.editor = null;
+    return super.close(options);
+  }
 }
