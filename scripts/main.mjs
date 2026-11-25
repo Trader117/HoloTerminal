@@ -3,6 +3,7 @@ import { registerActions } from "./actions.mjs";
 import { DatapadApp, PARTIAL_PATHS, NAMED_PARTIALS } from "./datapad.mjs";
 import { ConsoleApp } from "./admin.mjs";
 import { registerRegionBehavior } from "./regions.mjs";
+import { registerScannerSettings, registerSignatureBehavior } from "./scanner.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
 const loadTpl = (paths) => (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)(paths);
@@ -14,6 +15,8 @@ Hooks.once("init", () => {
   registerLootSetting();
   registerLootHud();
   registerRegionBehavior((view, id) => datapad(view, id));
+  registerScannerSettings();
+  registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
   game.keybindings.register(MODULE_ID, "datapad", {
@@ -33,6 +36,7 @@ Hooks.once("ready", () => {
     openShop: (ref) => { const s = resolve("shops", ref); return s && datapad("shop", s.id); },
     openBounties: () => datapad("bounties"),
     openSalvage: () => datapad("salvage"),
+    openScanner: () => datapad("scanner"),
     /** GM: push a view to every player's datapad. */
     showAll: (view, ref) => {
       const kind = { terminal: "terminals", shop: "shops" }[view];

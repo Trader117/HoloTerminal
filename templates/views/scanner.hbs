@@ -1,0 +1,36 @@
+<div class="ht-scan-modes">
+  {{#each modes}}
+  <button type="button" class="ht-scan-mode ht-scan-{{key}}{{#if active}} ht-active{{/if}}" data-action="scanPulse" data-mode="{{key}}" {{#if ../noOrigin}}disabled{{/if}}>
+    <i class="fas {{icon}}"></i><span class="ht-scan-mode-label">{{label}}</span><small>{{hint}}</small>
+  </button>
+  {{/each}}
+</div>
+{{#if noOrigin}}<p class="ht-dim">Select your token on this scene to send a pulse.</p>{{/if}}
+
+<div class="ht-radar{{#if scan}} ht-radar-{{scan.mode}}{{/if}}" style="--sweep:{{sweep}}s">
+  <span class="ht-radar-ring" style="--r:33%"></span><span class="ht-radar-ring" style="--r:66%"></span>
+  <span class="ht-radar-cross"></span>
+  <span class="ht-radar-sweep"></span>
+  <span class="ht-radar-n">N</span>
+  <span class="ht-radar-you" title="You"></span>
+  {{#each scan.blips}}
+  <span class="ht-blip{{#unless resolved}} ht-faint{{/unless}}" style="left:{{left}}%;top:{{top}}%;--delay:{{delay}}s">{{#if resolved}}{{n}}{{/if}}</span>
+  {{/each}}
+</div>
+
+{{#if scan}}
+<div class="ht-scan-meta"><span>{{scan.modeLabel}} &middot; roll {{scan.total}}</span><span>range {{scan.rangeLabel}} &middot; from {{scan.origin}}</span></div>
+<ol class="ht-scan-hits">
+  {{#each scan.hits}}
+  <li class="{{#unless resolved}}ht-faint{{/unless}}">
+    <span class="ht-scan-n">{{#if resolved}}{{n}}{{else}}?{{/if}}</span>
+    <div class="ht-scan-text">
+      <div class="ht-scan-name">{{name}}</div>
+      {{#if details}}<div class="ht-scan-details">{{details}}</div>{{/if}}
+      <div class="ht-scan-where">{{dist}} sq {{bearing}}</div>
+    </div>
+    <button type="button" class="ht-icon-btn" data-action="scanMark" data-index="{{@index}}" title="Ping on my map"><i class="fas fa-location-crosshairs"></i></button>
+  </li>
+  {{else}}<li class="ht-dim">-- no signatures in range --</li>{{/each}}
+</ol>
+{{else}}<p class="ht-dim ht-center">Pick a pulse. It rolls your skill, and the higher the roll the more it resolves.</p>{{/if}}

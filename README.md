@@ -52,8 +52,17 @@ Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and nu
 
 **Recording:** on the Cameras tab, the GM can press *Record* under a feed. Every token movement inside that area is captured until *Stop recording*. Recording runs on the GM's client, so keep it open while recording. Saved recordings appear under *Recordings*. They're hidden from players until the GM presses the eye icon to share one. Playback has play/pause, a scrub bar, and 1×/2×/4×/8× speed.
 
+## Pulse Scanner
+The **Pulse Scanner** app sends a pulse from the player's selected token. **Tech pulse** rolls the Tech pulse skill, and **Force pulse** rolls the Force pulse skill. A radar sweeps and shows what it found, with a list giving each signature's name, readout, distance and compass direction. The crosshair button pings the spot on that player's own map.
+
+What it finds:
+- **Regions with the Scan Signature behaviour.** Draw a Region over the thing (a hidden cache, a kyber crystal, a buried droid), add the behaviour, and set *Shows up on* (Tech, Force or both), a name, the readout text and a DC.
+- **Creatures**, if *Pulse Scanner finds creatures* is on. A Tech pulse finds droids, and a Force pulse finds creatures with Force powers (light, dark or universal). Hidden tokens are found too, at DC 15 instead of 10.
+
+If the roll beats a signature's DC, the player gets its name and readout. If it misses by 5 or less, they see a faint blip with only a direction. The GM gets a whisper with every pulse. Settings: range (default 12 squares), both skills, and creature detection.
+
 ## Region triggers
-Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage or the home screen. Locked terminals still ask for their code.
+Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
 - **Only once per player**: each player gets it the first time only. Turn it off and on again to reset.
 

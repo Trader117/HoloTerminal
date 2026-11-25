@@ -25,16 +25,21 @@ function shapeBounds(sh) {
   }
 }
 
+/** Bounding box { x, y, w, h } of a Region's shapes (holes ignored). */
+export function regionBounds(region) {
+  const b = (region.shapes ?? []).filter((sh) => !sh.hole).map(shapeBounds).filter(Boolean);
+  if (!b.length) return null;
+  const x = Math.min(...b.map((v) => v.x0)), y = Math.min(...b.map((v) => v.y0));
+  return { x, y, w: Math.max(...b.map((v) => v.x1)) - x, h: Math.max(...b.map((v) => v.y1)) - y };
+}
+
 /** Area a camera watches: the bounding box of its Region's shapes (or of a legacy rectangle Drawing). */
 export function cameraRect(c) {
   const scene = game.scenes.get(c.scene);
   const region = scene?.regions?.get(c.id);
   if (region) {
-    const b = (region.shapes ?? []).filter((sh) => !sh.hole).map(shapeBounds).filter(Boolean);
-    if (!b.length) return null;
-    const x = Math.min(...b.map((v) => v.x0)), y = Math.min(...b.map((v) => v.y0));
-    const w = Math.max(...b.map((v) => v.x1)) - x, h = Math.max(...b.map((v) => v.y1)) - y;
-    return w > 10 && h > 10 ? { x, y, w, h } : null;
+    const r = regionBounds(region);
+    return r && r.w > 10 && r.h > 10 ? r : null;
   }
   const d = scene?.drawings.get(c.id);
   if (!d) return null;

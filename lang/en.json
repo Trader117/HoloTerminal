@@ -8,7 +8,8 @@
   "HT.slice": "Slice in",
   "TYPES": {
     "RegionBehavior": {
-      "holo-terminal.openDatapad": "Open Datapad"
+      "holo-terminal.openDatapad": "Open Datapad",
+      "holo-terminal.scanSignature": "Scan Signature"
     }
   }
 }

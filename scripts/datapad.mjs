@@ -19,15 +19,16 @@ import { openEditor, ConsoleApp, blank } from "./admin.mjs";
 import { isLootable, lootSummary } from "./loot.mjs";
 import * as Crypt from "./decrypt.mjs";
 import * as Cam from "./cameras.mjs";
+import * as Scan from "./scanner.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -72,7 +73,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rotateTile: DatapadApp.#rotateTile, lockIn: DatapadApp.#lockIn, fwMove: DatapadApp.#fwMove,
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
-      lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits
+      lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits,
+      scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
@@ -83,6 +85,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   hackTarget = null; justDecrypted = null;
   /** Recording being watched: { id, t, playing, speed }. */
   tape = null; #tapeTimer = null;
+  /** Last Pulse Scanner result for this client. */
+  scan = null;
 
   constructor(options) {
     super(options);
@@ -213,7 +217,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "network", icon: "fa-network-wired", label: "Local Net", tone: "blue" },
       { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
       { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
-      { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" }
+      { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" },
+      { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
     return { title: "Apps", apps };
@@ -325,6 +330,25 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Salvage", bodies, noActor: !actor };
   }
 
+  _ctx_scanner(ctx, actor) {
+    const SWEEP = 2.4;
+    const scan = this.scan?.sceneId === canvas.scene?.id ? this.scan : null;
+    return { title: "Pulse Scanner", noOrigin: !this.#scanOrigin(actor), sweep: SWEEP,
+      modes: Object.entries(Scan.MODES).map(([key, m]) => ({ key, ...m, active: scan?.mode === key })),
+      scan: scan && { ...scan, modeLabel: Scan.MODES[scan.mode].label, blips: Scan.blips(scan, SWEEP),
+        hits: scan.hits.map((h, i) => ({ ...h, n: i + 1 })), rangeLabel: scan.range > 0 ? `${scan.range} sq` : "full scene" } };
+  }
+
+  /** Where a pulse starts: the selected token, else the active character's token on this scene. */
+  #scanOrigin(actor) {
+    const scene = canvas.scene;
+    if (!scene) return null;
+    const g = scene.grid?.size ?? 100;
+    const tok = canvas.tokens?.controlled[0]?.document ?? scene.tokens.find((t) => t.actorId === actor?.id);
+    if (tok) return { x: tok.x + (tok.width ?? 1) * g / 2, y: tok.y + (tok.height ?? 1) * g / 2, name: tok.name };
+    return null;
+  }
+
   _ctx_shop(ctx) {
     const s = find("shops", this.viewId);
     if (!s) return { title: "Closed", missing: true };
@@ -381,6 +405,27 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (HACKS[game].timed) this.#startTimer();
     this.render();
   }
+  /* ---------- pulse scanner ---------- */
+  static async #scanPulse(e, el) {
+    const mode = el.dataset.mode, actor = activeActor(), origin = this.#scanOrigin(actor);
+    if (!origin || !Scan.MODES[mode]) return ui.notifications.warn("Select your token on this scene to send a pulse.");
+    const skill = game.settings.get(MODULE_ID, mode === "force" ? "scanForceSkill" : "scanTechSkill");
+    const total = await rollSkill(actor, skill);
+    if (total === null) return;
+    const result = Scan.pulse(canvas.scene, origin, mode, total);
+    this.scan = { ...result, sceneId: canvas.scene.id, origin: origin.name, at: Date.now() };
+    const found = result.hits.filter((h) => h.resolved).map((h) => h.name);
+    ChatMessage.create({ whisper: ChatMessage.getWhisperRecipients("GM").map((u) => u.id),
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content: `<b>${Scan.MODES[mode].label}</b> (${total}) from ${origin.name}: ${found.length ? found.join(", ") : "nothing resolved"}` +
+        `${result.hits.length > found.length ? `, ${result.hits.length - found.length} faint` : ""}.` });
+    this.render();
+  }
+  static #scanMark(e, el) {
+    const h = this.scan?.hits?.[Number(el.dataset.index)];
+    if (h) Scan.markOnMap(h.x, h.y);
+  }
+
   /* ---------- cameras ---------- */
   #camAt(el) { return find("terminals", this.viewId)?.controls?.[Number(el.dataset.index)]; }
   static #camRecord(e, el) { const c = this.#camAt(el); if (c) { Cam.Recorder.start(c); this.render(); } }

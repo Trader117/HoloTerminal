@@ -301,3 +301,50 @@
 .ht-tape-bar { display: flex; align-items: center; gap: 6px; }
 .ht-scrub { flex: 1; accent-color: var(--ht-gold); }
 .ht-tape-time { font: 700 12px Consolas, monospace; color: #bfe6ff; white-space: nowrap; }
+
+/* ---------- pulse scanner ---------- */
+.ht-scan-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.ht-scan-mode { --tone: var(--ht-blue); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 8px;
+  background: var(--ht-panel-2); border: 1px solid var(--ht-line); border-top: 3px solid var(--tone); border-radius: var(--ht-radius);
+  color: var(--ht-text); cursor: pointer; line-height: 1.2; height: auto; }
+.ht-scan-mode.ht-scan-force { --tone: var(--ht-gold); }
+.ht-scan-mode i { font-size: 20px; color: var(--tone); }
+.ht-scan-mode-label { font-family: var(--ht-font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+.ht-scan-mode small { color: var(--ht-muted); font-size: 10.5px; text-align: center; }
+.ht-scan-mode:hover:not(:disabled), .ht-scan-mode.ht-active { border-color: var(--tone); box-shadow: 0 0 10px color-mix(in srgb, var(--tone) 35%, transparent); }
+.ht-scan-mode:disabled { opacity: .45; cursor: not-allowed; }
+
+.ht-radar { --tone: var(--ht-blue); position: relative; width: 250px; aspect-ratio: 1; margin: 6px auto 10px; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle, color-mix(in srgb, var(--tone) 14%, #071018) 0%, #050b10 72%);
+  border: 2px solid color-mix(in srgb, var(--tone) 55%, transparent); box-shadow: inset 0 0 24px rgba(0,0,0,.7), 0 0 14px color-mix(in srgb, var(--tone) 25%, transparent); }
+.ht-radar-force { --tone: var(--ht-gold); }
+.ht-radar-ring { position: absolute; left: 50%; top: 50%; width: var(--r); height: var(--r); transform: translate(-50%, -50%);
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent); border-radius: 50%; }
+.ht-radar-cross { position: absolute; inset: 0; background:
+  linear-gradient(color-mix(in srgb, var(--tone) 22%, transparent), color-mix(in srgb, var(--tone) 22%, transparent)) center / 1px 100% no-repeat,
+  linear-gradient(color-mix(in srgb, var(--tone) 22%, transparent), color-mix(in srgb, var(--tone) 22%, transparent)) center / 100% 1px no-repeat; }
+.ht-radar-sweep { position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 300deg, color-mix(in srgb, var(--tone) 55%, transparent) 360deg);
+  animation: ht-sweep var(--sweep) linear infinite; }
+@keyframes ht-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ht-radar-n { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font: 700 10px var(--ht-font-display); color: var(--ht-muted); }
+.ht-radar-you { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: var(--ht-strong); box-shadow: 0 0 6px var(--ht-strong); }
+.ht-blip { position: absolute; width: 16px; height: 16px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: var(--tone); color: #051018; font: 700 10px/16px var(--ht-font-display); text-align: center;
+  box-shadow: 0 0 8px var(--tone); animation: ht-blip var(--sweep) linear infinite; animation-delay: var(--delay); opacity: .35; }
+.ht-blip.ht-faint { width: 10px; height: 10px; background: transparent; border: 1px dashed var(--tone); box-shadow: none; }
+@keyframes ht-blip { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1.35); } 12% { transform: translate(-50%, -50%) scale(1); } 100% { opacity: .35; } }
+
+.ht-scan-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--ht-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.ht-scan-hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ht-scan-hits li { display: flex; align-items: flex-start; gap: 8px; padding: 8px; background: var(--ht-panel-2); border: 1px solid var(--ht-line); border-left: 3px solid var(--ht-blue); border-radius: var(--ht-radius); }
+.ht-radar-force + .ht-scan-meta + .ht-scan-hits li { border-left-color: var(--ht-gold); }
+.ht-scan-hits li.ht-faint { opacity: .7; border-left-style: dashed; }
+.ht-scan-n { flex: 0 0 22px; height: 22px; border-radius: 50%; background: var(--ht-band-2); text-align: center; font: 700 11px/22px var(--ht-font-display); color: var(--ht-strong); }
+.ht-scan-text { flex: 1; min-width: 0; }
+.ht-scan-name { font-family: var(--ht-font-display); font-weight: 700; color: var(--ht-strong); }
+.ht-scan-details { font-size: 12.5px; margin: 2px 0; }
+.ht-scan-where { font-size: 11px; color: var(--ht-muted); text-transform: uppercase; letter-spacing: .05em; }
+.ht-icon-btn { flex: 0 0 auto; width: 28px; height: 28px; padding: 0; line-height: 1; background: var(--ht-band-1); border: 1px solid var(--ht-line); color: var(--ht-text); border-radius: var(--ht-radius); cursor: pointer; }
+.ht-icon-btn:hover { border-color: var(--ht-blue); color: var(--ht-strong); }
