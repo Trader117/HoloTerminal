@@ -1,0 +1,26 @@
+{{#if missing}}<p>Connection lost.</p>
+{{else if locked}}
+  <div class="ht-login">
+    <p class="ht-big">&#128274; SECURED NODE</p>
+    {{#if denied}}<p class="ht-denied">ACCESS DENIED</p>{{/if}}
+    {{#if hasPassword}}
+      <input type="password" name="password" placeholder="{{localize 'HT.password'}}" autocomplete="off">
+      <button type="button" data-action="login">{{localize "HT.login"}}</button>
+    {{/if}}
+    {{#if slice}}<button type="button" data-action="go" data-view="slice" data-id="{{terminal.id}}">{{localize "HT.slice"}}</button>{{/if}}
+  </div>
+{{else}}
+  <nav class="ht-tabs">{{#each tabs}}<button type="button" data-action="tab" data-tab="{{id}}" class="{{#if active}}active{{/if}}">{{label}}</button>{{/each}}</nav>
+  {{#if (eq tab "messages")}}
+    {{#each terminal.messages}}<details class="ht-item"><summary><b>{{from}}</b> &mdash; {{subject}}</summary><div class="ht-text">{{{body}}}</div></details>
+    {{else}}<p class="ht-dim">-- inbox empty --</p>{{/each}}
+  {{/if}}
+  {{#if (eq tab "files")}}
+    {{#each terminal.files}}<details class="ht-item"><summary>&#128190; {{name}}</summary><div class="ht-text">{{{body}}}</div></details>
+    {{else}}<p class="ht-dim">-- no files --</p>{{/each}}
+  {{/if}}
+  {{#if (eq tab "controls")}}
+    {{#each controls}}<div class="ht-control"><span>{{label}}</span><button type="button" data-action="control" data-index="{{index}}">{{state}}</button></div>
+    {{else}}<p class="ht-dim">-- no linked systems --</p>{{/each}}
+  {{/if}}
+{{/if}}

@@ -1,0 +1,4 @@
+{{#if isGM}}<button type="button" data-action="post" data-kind="shops">+ New market</button>{{/if}}
+{{#each shops}}
+  <button type="button" class="ht-list-row" data-action="go" data-view="shop" data-id="{{id}}"><i class="fas fa-store"></i> {{name}}{{#if hidden}} <em>(hidden)</em>{{/if}}</button>
+{{else}}<p class="ht-dim">-- no markets on {{sceneName}} --</p>{{/each}}

@@ -1,0 +1,18 @@
+<div class="ht-console">
+  <nav class="ht-tabs">{{#each tabs}}<button type="button" data-action="tab" data-tab="{{id}}" class="{{#if active}}active{{/if}}">{{label}}</button>{{/each}}</nav>
+  <section class="ht-body">
+    <ul>
+    {{#each entries}}
+      <li class="ht-entry">
+        <span class="ht-entry-name">{{name}}<small>{{detail}}</small></span>
+        <button type="button" data-action="toggle" data-id="{{id}}" title="Toggle player visibility"><i class="fas {{#if hidden}}fa-eye-slash{{else}}fa-eye{{/if}}"></i></button>
+        <button type="button" data-action="open" data-id="{{id}}" title="Open"><i class="fas fa-up-right-from-square"></i></button>
+        <button type="button" data-action="show" data-id="{{id}}" title="Show to players"><i class="fas fa-users"></i></button>
+        <button type="button" data-action="edit" data-id="{{id}}" title="Edit"><i class="fas fa-pen"></i></button>
+        <button type="button" data-action="remove" data-id="{{id}}" title="Delete"><i class="fas fa-trash"></i></button>
+      </li>
+    {{else}}<li class="ht-dim">Nothing here yet.</li>{{/each}}
+    </ul>
+  </section>
+  <button type="button" data-action="create"><i class="fas fa-plus"></i> New</button>
+</div>

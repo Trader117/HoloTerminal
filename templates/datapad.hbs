@@ -1,0 +1,11 @@
+<div class="ht-device">
+  <div class="ht-screen ht-theme-{{theme}}">
+    <header class="ht-header">
+      {{#if canBack}}<button type="button" class="ht-icon" data-action="back" title="Back">&#9664;</button>{{/if}}
+      <span class="ht-title">{{title}}</span>
+      <span class="ht-meta">{{#if actorName}}{{actorName}}{{#if (ne credits null)}} &middot; {{credits}} cr{{/if}}{{else}}no ID linked{{/if}}</span>
+    </header>
+    {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
+    {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
+  </div>
+</div>

@@ -1,0 +1,5 @@
+{{#each terminals}}
+  <button type="button" class="ht-list-row" data-action="go" data-view="terminal" data-id="{{id}}">
+    <i class="fas {{#if secured}}fa-lock{{else}}fa-desktop{{/if}}"></i> {{name}}{{#if hidden}} <em>(hidden)</em>{{/if}}
+  </button>
+{{else}}<p class="ht-dim">-- no terminals in range --</p>{{/each}}

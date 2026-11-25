@@ -1,0 +1,31 @@
+{{#if ready}}
+  <div class="ht-login">
+    <p class="ht-big">CIPHER LOCK &middot; {{difficulty}}</p>
+    <p>Crack the glyph sequence. <b>LOCK</b> = right glyph, right slot. <b>DRIFT</b> = right glyph, wrong slot.</p>
+    <p>Run a slicing check (DC {{dc}}) first for extra attempts. Failing it costs one.</p>
+    <div class="ht-row">
+      <button type="button" data-action="sliceBoost">Run slicing check</button>
+      <button type="button" data-action="sliceBegin">Go in cold</button>
+    </div>
+  </div>
+{{else}}
+  <div class="ht-cipher">
+    {{#each puzzle.guesses}}
+      <div class="ht-guess">{{#each glyphs}}<span class="ht-glyph">{{this}}</span>{{/each}}
+        <span class="ht-score">LOCK {{locked}} &middot; DRIFT {{drift}}</span></div>
+    {{/each}}
+    {{#if (eq puzzle.state "playing")}}
+      <div class="ht-guess ht-current">{{#each slots}}<span class="ht-glyph">{{this}}</span>{{/each}}</div>
+      <p class="ht-dim">{{remaining}} attempts left</p>
+      <div class="ht-pad">{{#each puzzle.pool}}<button type="button" class="ht-glyph-btn" data-action="glyph" data-glyph="{{this}}">{{this}}</button>{{/each}}</div>
+      <div class="ht-row"><button type="button" data-action="glyphBack">&#9003; Clear</button><button type="button" data-action="transmit">Transmit</button></div>
+    {{else if (eq puzzle.state "won")}}
+      <p class="ht-big">ACCESS GRANTED</p>
+      <button type="button" data-action="go" data-view="terminal" data-id="{{viewId}}">Enter</button>
+    {{else}}
+      <p class="ht-big ht-denied">LOCKOUT &middot; INTRUSION LOGGED</p>
+      <p>Code was: {{#each puzzle.code}}{{this}}{{/each}}</p>
+      <button type="button" data-action="back">Disconnect</button>
+    {{/if}}
+  </div>
+{{/if}}

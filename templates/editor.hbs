@@ -1,0 +1,10 @@
+<div class="ht-editor">
+  {{#if isShop}}<div class="ht-drop">Drag items here from the sidebar or a compendium to add them to stock. Set <code>stock</code> to -1 for unlimited.</div>{{/if}}
+  <p class="hint">Edit as JSON. <code>scenes</code> limits where it shows up (empty = every scene). <code>hidden</code> hides it from players.
+  {{#if (eq kind "terminals")}} Controls look like <code>{"label":"Blast door","type":"door","id":"&lt;wall id&gt;"}</code> or <code>"type":"light"</code> with an ambient light id. Slice difficulty: easy, normal, hard, elite. Remove <code>slice</code> or set <code>password</code> to "" to change locking.{{/if}}</p>
+  <textarea name="json" spellcheck="false">{{json}}</textarea>
+  <div class="ht-row">
+    <button type="button" data-action="addScene">Limit to current scene{{#if sceneName}} ({{sceneName}}){{/if}}</button>
+    <button type="button" data-action="save"><i class="fas fa-save"></i> Save</button>
+  </div>
+</div>
