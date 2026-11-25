@@ -5,6 +5,9 @@
 /* ---------- device: frameless handheld, graphite bezel around a blue screen ---------- */
 #ht-datapad.application, .ht-frameless.application { background: none; border: 0; box-shadow: none; padding: 0; overflow: visible;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .7)); }
+/* Frameless Foundry windows don't get the framed window's absolute positioning, so they sat in the page flow
+   (pinned beside the sidebar) and ignored left/top. Position them ourselves so dragging works. */
+#ht-datapad.application, #ht-holocall.application { position: fixed; z-index: var(--z-index-window, 100); margin: 0; transform-origin: top left; }
 #ht-datapad .window-content, .ht-frameless .window-content { background: none; padding: 0; overflow: visible; }
 .ht-frameless.application > .window-header { display: none; }
 .ht-frameless.application { border-radius: 0; }
