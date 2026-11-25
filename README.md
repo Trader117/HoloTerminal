@@ -41,7 +41,7 @@ Holo-Terminal also includes an original holo-datapad **character sheet** for dnd
 - **Tabs:** Dossier (abilities, saves, SW5e skills), Combat (weapons, actions, maneuvers), Powers (Force and Tech side by side, with DC and attack per school and point costs), Gear (credits, load, inventory), Features, Bio.
 - Number fields accept relative edits: `-7` in HP takes 7 damage, `+250` in credits adds 250.
 - Click an item's icon to use it, its name to show its description. Drag items in from compendiums; classes, species and backgrounds still run the dnd5e level-up flow.
-- Themes (Holo Cyan, Amber, Sith Red, Green) can be set per character from the header dropdown, with a default in module settings.
+- Themes: SW5e Database (default, matching the rest of Holo-Terminal), plus Holo Cyan, Amber, Sith Red and Green, set per character from the header dropdown, with a default in module settings.
 
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.

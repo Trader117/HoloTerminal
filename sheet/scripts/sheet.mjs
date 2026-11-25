@@ -5,7 +5,7 @@
 const MODULE_ID = "holo-terminal"; // the sheet ships inside the Holo-Terminal module
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
-const THEMES = ["cyan", "amber", "red", "green"];
+const THEMES = ["sw5e", "cyan", "amber", "red", "green"];
 const INVENTORY_TYPES = ["weapon", "equipment", "consumable", "tool", "container", "loot"];
 /* v12 / v13 compatibility */
 const TextEditorImpl = () => foundry.applications.ux?.TextEditor?.implementation ?? TextEditor;
@@ -135,7 +135,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.actor = actor;
     ctx.system = sys;
     ctx.tabs = this.#prepareTabs("primary");
-    ctx.theme = THEMES.includes(theme) ? theme : "cyan";
+    ctx.theme = THEMES.includes(theme) ? theme : "sw5e";
     ctx.themes = THEMES.map((t) => ({ id: t, label: loc(`HOLOSHEET.Theme.${t}`), selected: t === ctx.theme }));
 
     // identity
@@ -409,7 +409,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 Hooks.once("init", () => {
   game.settings.register(MODULE_ID, "sheetTheme", {
     name: "Character sheet theme", hint: "Each sheet can override this from its header.",
-    scope: "client", config: true, type: String, default: "cyan",
+    scope: "client", config: true, type: String, default: "sw5e",
     choices: Object.fromEntries(THEMES.map((t) => [t, `HOLOSHEET.Theme.${t}`])),
     onChange: () => [...foundry.applications.instances.values()]
       .filter((a) => a instanceof HoloDossierSheet).forEach((a) => a.render())
