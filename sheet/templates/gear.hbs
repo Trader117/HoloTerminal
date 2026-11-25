@@ -1,0 +1,13 @@
+<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="gear">
+  <div class="holo-wallet">
+    <label><i class="fa-solid fa-coins"></i> {{localize "HOLOSHEET.Credits"}}</label>
+    <input type="text" name="system.currency.{{creditsKey}}" value="{{credits}}" data-delta data-current="{{credits}}">
+    {{#if encumbrance.max}}
+    <div class="holo-enc"><label>Load {{encumbrance.value}} / {{encumbrance.max}}</label><div class="holo-bar"><span style="width:{{encumbrance.pct}}%"></span></div></div>
+    {{/if}}
+  </div>
+  {{#each gear}}
+  <h3 class="holo-h">{{label}} <a data-action="createItem" data-type="{{type}}"><i class="fa-solid fa-plus"></i></a></h3>
+  <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-item"}}{{else}}<li class="holo-dim">—</li>{{/each}}</ul>
+  {{/each}}
+</section>

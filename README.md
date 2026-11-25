@@ -35,6 +35,14 @@ A hidden glyph code. Each guess reports **LOCK** (right glyph, right slot) and *
 
 Difficulties are `easy` (3 slots, 5 glyphs), `normal` (4, 6), `hard` (5, 7) and `elite` (5, 8). The GM gets a whisper for every success, failure and terminal control used.
 
+## Character sheet (SW5e)
+Holo-Terminal also includes an original holo-datapad **character sheet** for dnd5e characters, built for SW5e (`sw5e-module`). It does not replace your sheet until you choose it: open a character, click **Sheet** in the window header and pick **Holo-Terminal Dossier (SW5e)**. Tick *default* there to use it for every character.
+- **Header:** HP bar with temp HP, AC, initiative (click to roll), proficiency, speed, hit dice, inspiration, and Force Point, Tech Point and Superiority Dice pools. Short/long rest buttons. Death saves show at 0 HP.
+- **Tabs:** Dossier (abilities, saves, SW5e skills), Combat (weapons, actions, maneuvers), Powers (Force and Tech side by side, with DC and attack per school and point costs), Gear (credits, load, inventory), Features, Bio.
+- Number fields accept relative edits: `-7` in HP takes 7 damage, `+250` in credits adds 250.
+- Click an item's icon to use it, its name to show its description. Drag items in from compendiums; classes, species and backgrounds still run the dnd5e level-up flow.
+- Themes (Holo Cyan, Amber, Sith Red, Green) can be set per character from the header dropdown, with a default in module settings.
+
 ## Combat HUD
 An action bar along the bottom of the screen for the selected token (or your assigned character), built to be easy for new players:
 

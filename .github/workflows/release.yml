@@ -19,7 +19,7 @@ jobs:
           jq --arg v "$VERSION" --arg d "https://github.com/$REPO/releases/download/$TAG/holo-terminal.zip" \
             '.version=$v | .download=$d' module.json > module.tmp && mv module.tmp module.json
       - name: Zip module
-        run: zip -r holo-terminal.zip module.json scripts templates styles lang README.md
+        run: zip -r holo-terminal.zip module.json scripts templates styles lang sheet README.md
       - name: Upload assets
         env:
           GH_TOKEN: ${{ github.token }}

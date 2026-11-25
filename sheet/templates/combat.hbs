@@ -1,0 +1,10 @@
+<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="combat">
+  <h3 class="holo-h">{{localize "HOLOSHEET.Weapons"}} <a data-action="createItem" data-type="weapon"><i class="fa-solid fa-plus"></i></a></h3>
+  <ul class="holo-list">{{#each weapons}}{{> "holo-terminal.sheet-item"}}{{else}}<li class="holo-dim">{{localize "HOLOSHEET.Empty"}}</li>{{/each}}</ul>
+  <h3 class="holo-h">{{localize "HOLOSHEET.Actions"}}</h3>
+  <ul class="holo-list">{{#each actions}}{{> "holo-terminal.sheet-item"}}{{else}}<li class="holo-dim">{{localize "HOLOSHEET.Empty"}}</li>{{/each}}</ul>
+  {{#if maneuvers.length}}
+  <h3 class="holo-h">{{localize "HOLOSHEET.Maneuvers"}}</h3>
+  <ul class="holo-list">{{#each maneuvers}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
+  {{/if}}
+</section>
