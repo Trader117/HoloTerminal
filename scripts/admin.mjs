@@ -35,6 +35,18 @@ export function blank(kind) {
       reward: 2500, description: "Recover the droid's memory core intact.", img: "", hidden: false,
       status: "open", claimants: []
     };
+    case "missions": return {
+      id, title: "Recover the shipment", status: "active", // active, done or failed
+      giver: "Broker Vex", location: "Nar Shaddaa", reward: "3000 credits",
+      summary: "Vex's coaxium went missing between Bay 12 and the landing platform. Find it before the Hutts do.",
+      objectives: [{ text: "Talk to the dock supervisor", done: false }, { text: "Find crate 12", done: false }, { text: "Bring the coaxium to Vex", done: false }],
+      hidden: false
+    };
+    case "contacts": return {
+      id, name: "Broker Vex", role: "Fence and information broker", location: "Nar Shaddaa", img: "", actorId: "",
+      standing: 0, // -3 hostile ... 0 neutral ... +3 ally
+      notes: "Pays fairly, never forgets a debt.", hidden: false
+    };
   }
 }
 
@@ -43,8 +55,8 @@ export function openEditor(kind, id) {
   return kind === "shops" ? new ShopEditorApp(id).render(true) : new EditorApp(kind, id).render(true);
 }
 
-const KIND_LABEL = { terminals: "Terminals", shops: "Markets", bounties: "Bounties" };
-const OPEN_VIEW = { terminals: "terminal", shops: "shop", bounties: "bounties" };
+const KIND_LABEL = { terminals: "Terminals", shops: "Markets", bounties: "Bounties", missions: "Missions", contacts: "Contacts" };
+const OPEN_VIEW = { terminals: "terminal", shops: "shop", bounties: "bounties", missions: "missions", contacts: "contacts" };
 
 /* ---------- JSON editor (with item drag & drop for shops) ---------- */
 export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -65,7 +77,7 @@ export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onRender(context, options) {
     super._onRender?.(context, options);
-    if (this.kind !== "shops") return;
+    if (!["shops", "contacts"].includes(this.kind)) return;
     const zone = this.element.querySelector(".ht-drop");
     zone?.addEventListener("dragover", (e) => e.preventDefault());
     zone?.addEventListener("drop", (e) => this.#onDrop(e));
@@ -80,6 +92,13 @@ export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async #onDrop(event) {
     event.preventDefault();
     const data = getDragData(event);
+    if (this.kind === "contacts") {
+      if (data?.type !== "Actor") return ui.notifications.warn("Drop an Actor here.");
+      const actor = await fromUuid(data.uuid), doc = this.#read();
+      if (!actor || !doc) return;
+      Object.assign(doc, { name: actor.name, img: actor.img, actorId: actor.id });
+      return this.#write(doc);
+    }
     if (data?.type !== "Item") return ui.notifications.warn("Drop an Item here.");
     const item = await fromUuid(data.uuid);
     const doc = this.#read();
@@ -180,6 +199,8 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
       entries: list(this.tab).map((x) => ({
         id: x.id, name: x.name ?? x.title, hidden: x.hidden,
         detail: this.tab === "bounties" ? `${x.status ?? "open"} · ${x.reward} cr`
+          : this.tab === "missions" ? `${x.status ?? "active"} · ${(x.objectives ?? []).filter((o) => o.done).length}/${(x.objectives ?? []).length} objectives`
+          : this.tab === "contacts" ? [x.role, x.location].filter(Boolean).join(" · ")
           : x.scenes?.length ? x.scenes.map((s) => game.scenes.get(s)?.name ?? "?").join(", ") : "All scenes"
       }))
     };

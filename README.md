@@ -124,6 +124,12 @@ When the GM uses **Make the jump** on the galaxy map there's a chance (30% by de
 - Edit the table in the console's **Ships** tab under *Hyperspace events*: turn events on or off, change how often each comes up, write your own, roll one on demand, or restore the defaults. `api.jumpEvent()` rolls one from a macro.
 - The chance per jump is a module setting (0 turns events off).
 
+## Missions and contacts
+Two more datapad tiles for keeping the story straight.
+
+- **Missions:** a shared log grouped into active, completed and failed. Each mission has who gave it, where, the reward, a summary and a checklist of objectives. Players read it; the GM adds missions (*+ New mission*, or the console's **Missions** tab), ticks objectives and marks missions done or failed right on the datapad. Set `hidden` to keep one secret.
+- **Contacts:** an address book of NPCs with portrait, role, location, notes and a standing meter from Hostile to Ally that the GM nudges with + and -. Drag an Actor into a contact's editor to link it; linked contacts get a *Message* button and show up as people players can write to in Comms.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
