@@ -1,3 +1,4 @@
+import { placeFrameless } from "./frameless.mjs";
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
 import * as Circuit from "./hacks/circuit.mjs";
@@ -136,7 +137,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // open where this player last left it (clamped to the screen by setPosition), else centred over the canvas
     const scale = game.settings.get(MODULE_ID, "tabletScale") ?? 1;
     const saved = game.settings.get(MODULE_ID, "datapadPosition");
-    const { width, height } = this.position;
+    const { width, height } = this.options.position;
     const sidebar = document.getElementById("sidebar")?.offsetWidth ?? 0;
     const left = Number.isFinite(saved?.left) ? saved.left : Math.max(0, (window.innerWidth - sidebar - width * scale) / 2);
     const top = Number.isFinite(saved?.top) ? saved.top : Math.max(0, (window.innerHeight - height * scale) / 2);
@@ -196,15 +197,23 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const onFrame = t === device || t.closest(".ht-bezel-top, .ht-rail, .ht-header, .ht-controls");
       if (!onFrame || t.closest("button, a, input, select, textarea, [data-action]")) return;
       ev.preventDefault();
-      const start = { x: ev.clientX, y: ev.clientY, left: this.position.left, top: this.position.top };
+      const at = placeFrameless(this);
+      const start = { x: ev.clientX, y: ev.clientY, left: at.left, top: at.top };
       const move = (e) => this.setPosition({ left: start.left + e.clientX - start.x, top: start.top + e.clientY - start.y });
       const up = () => {
         window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
-        game.settings.set(MODULE_ID, "datapadPosition", { left: this.position.left, top: this.position.top });
+        const p = placeFrameless(this);
+        game.settings.set(MODULE_ID, "datapadPosition", { left: p.left, top: p.top });
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     });
+  }
+
+  /** Foundry v12 doesn't place frameless windows, so we do (see frameless.mjs). */
+  setPosition(position) {
+    try { super.setPosition(position); } catch { /* frameless: Foundry may not handle it */ }
+    return placeFrameless(this, position);
   }
 
   _onClose(options) { super._onClose(options); this.booting = true; this.#stopTimer(); this.#stopTape(true); }
