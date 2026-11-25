@@ -1,5 +1,6 @@
 import { MODULE_ID, getCredits, setCredits, registerHandler, notifyUser } from "./store.mjs";
 import { GALAXY_HOOK } from "./galaxy.mjs";
+import { record } from "./bank.mjs";
 
 /* HoloDock: a ship registry for SW5e starships (and any actor the GM marks as a ship).
    Reads hull, shields, fuel, system damage and power routing from the SW5e starship data when it is there,
@@ -128,6 +129,7 @@ export function registerDockHandlers() {
       if (!payer.testUserPermission(user, "OWNER")) return;
       if (getCredits(payer) < cost) return notifyUser(user.id, "warn", `${payer.name} needs ${cost} cr for ${n} fuel.`);
       await setCredits(payer, getCredits(payer) - cost);
+      await record({ from: payer, to: "Fuel depot", amount: cost, memo: `${n} fuel for ${ship.name}` });
     }
     await ship.update(fuelUpdate(ship, fu.value + n));
     notifyUser(user.id, "info", `${ship.name}: +${n} fuel${payer && !user.isGM ? ` for ${cost} cr` : ""}.`);
