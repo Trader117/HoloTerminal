@@ -62,16 +62,16 @@ async function extinguish(moduleId, tokenDoc) {
   playSound(moduleId, "saberSoundOff");
 }
 
-function chooseColor(current, name) {
+function chooseColor(current, name, lit) {
   const options = PALETTE.map((c) => `<option value="${c.hex}" ${c.hex.toLowerCase() === current.toLowerCase() ? "selected" : ""}>${c.name}</option>`).join("");
   const content = `<form class="htc-saber-form"><div class="form-group"><label>Blade colour</label>
     <select name="color">${options}</select></div>
-    <p class="notes">Shift-click the button next time to ignite straight away in this colour.</p></form>`;
+    <p class="notes">A normal click ignites in this colour from now on. Shift-click again to change it.</p></form>`;
   return new Promise((resolve) => {
     new Dialog({
-      title: `Ignite ${name}`, content, default: "on",
+      title: `${name}: blade colour`, content, default: "on",
       buttons: {
-        on: { icon: '<i class="fa-solid fa-bolt"></i>', label: "Ignite",
+        on: { icon: '<i class="fa-solid fa-bolt"></i>', label: lit ? "Change colour" : "Ignite",
           callback: (html) => resolve(html[0].querySelector('[name="color"]').value) },
         cancel: { label: "Cancel", callback: () => resolve(null) }
       },
@@ -80,11 +80,13 @@ function chooseColor(current, name) {
   });
 }
 
-/** Click handler. Shift-click ignites in the last colour without asking. */
+/** Click: ignite in the last colour, or switch off. Shift-click: pick a colour (recolours a lit blade). */
 export async function toggleSaber(moduleId, actor, tokenDoc, event) {
   if (!tokenDoc) return ui.notifications.warn("Place and select this character's token on the scene to light a lightsaber.");
-  if (tokenDoc.getFlag(moduleId, "saberOn")) return extinguish(moduleId, tokenDoc);
-  const current = savedColor(moduleId, tokenDoc);
-  const color = event?.shiftKey ? current : await chooseColor(current, sabersOf(actor)[0]?.name ?? "lightsaber");
-  if (color) return ignite(moduleId, tokenDoc, color);
+  const lit = tokenDoc.getFlag(moduleId, "saberOn");
+  if (!event?.shiftKey) return lit ? extinguish(moduleId, tokenDoc) : ignite(moduleId, tokenDoc, savedColor(moduleId, tokenDoc));
+  const color = await chooseColor(savedColor(moduleId, tokenDoc), sabersOf(actor)[0]?.name ?? "lightsaber", lit);
+  if (!color) return;
+  if (!lit) return ignite(moduleId, tokenDoc, color);
+  return tokenDoc.update({ "light.color": color, [`flags.${moduleId}.saberColor`]: color });
 }
