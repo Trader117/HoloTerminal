@@ -821,3 +821,6 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-body-editor .ProseMirror:focus { outline: none; }
 .ht-body-editor .ProseMirror h1, .ht-body-editor .ProseMirror h2, .ht-body-editor .ProseMirror h3 { color: var(--ht-red); border-bottom-color: var(--ht-blue); }
 .ht-body-editor textarea.ht-pm-fallback { flex: 1; min-height: 300px; font: 13px/1.5 var(--ht-font-body); }
+.ht-dock-skill { gap: 6px; margin: 6px 0; } .ht-dock-skill select { flex: 1; min-width: 0; }
+.ht-screen .ht-dock-skill select { background: var(--ht-band-1); color: var(--ht-strong); border: 1px solid var(--ht-line); border-radius: 3px; height: 26px; }
+.ht-sc-dialog.ht-ship-import { grid-template-columns: 1fr; }

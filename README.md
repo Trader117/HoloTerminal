@@ -110,6 +110,19 @@ The datapad's **Starship** tile opens the party ship, with tabs for **Status** (
 - **Jumps:** with a route plotted on the galaxy map, the nav computer shows the fuel the party ship needs. The GM's **Make the jump** button moves the ship marker to the destination, burns the fuel, updates the ship's location and posts the arrival to chat.
 - **Settings:** fuel per day in hyperspace (default 1, or 0 to turn fuel use off) and a fallback fuel price for ships without an SW5e size item.
 
+### Importing SW5e starships (Foundry v12)
+The SW5E module for Foundry v12 (1.2.5) ships its starships as a "starship" actor type that neither it nor dnd5e 4.x defines, so they can't be used. **Import ship** in the console's **Ships** tab builds a working ship instead:
+
+- Pick any of the 87 **Drake's Shipyard** ships (type to search, e.g. *B-wing* or *YT-1300*), or choose a ship file from the SW5e Database (`drakesShipyard.json`, one ship from it, or your own ship in the same shape). Tick **Party ship** to link its token and make it the party ship.
+- The ship becomes a dnd5e **space vehicle** in the *HoloDock Ships* folder, with its size, ability scores, weapons, armor, shields, reactor, hyperdrive, starship actions, features and modifications.
+- **Hull** is the ship's hit points and **shields** are its temporary hit points, so damage takes the shields first. Patch heals hull and Boost Shields grants temporary shield points. Regenerate Shields rolls the shield points to restore; add them to the shields (temporary hit points) on the sheet.
+- **AC** is worked out from the equipped armor (base 10, plus Dexterity up to the armor's cap) and the tier's AC upgrade (+1 at tier 2 up to +4 at tier 5).
+- Starship actions that rolled SW5e starship skills or hull dice now roll the ship's ability modifier and its real hull die, with the tier filled in.
+- **HoloDock** shows the tier, AC and damage reduction, speed and turning speed, hull and shield dice, fuel (capacity and price by size), cargo, power routing and system damage. Owners can roll any **starship skill** from the ship's screen: d20 + the ship's ability modifier, plus the rolling character's proficiency bonus when they hold a bridge station.
+- dnd5e has no fields for tier, space speed, shield capacity, fuel or system damage, so those live in HoloTerminal's flag on the ship. Change system damage from the ship's pen button in the Ships tab.
+- Not automated: damage reduction (shown, but subtract it yourself), power dice and shield regeneration each round. Weapons attack with the ship's Dexterity, without crew proficiency.
+- `tools/build-starships.py` rebuilds `data/starships.json` from a copy of the SW5e Database.
+
 ## Trade runs
 Every world prices twelve kinds of cargo (foodstuffs, water, ore, metals, fuel, textiles, droid parts, electronics, medical supplies, luxury goods, and the restricted weapons and spice). Prices come from the world's terrain, climate and class and from how far it is from the Core, so desert worlds want water and the Core sells electronics cheaply.
 

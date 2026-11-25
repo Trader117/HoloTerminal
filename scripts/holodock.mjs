@@ -1,10 +1,13 @@
 import { MODULE_ID, getCredits, setCredits, registerHandler, notifyUser } from "./store.mjs";
 import { GALAXY_HOOK } from "./galaxy.mjs";
 import { record } from "./bank.mjs";
+import { SIZES, SKILLS } from "./starship-import.mjs";
 
 /* HoloDock: a ship registry for SW5e starships (and any actor the GM marks as a ship).
    Reads hull, shields, fuel, system damage and power routing from the SW5e starship data when it is there,
-   and keeps its own extras (hyperdrive override, fuel capacity, cargo, location, notes) in an actor flag. */
+   and keeps its own extras (hyperdrive override, fuel capacity, cargo, location, notes) in an actor flag.
+   Ships made by "Import ship" (starship-import.mjs) are dnd5e vehicles whose Starships of the Galaxy numbers
+   (size, tier, hull and shield dice, speeds, fuel) live in that flag's "sw5e" key. */
 
 const FLAG = "ship";
 export const DOCK_HOOK = `${MODULE_ID}.dock`;
@@ -35,6 +38,15 @@ export function shipActors(user = game.user) {
 
 const num = (v) => (v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 const sizeItem = (a) => a.items.find((i) => i.type === "starshipsize");
+/** SotG numbers for a ship: from an imported ship's flag, else the SW5e size item, else the actor's size. */
+function sotg(a) {
+  const f = a?.getFlag(MODULE_ID, FLAG)?.sw5e;
+  if (f) return f;
+  const it = sizeItem(a)?.system;
+  if (it) return { fuelCap: num(it.fuelCap), fuelCost: num(it.fuelCost), cargoCap: num(it.cargoCap) };
+  const sz = a?.type === "vehicle" && a.system?.vehicleType === "space" ? SIZES[a.system?.traits?.size] : null;
+  return sz ? { size: a.system.traits.size, fuelCap: sz.fuelCap, fuelCost: sz.fuelCost } : {};
+}
 
 /** Hyperdrive class: GM override, then the best equipped "Hyperdrive, Class X" item, then any hyperdrive item. */
 export function hyperClass(a) {
@@ -50,9 +62,9 @@ export function hyperClass(a) {
 function fuel(a) {
   const f = flagOf(a), sys = a.system?.attributes?.fuel;
   const onActor = sys && typeof sys === "object" && "value" in sys;
-  const max = num(f.fuelMax) ?? num(sys?.max) ?? num(sys?.cap) ?? num(sizeItem(a)?.system?.fuelCap);
+  const max = num(f.fuelMax) ?? num(sys?.max) ?? num(sys?.cap) ?? num(sotg(a).fuelCap);
   const value = onActor ? num(sys.value) ?? 0 : num(f.fuel) ?? max ?? 0;
-  return { value, max, onActor, price: num(sizeItem(a)?.system?.fuelCost) ?? game.settings.get(MODULE_ID, "dockFuelPrice") };
+  return { value, max, onActor, price: num(sotg(a).fuelCost) ?? game.settings.get(MODULE_ID, "dockFuelPrice") };
 }
 /** Update data that sets a ship's fuel, wherever it is kept. */
 function fuelUpdate(a, value) {
@@ -79,23 +91,29 @@ function crewOf(a) {
 /** Everything the screens need about one ship. */
 export function shipInfo(a, user = game.user) {
   const f = flagOf(a), at = a.system?.attributes ?? {}, hp = at.hp ?? {};
-  const size = sizeItem(a), fu = fuel(a), party = partyShip() === a;
-  const shieldMax = num(hp.tempmax) ?? num(f.shieldMax);
+  const size = sizeItem(a), fu = fuel(a), party = partyShip() === a, ss = sotg(a);
+  // Imported ships keep shield capacity in the flag (dnd5e adds hp.tempmax to max hit points, so it can't hold shields).
+  const shieldMax = num(f.shieldMax) ?? num(ss.shieldMax) ?? (num(hp.tempmax) > 0 ? num(hp.tempmax) : null);
+  const sizeLabel = size?.name?.replace(/\s*starship$/i, "") ?? SIZES[ss.size]?.label ?? (a.type === "vehicle" ? "Vehicle" : "");
   const cargo = (f.cargo ?? []).map((c) => ({ ...c }));
   const cargoUsed = cargo.reduce((s, c) => s + (num(c.tons) ?? 0) * (num(c.qty) ?? 1), 0);
-  const routing = at.power?.routing;
+  const routing = at.power?.routing ?? (ss.size ? f.routing ?? "none" : undefined);
+  const abil = (k) => { const m = a.system?.abilities?.[k]?.mod; return m === undefined ? null : m; };
+  const skills = ss.size ? Object.entries(SKILLS).map(([k, s]) => ({ k, label: s.label, ab: s.ability.toUpperCase(), mod: abil(s.ability) ?? 0 })) : null;
   return {
     id: a.id, uuid: a.uuid, name: a.name, img: a.img, party, native: a.type === "starship",
     owner: a.isOwner, observer: user.isGM || party || a.testUserPermission(user, "OBSERVER"),
-    size: size?.name?.replace(/\s*starship$/i, "") ?? (a.type === "vehicle" ? "Vehicle" : ""),
+    size: sizeLabel,
+    tier: num(ss.tier), ac: num(at.ac?.value), dr: num(ss.dr), speed: num(ss.space) ? { space: ss.space, turn: ss.turn } : null,
+    dice: num(ss.hullDice) ? `${ss.hullDice}d${ss.hullDie}` : null, skills,
     hull: bar(hp.value, hp.max, "hull"),
     shields: shieldMax || num(hp.temp) ? bar(hp.temp, shieldMax ?? hp.temp, "shields") : null,
     fuel: { ...bar(fu.value, fu.max, "fuel"), price: fu.price },
     hyper: hyperClass(a),
-    systemDamage: num(at.systemDamage),
+    systemDamage: num(at.systemDamage) ?? (ss.size ? num(f.systemDamage) ?? 0 : null),
     routing: routing !== undefined ? { value: routing, label: ROUTING[routing] ?? routing,
       options: Object.entries(ROUTING).map(([v, l]) => ({ v, l, sel: v === routing })) } : null,
-    crew: crewOf(a), cargo, cargoUsed: Math.round(cargoUsed * 100) / 100, cargoCap: num(f.cargoCap) ?? num(size?.system?.cargoCap),
+    crew: crewOf(a), cargo, cargoUsed: Math.round(cargoUsed * 100) / 100, cargoCap: num(f.cargoCap) ?? num(ss.cargoCap) ?? num(size?.system?.cargoCap),
     location: f.location ?? "", notes: f.notes ?? ""
   };
 }
@@ -147,6 +165,7 @@ export function registerDockHandlers() {
   registerHandler("dockRouting", async ({ shipId, routing }, user) => {
     const ship = game.actors.get(shipId);
     if (!ship || !ROUTING[routing] || !(user.isGM || ship === partyShip() || ship.testUserPermission(user, "OWNER"))) return;
-    await ship.update({ "system.attributes.power.routing": routing });
+    if (ship.system?.attributes?.power) await ship.update({ "system.attributes.power.routing": routing });
+    else await saveFlag(ship, { ...flagOf(ship), routing });
   });
 }

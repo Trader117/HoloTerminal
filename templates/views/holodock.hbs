@@ -4,7 +4,7 @@
   <img src="{{img}}" alt="">
   <div>
     {{#if party}}<span class="ht-dock-tag">Party ship</span>{{/if}}
-    <div class="ht-dock-meta">{{#if size}}{{size}} starship &middot; {{/if}}{{#if hyper}}Hyperdrive class {{hyper}}{{else}}No hyperdrive{{/if}}</div>
+    <div class="ht-dock-meta">{{#if size}}{{size}} starship &middot; {{/if}}{{#if (ne tier null)}}Tier {{tier}} &middot; {{/if}}{{#if hyper}}Hyperdrive class {{hyper}}{{else}}No hyperdrive{{/if}}</div>
     {{#if location}}<div class="ht-dock-loc"><i class="fas fa-location-dot"></i> {{location}}</div>{{/if}}
   </div>
 </div>
@@ -20,7 +20,16 @@
   {{#if routing}}<div><small>Power routing</small>{{#if ../canCommand}}<select data-dock-routing>{{#each routing.options}}<option value="{{v}}" {{#if sel}}selected{{/if}}>{{l}}</option>{{/each}}</select>{{else}}<b>{{routing.label}}</b>{{/if}}</div>{{/if}}
   <div><small>Cargo</small><b>{{cargoUsed}}{{#if cargoCap}} / {{cargoCap}}{{/if}} t</b></div>
   <div><small>Fuel price</small><b>{{fuel.price}} cr/unit</b></div>
+  {{#if ac}}<div><small>Armor class</small><b>{{ac}}{{#if dr}} <span class="ht-dim">DR {{dr}}</span>{{/if}}</b></div>{{/if}}
+  {{#if speed}}<div><small>Speed / turning</small><b>{{speed.space}} / {{speed.turn}} ft</b></div>{{/if}}
+  {{#if dice}}<div><small>Hull &amp; shield dice</small><b>{{dice}}</b></div>{{/if}}
 </div>
+{{#if skills}}{{#if ../canCommand}}
+<div class="ht-row ht-dock-skill">
+  <select name="dock-skill" title="Starship skill">{{#each skills}}<option value="{{k}}">{{label}} ({{ab}} {{numberFormat mod sign=true}})</option>{{/each}}</select>
+  <button type="button" data-action="dockSkill"><i class="fas fa-dice-d20"></i> Skill check</button>
+</div>
+{{/if}}{{/if}}
 {{#if ../canCommand}}
 <div class="ht-row ht-dock-actions">
   <button type="button" data-action="dockRefuel" data-units="1"{{#if fuel.max}}{{#if (eq fuel.value fuel.max)}} disabled{{/if}}{{/if}}><i class="fas fa-gas-pump"></i> {{#if ../isGM}}Add 1 fuel{{else}}Buy 1 fuel{{/if}}</button>

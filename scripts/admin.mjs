@@ -6,6 +6,7 @@ import * as Scan from "./scanner.mjs";
 import { runScan } from "./scan-wheel.mjs";
 import { playPulse } from "./scan-fx.mjs";
 import * as Dock from "./holodock.mjs";
+import { importDialog } from "./starship-import.mjs";
 import * as Comms from "./comms.mjs";
 import * as JumpEvents from "./jump-events.mjs";
 
@@ -68,7 +69,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
       scGive: ConsoleApp.#scGive, scPreviewForm: ConsoleApp.#scPreviewForm, scPreview: ConsoleApp.#scPreview, scEdit: ConsoleApp.#scEdit,
       scRecharge: ConsoleApp.#scRecharge, scDelete: ConsoleApp.#scDelete, tgToggle: ConsoleApp.#tgToggle, tgPreview: ConsoleApp.#tgPreview,
       tgEdit: ConsoleApp.#tgEdit,
-      shipAdd: ConsoleApp.#shipAdd, shipParty: ConsoleApp.#shipParty, shipOpen: ConsoleApp.#shipOpen, shipShow: ConsoleApp.#shipShow,
+      shipAdd: ConsoleApp.#shipAdd, shipImport: ConsoleApp.#shipImport, shipParty: ConsoleApp.#shipParty, shipOpen: ConsoleApp.#shipOpen, shipShow: ConsoleApp.#shipShow,
       shipEdit: ConsoleApp.#shipEdit, shipRemove: ConsoleApp.#shipRemove,
       evToggle: ConsoleApp.#evToggle, evEdit: ConsoleApp.#evEdit, evDelete: ConsoleApp.#evDelete, evRoll: ConsoleApp.#evRoll, evReset: ConsoleApp.#evReset,
       cmSend: ConsoleApp.#cmSend, cmCall: ConsoleApp.#cmCall, cmDelete: ConsoleApp.#cmDelete, cmClear: ConsoleApp.#cmClear
@@ -243,6 +244,10 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const a = game.actors.get(this.element.querySelector("[name=ship-actor]")?.value);
     if (a) await Dock.markShip(a, true);
   }
+  static async #shipImport() {
+    const a = await importDialog();
+    if (a) DatapadApp.instance.show("holodock", a.id);
+  }
   static async #shipParty(e, el) { await Dock.setPartyShip(Dock.partyShip()?.id === el.dataset.id ? "" : el.dataset.id); }
   static #shipOpen(e, el) { DatapadApp.instance.show("holodock", el.dataset.id); }
   static #shipShow(e, el) {
@@ -267,6 +272,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
       <label>Fuel capacity <input name="fuelMax" type="number" min="0" value="${esc(f.fuelMax)}" placeholder="${info.fuel.max ?? "unlimited"}"></label>
       <label>Shield capacity <input name="shieldMax" type="number" min="0" value="${esc(f.shieldMax)}" placeholder="${info.shields?.max ?? "from sheet"}"></label>
       <label>Cargo capacity (t) <input name="cargoCap" type="number" min="0" value="${esc(f.cargoCap)}" placeholder="${info.cargoCap ?? "none"}"></label>
+      ${f.sw5e ? `<label>System damage <input name="systemDamage" type="number" min="0" max="6" value="${esc(f.systemDamage ?? 0)}"></label>` : ""}
       <label>Location <input name="location" type="text" value="${esc(f.location)}" placeholder="e.g. Docking bay 94, Mos Eisley"></label>
       <label>Log <textarea name="notes" rows="3">${esc(f.notes)}</textarea></label>
       <p class="ht-dim">Leave a box empty to use the value from the SW5e sheet.</p></div>`;
@@ -275,7 +281,8 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!data) return;
     const opt = (v) => (v === "" || v === undefined ? null : Math.max(0, Number(v) || 0));
     await Dock.saveFlag(a, { ...f, hyperdrive: opt(data.hyperdrive), fuelMax: opt(data.fuelMax), shieldMax: opt(data.shieldMax),
-      cargoCap: opt(data.cargoCap), location: data.location?.trim() ?? "", notes: data.notes ?? "" });
+      cargoCap: opt(data.cargoCap), location: data.location?.trim() ?? "", notes: data.notes ?? "",
+      ...(f.sw5e ? { systemDamage: Math.max(0, Number(data.systemDamage) || 0) } : {}) });
     if (Number(data.fuel) !== info.fuel.value) await Dock.setFuel(a, Number(data.fuel) || 0);
   }
   static async #create() { const d = blank(this.tab); await upsert(this.tab, d); openEditor(this.tab, d.id); }
