@@ -8,7 +8,9 @@
       "Gear": "Gear",
       "Features": "Features",
       "Bio": "Bio",
-      "Effects": "Effects"
+      "Effects": "Effects",
+      "StatBlock": "Stat Block",
+      "Notes": "Notes"
     },
     "Theme": {
       "sw5e": "SW5e Database",
@@ -32,6 +34,7 @@
     "DeathSaves": "Death Saves",
     "Empty": "Nothing here. Drag items onto the sheet.",
     "ConfirmDelete": "Delete {name}?",
-    "NoPowers": "No powers known."
+    "NoPowers": "No powers known.",
+    "NpcSheetLabel": "Holo-Terminal Stat Block (SW5e NPC)"
   }
 }

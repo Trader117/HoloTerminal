@@ -1,0 +1,61 @@
+<section class="tab holo-body holo-statblock {{tab.cssClass}}" data-group="primary" data-tab="statblock">
+  <div class="holo-abilities holo-npc-abilities">
+    {{#each abilities}}
+    <div class="holo-ability {{#if proficient}}holo-save-prof{{/if}}" data-ability="{{key}}">
+      <a class="holo-abbr" data-action="rollAbility" data-tooltip="{{label}} check">{{abbr}}</a>
+      <b class="holo-mod" data-action="rollAbility" data-tooltip="{{label}} check">{{mod}}</b>
+      {{#if ../editMode}}<input type="number" class="holo-score" name="system.abilities.{{key}}.value" value="{{value}}">{{else}}<span class="holo-score">{{value}}</span>{{/if}}
+      <a class="holo-npc-save" data-action="rollSave" data-tooltip="{{label}} saving throw{{#if proficient}} (proficient){{/if}}">Save {{save}}</a>
+    </div>
+    {{/each}}
+  </div>
+
+  <div class="holo-sb-frame">
+    {{#if editMode}}
+    <div class="holo-sb-prop holo-sb-edit">
+      {{#if acEditable}}<label>Armor Class <input type="number" name="system.attributes.ac.flat" value="{{acFlat}}"></label>{{/if}}
+      <a class="holo-chip" data-action="npcConfig" data-config="ac"><i class="fa-solid fa-shield"></i> Armor</a>
+      <a class="holo-chip" data-action="npcConfig" data-config="movement"><i class="fa-solid fa-person-running"></i> Speed</a>
+      <a class="holo-chip" data-action="npcConfig" data-config="senses"><i class="fa-solid fa-eye"></i> Senses</a>
+      <a class="holo-chip" data-action="npcConfig" data-config="type"><i class="fa-solid fa-dna"></i> Type</a>
+    </div>
+    {{/if}}
+    <div class="holo-sb-prop"><b>Speed</b> <span>{{speedLine}}</span></div>
+    {{#if saveLine.length}}<div class="holo-sb-prop"><b>Saving Throws</b> <span>{{#each saveLine}}<a class="holo-sb-roll" data-ability="{{key}}" data-action="rollSave">{{abbr}} {{save}}</a>{{/each}}</span></div>{{/if}}
+    <div class="holo-sb-prop"><b>Skills</b> <span>{{#each profSkills}}<a class="holo-sb-roll" data-skill="{{key}}" data-action="rollSkill" data-tooltip="{{tip}}">{{label}} {{total}}</a>{{else}}<span class="holo-dim">None trained.</span>{{/each}}
+      <a class="holo-sb-more" data-action="toggleAllSkills">{{#if showAllSkills}}hide{{else}}all skills{{/if}} <i class="fa-solid {{#if showAllSkills}}fa-caret-up{{else}}fa-caret-down{{/if}}"></i></a></span></div>
+    {{#if showAllSkills}}
+    <ul class="holo-skills holo-sb-allskills">
+      {{#each skills}}
+      <li data-skill="{{key}}" data-action="rollSkill" class="{{#if proficient}}holo-prof{{/if}}">
+        <i class="{{icon}}" data-tooltip="{{tip}}"></i><span class="holo-abil">{{ability}}</span><span class="holo-skill-name">{{label}}</span><b>{{total}}</b>
+      </li>
+      {{/each}}
+    </ul>
+    {{/if}}
+    {{#each sbTraits}}
+    <div class="holo-sb-prop"><b>{{label}}</b> <span>{{join}}</span>{{#if ../editMode}} <a class="holo-sb-pen" data-action="editTraits" data-trait="{{trait}}" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>{{/if}}</div>
+    {{/each}}
+    <div class="holo-sb-prop"><b>Senses</b> <span>{{sensesLine}}</span></div>
+    <div class="holo-sb-prop"><b>Challenge</b> <span>{{cr.label}}{{#if cr.xp}} ({{cr.xp}} XP){{/if}}</span> <b class="holo-sb-gap">Proficiency Bonus</b> <span>{{prof}}</span></div>
+    {{#if editMode}}
+    <div class="holo-sb-prop holo-sb-edit">
+      <a class="holo-chip" data-action="editTraits" data-trait="languages">Languages</a><a class="holo-chip" data-action="editTraits" data-trait="dr">Resist</a>
+      <a class="holo-chip" data-action="editTraits" data-trait="di">Immune</a><a class="holo-chip" data-action="editTraits" data-trait="dv">Vulnerable</a>
+      <a class="holo-chip" data-action="editTraits" data-trait="ci">Condition immune</a>
+    </div>
+    {{/if}}
+    {{#if activeConditions.length}}
+    <div class="holo-sb-prop"><b>Conditions</b> <span>{{#each activeConditions}}<a class="holo-chip holo-chip-cond" data-action="toggleCondition" data-condition-id="{{id}}" data-tooltip="Remove">{{name}} <i class="fa-solid fa-xmark"></i></a>{{/each}}</span></div>
+    {{/if}}
+  </div>
+
+  {{#each sections}}
+  <h3 class="holo-h holo-sb-h">{{label}} <a data-action="createNpcFeature" data-activation="{{activation}}" data-tooltip="Add {{label}}"><i class="fa-solid fa-plus"></i></a></h3>
+  {{#if intro}}<p class="holo-sb-intro">{{intro}}</p>{{/if}}
+  {{#each items}}{{> "holo-terminal.npc-entry"}}{{else}}<p class="holo-dim holo-small holo-empty">None.</p>{{/each}}
+  {{/each}}
+  {{#unless sections.length}}
+  <p class="holo-dim holo-empty">No traits or actions yet. <a data-action="createNpcFeature" data-activation="action">Add an action</a>, or drag features and weapons in from a compendium.</p>
+  {{/unless}}
+</section>

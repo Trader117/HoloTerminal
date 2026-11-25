@@ -825,3 +825,6 @@ Hooks.once("init", () => {
 
   registerPartial("holo-terminal.sheet-row", TPL("_row"));
 });
+
+/* shared with the NPC sheet (npc-sheet.mjs) */
+export { TPL, num, signed, pct, cfg, loc, traitList, activationOf, rangeOf, rollOf, recoveryOf, itemUses, typeLabelOf, ACT_LABEL, RECOVERY, TextEditorImpl };

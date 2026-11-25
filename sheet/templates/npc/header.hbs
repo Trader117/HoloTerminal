@@ -1,0 +1,27 @@
+<header class="holo-header holo-npc-header">
+  <div class="holo-ident">
+    {{#if editMode}}
+    <input class="holo-name" type="text" name="name" value="{{actor.name}}" placeholder="Name">
+    {{else}}
+    <h1 class="holo-name">{{actor.name}}</h1>
+    {{/if}}
+    <div class="holo-sub">
+      <span>{{#if creatureType}}{{creatureType}}{{else}}Creature{{/if}}{{#if editMode}} <a data-action="npcConfig" data-config="type" data-tooltip="Edit type"><i class="fa-solid fa-pen"></i></a>{{/if}}</span>
+      {{#if editMode}}<input class="holo-npc-align" type="text" name="system.details.alignment" value="{{alignment}}" placeholder="Alignment">
+      {{else if alignment}}<span>{{alignment}}</span>{{/if}}
+      {{#if source}}<span>{{source}}</span>{{/if}}
+    </div>
+  </div>
+  <div class="holo-header-tools">
+    <a class="holo-icon-btn" data-action="rest" data-type="short" data-tooltip="{{localize "HOLOSHEET.ShortRest"}}"><i class="fa-solid fa-utensils"></i></a>
+    <a class="holo-icon-btn" data-action="rest" data-type="long" data-tooltip="{{localize "HOLOSHEET.LongRest"}}"><i class="fa-solid fa-campground"></i></a>
+    {{#if editable}}<a class="holo-icon-btn" data-action="configurePrototypeToken" data-tooltip="Prototype token"><i class="fa-solid fa-user-circle"></i></a>
+    <a class="holo-icon-btn" data-action="configureSheet" data-tooltip="Sheet settings"><i class="fa-solid fa-gear"></i></a>
+    <a class="holo-icon-btn {{#if editMode}}holo-icon-on{{/if}}" data-action="toggleMode" data-tooltip="{{#if editMode}}Editing: click to lock{{else}}Locked: click to edit{{/if}}"><i class="fa-solid {{#if editMode}}fa-lock-open{{else}}fa-lock{{/if}}"></i></a>{{/if}}
+  </div>
+  <div class="holo-cr-badge" data-tooltip="Challenge {{cr.label}}{{#if cr.xp}} · {{cr.xp}} XP{{/if}}">
+    <small>CR</small>
+    {{#if editMode}}<input type="text" name="system.details.cr" value="{{cr.value}}" data-tooltip="Challenge rating (0.125, 0.25, 0.5, 1, 2…)">{{else}}<b>{{cr.label}}</b>{{/if}}
+    {{#if cr.xp}}<span>{{cr.xp}} XP</span>{{/if}}
+  </div>
+</header>
