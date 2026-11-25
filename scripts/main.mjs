@@ -5,6 +5,8 @@ import { ConsoleApp } from "./admin.mjs";
 import { registerRegionBehavior } from "./regions.mjs";
 import { registerScannerSettings, registerSignatureBehavior } from "./scanner.mjs";
 import { initScanSocket, openScanner, runScan } from "./scan-wheel.mjs";
+import { registerGalaxySettings } from "./galaxy.mjs";
+import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
 const loadTpl = (paths) => (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)(paths);
@@ -17,6 +19,7 @@ Hooks.once("init", () => {
   registerLootHud();
   registerRegionBehavior((view, id) => datapad(view, id));
   registerScannerSettings();
+  registerGalaxySettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -43,6 +46,7 @@ Hooks.once("ready", () => {
     openBounties: () => datapad("bounties"),
     openSalvage: () => datapad("salvage"),
     openScanner: () => openScanner({ ConsoleApp }),
+    galaxy: () => GalaxyMapApp.instance.render(true),
     scan: (actor, scannerId, opts) => runScan(actor, scannerId, opts),
     /** GM: push a view to every player's datapad. */
     showAll: (view, ref) => {
@@ -62,13 +66,16 @@ Hooks.on("getSceneControlButtons", (controls) => {
   const openGM = () => ConsoleApp.instance.render(true);
   const scan = { name: "ht-scanner", title: "Pulse Scanner", icon: "fas fa-satellite-dish", button: true };
   const openScan = () => openScanner({ ConsoleApp });
+  const gx = { name: "ht-galaxy", title: "Galaxy Map", icon: "fas fa-earth-americas", button: true };
+  const openGx = () => GalaxyMapApp.instance.render(true);
   if (Array.isArray(controls)) { // v12
     const tools = controls.find((c) => c.name === "token")?.tools;
-    tools?.push({ ...pad, onClick: openPad }, { ...scan, onClick: openScan });
+    tools?.push({ ...pad, onClick: openPad }, { ...scan, onClick: openScan }, { ...gx, onClick: openGx });
     if (game.user.isGM) tools?.push({ ...gm, onClick: openGM });
   } else if (controls.tokens) { // v13
     controls.tokens.tools["ht-datapad"] = { ...pad, onChange: openPad, order: 97 };
     controls.tokens.tools["ht-scanner"] = { ...scan, onChange: openScan, order: 98 };
-    if (game.user.isGM) controls.tokens.tools["ht-console"] = { ...gm, onChange: openGM, order: 99 };
+    controls.tokens.tools["ht-galaxy"] = { ...gx, onChange: openGx, order: 99 };
+    if (game.user.isGM) controls.tokens.tools["ht-console"] = { ...gm, onChange: openGM, order: 100 };
   }
 });
