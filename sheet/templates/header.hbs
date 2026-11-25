@@ -16,6 +16,8 @@
     <a class="holo-icon-btn" data-action="rest" data-type="short" data-tooltip="{{localize "HOLOSHEET.ShortRest"}}"><i class="fa-solid fa-utensils"></i></a>
     <a class="holo-icon-btn" data-action="rest" data-type="long" data-tooltip="{{localize "HOLOSHEET.LongRest"}}"><i class="fa-solid fa-campground"></i></a>
     <a class="holo-icon-btn {{#if inspiration}}holo-icon-on{{/if}}" data-action="toggleInspiration" data-tooltip="Inspiration"><i class="fa-solid fa-star"></i></a>
+    {{#if editable}}<a class="holo-icon-btn" data-action="configurePrototypeToken" data-tooltip="Prototype token"><i class="fa-solid fa-user-circle"></i></a>
+    <a class="holo-icon-btn" data-action="configureSheet" data-tooltip="Sheet settings"><i class="fa-solid fa-gear"></i></a>{{/if}}
     {{#if editable}}<a class="holo-icon-btn {{#if editMode}}holo-icon-on{{/if}}" data-action="toggleMode" data-tooltip="{{#if editMode}}Editing: click to lock{{else}}Locked: click to edit{{/if}}"><i class="fa-solid {{#if editMode}}fa-lock-open{{else}}fa-lock{{/if}}"></i></a>{{/if}}
   </div>
   <div class="holo-level-badge" data-tooltip="{{#if xp.max}}{{xp.value}} / {{xp.max}} XP{{/if}}">

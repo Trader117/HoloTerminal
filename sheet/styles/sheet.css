@@ -37,15 +37,28 @@
 .holo-sheet.holo-theme-red { --hs-fg:#ff5a5a; --hs-bg:#160303; }
 .holo-sheet.holo-theme-green { --hs-fg:#6dff7a; --hs-bg:#031405; }
 
-.holo-sheet .window-content { padding:0; overflow:hidden; display:grid;
-  grid-template-columns:250px minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr);
-  grid-template-areas:"header header" "sidebar nav" "sidebar body";
-  background:var(--hs-bg); background-image:var(--hs-scan); color:var(--hs-text); font:14px/1.4 var(--hs-body); }
-.holo-sheet .window-content > .holo-header { grid-area:header; }
-.holo-sheet .window-content > .holo-sidebar { grid-area:sidebar; }
-.holo-sheet .window-content > .holo-tabs { grid-area:nav; }
-.holo-sheet .window-content > .holo-body { grid-area:body; }
-.holo-sheet .window-content * { scrollbar-width:thin; scrollbar-color:var(--hs-line) transparent; }
+/* ---------- tablet: the Holo-Terminal device frame (styles/holo-terminal.css) around a sheet grid ---------- */
+.holo-sheet.application { min-width:720px; min-height:560px; }
+.holo-sheet .holo-device { padding:0 22px 16px; }
+.holo-sheet .holo-screen { display:grid; padding:0;
+  grid-template-columns:250px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:"header header" "sidebar body";
+  color:var(--hs-text); font:14px/1.4 var(--hs-body); }
+/* SW5e scheme: sheet surfaces take the screen's blue-tinted values so panels sit in the glow */
+.holo-sheet.holo-theme-sw5e .holo-screen { --hs-bg: rgba(2, 14, 24, .55); --hs-panel: var(--ht-panel); --hs-panel2: var(--ht-panel-2);
+  --hs-band1: var(--ht-band-1); --hs-band2: var(--ht-band-2); --hs-line: var(--ht-line); }
+/* holo alternates keep their own monochrome screen */
+.holo-sheet:not(.holo-theme-sw5e) .holo-screen { background:var(--hs-bg); background-image:var(--hs-scan); }
+.holo-sheet .holo-screen > .holo-header { grid-area:header; }
+.holo-sheet .holo-screen > .holo-sidebar { grid-area:sidebar; }
+.holo-sheet .holo-screen > .holo-body { grid-area:body; }
+.holo-sheet .holo-controls .ht-keys { flex:none; }
+.holo-sheet .holo-controls .ht-key { width:64px; }
+.holo-sheet .holo-controls .ht-power { width:52px; }
+.holo-grip { position:absolute; right:6px; bottom:6px; width:14px; height:14px; cursor:nwse-resize; opacity:.5;
+  background:repeating-linear-gradient(135deg, transparent 0 3px, #5d6f80 3px 4px); clip-path:polygon(100% 0, 100% 100%, 0 100%); }
+.holo-grip:hover { opacity:1; }
+.holo-sheet .holo-screen * { scrollbar-width:thin; scrollbar-color:var(--hs-line) transparent; }
 .holo-sheet input, .holo-sheet button, .holo-sheet textarea { font-family:var(--hs-body); color:var(--hs-text); background:var(--hs-bg); border:1px solid var(--hs-line); border-radius:5px; }
 .holo-sheet input:focus, .holo-sheet textarea:focus { outline:none; border-color:var(--hs-rule); box-shadow:0 0 0 3px color-mix(in srgb, var(--hs-rule) 25%, transparent); }
 .holo-sheet button { background:var(--hs-panel2); font:600 12px var(--hs-display); text-transform:uppercase; letter-spacing:.4px; cursor:pointer; padding:0 .6rem; line-height:2.1em; }
@@ -127,12 +140,6 @@ a.holo-meter-bar:hover { border-color:var(--hs-rule); }
 .holo-fav-uses input { width:2em; height:22px; padding:0; text-align:center; font:700 13px var(--hs-display); color:var(--hs-strong); }
 
 /* ---------- tabs ---------- */
-.holo-tabs { display:flex; gap:4px; padding:8px 1rem 0; background:var(--hs-bg); border-bottom:1px solid var(--hs-line); }
-.holo-tabs a { flex:1; text-align:center; padding:6px 4px 7px; border:1px solid var(--hs-line); border-bottom:none; border-radius:6px 6px 0 0; background:var(--hs-panel);
-  font:600 12px var(--hs-display); letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; color:var(--hs-muted); }
-.holo-tabs a:hover { color:var(--hs-strong); }
-.holo-tabs a.active { color:var(--hs-strong); background:var(--hs-panel2); border-color:var(--hs-rule); box-shadow:inset 0 2px 0 var(--hs-rule); }
-.holo-tabs i { margin-right:.25rem; }
 .holo-body { padding:1rem 1rem 1.5rem; overflow-y:auto; min-height:0; }
 .holo-body.tab:not(.active) { display:none; }
 .holo-h { display:flex; justify-content:space-between; align-items:baseline; margin:1.1rem 0 .5rem; padding:0 0 2px; border:none; border-bottom:2px solid var(--hs-rule);
@@ -282,7 +289,7 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
 .holo-bio prose-mirror, .holo-bio .editor-content { color:var(--hs-text); font-family:var(--hs-body); min-height:260px; }
 
 @media (max-width: 820px) {
-  .holo-sheet .window-content { grid-template-columns:1fr; grid-template-areas:"header" "sidebar" "nav" "body"; overflow-y:auto; }
+  .holo-sheet .holo-screen { grid-template-columns:1fr; grid-template-areas:"header" "sidebar" "body"; overflow-y:auto; }
   .holo-columns { grid-template-columns:1fr; } .holo-abilities { grid-template-columns:repeat(3, minmax(0,1fr)); }
   .c-range, .c-dmg, .c-weight, .c-school { display:none !important; }
 }

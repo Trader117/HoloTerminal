@@ -3,9 +3,9 @@
 .ht-app .window-content { padding: 0; background: var(--ht-bg); color: var(--ht-text); }
 
 /* ---------- device: frameless handheld, graphite bezel around a blue screen ---------- */
-#ht-datapad.application { background: none; border: 0; box-shadow: none; padding: 0; overflow: visible;
+#ht-datapad.application, .ht-frameless.application { background: none; border: 0; box-shadow: none; padding: 0; overflow: visible;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .7)); }
-#ht-datapad .window-content { background: none; padding: 0; overflow: visible; }
+#ht-datapad .window-content, .ht-frameless .window-content { background: none; padding: 0; overflow: visible; }
 .ht-device {
   position: relative; height: 100%; display: flex; flex-direction: column;
   padding: 0 22px 16px; border-radius: 26px;
@@ -68,18 +68,18 @@
 .ht-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
 
 /* ---------- controls ---------- */
-.ht-screen button, .ht-screen input, .ht-console button, .ht-editor button {
+.ht-screen:where(:not(.holo-screen)) button, .ht-screen:where(:not(.holo-screen)) input, .ht-console button, .ht-editor button {
   width: auto; height: auto; line-height: 1.4; margin: 0;
   font: 12px var(--ht-font-body); color: var(--ht-text); background: var(--ht-panel-2);
   border: 1px solid var(--ht-line); border-radius: var(--ht-radius); padding: 5px 10px; cursor: pointer;
 }
-.ht-screen input { background: var(--ht-bg); font-size: 14px; cursor: text; }
-.ht-screen input:focus { outline: none; border-color: var(--ht-blue); box-shadow: 0 0 0 3px var(--ht-blue-soft); }
-.ht-screen button:hover:not([disabled]), .ht-console button:hover, .ht-editor button:hover { border-color: var(--ht-accent, var(--ht-blue)); color: var(--ht-strong); }
-.ht-screen button:focus-visible { outline: 2px solid var(--ht-blue); outline-offset: 1px; }
-.ht-screen button[disabled] { opacity: .4; cursor: default; }
-.ht-screen button.ht-icon { padding: 3px 9px; }
-.ht-screen button.ht-primary { border-color: var(--ht-blue); }
+.ht-screen:where(:not(.holo-screen)) input { background: var(--ht-bg); font-size: 14px; cursor: text; }
+.ht-screen:where(:not(.holo-screen)) input:focus { outline: none; border-color: var(--ht-blue); box-shadow: 0 0 0 3px var(--ht-blue-soft); }
+.ht-screen:where(:not(.holo-screen)) button:hover:not([disabled]), .ht-console button:hover, .ht-editor button:hover { border-color: var(--ht-accent, var(--ht-blue)); color: var(--ht-strong); }
+.ht-screen:where(:not(.holo-screen)) button:focus-visible { outline: 2px solid var(--ht-blue); outline-offset: 1px; }
+.ht-screen:where(:not(.holo-screen)) button[disabled] { opacity: .4; cursor: default; }
+.ht-screen:where(:not(.holo-screen)) button.ht-icon { padding: 3px 9px; }
+.ht-screen:where(:not(.holo-screen)) button.ht-primary { border-color: var(--ht-blue); }
 
 /* ---------- boot ---------- */
 .ht-boot { margin: 0; padding: 14px; white-space: pre-wrap; font: 13px/1.6 Consolas, "Courier New", monospace; color: var(--ht-accent);
