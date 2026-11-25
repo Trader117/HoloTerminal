@@ -1,7 +1,7 @@
 import { MODULE_ID } from "./store.mjs";
 
 /* HoloNet news: a feed of headlines the GM writes, plus stories written automatically from what the crew does
-   (big trades, jumps, hyperspace events, finished missions, cantina wins). Automatic stories wait for the GM's
+   (big trades, jumps, hyperspace events, finished missions). Automatic stories wait for the GM's
    approval by default. */
 
 export const NEWS_HOOK = `${MODULE_ID}.news`;
@@ -12,7 +12,7 @@ const SOURCES = ["HoloNet Central", "Outer Rim Gazette", "Core Courier", "Spacer
 export function registerNewsSettings() {
   game.settings.register(MODULE_ID, "news", { scope: "world", config: false, type: Array, default: [], onChange: () => Hooks.callAll(NEWS_HOOK) });
   game.settings.register(MODULE_ID, "newsAuto", { name: "HoloNet news: automatic stories",
-    hint: "Stories written from what the crew does (big trades, jumps, hyperspace events, missions, cantina wins).",
+    hint: "Stories written from what the crew does (big trades, jumps, hyperspace events, missions).",
     scope: "world", config: true, type: String, default: "queue",
     choices: { queue: "Write them, wait for GM approval", publish: "Publish straight away", off: "Off" } });
 }
@@ -51,8 +51,6 @@ const TEMPLATES = {
     body: `Pilots on the lanes are passing word of an incident: ${d.text}` }),
   mission: (d) => ({ tag: "Rumor", headline: pick([`Word on the street: "${d.title}" is done`, `Cantina talk turns to a job well done`, `Unnamed crew credited with "${d.title}"`]),
     body: d.giver ? `Those close to ${d.giver} say the matter has been settled.` : "Nobody's saying who did it, but everyone's saying it was done." }),
-  nova: (d) => ({ tag: "Sport", headline: pick([`Nova! Cantina gambler hits 23 against the house`, `House loses ${d.amount} credits on a single hand of Nova`]),
-    body: `Regulars watched a stranger hit a perfect 23 and walk away ${d.amount} credits richer.` })
 };
 
 /** Called on the GM client when something newsworthy happens. */

@@ -12,7 +12,6 @@ import { HolocallApp } from "./holocall.mjs";
 import { registerTradeSettings, registerTradeHandlers } from "./trade.mjs";
 import { registerEventSettings, initEventSocket, maybeEvent } from "./jump-events.mjs";
 import { registerBankSettings, registerBankHandlers } from "./bank.mjs";
-import { registerCantinaSettings, registerCantinaHandlers } from "./cantina.mjs";
 import { registerBridgeHandlers } from "./bridge.mjs";
 import { registerYardSettings, registerYardHandlers } from "./shipyard.mjs";
 import { registerNewsSettings, post as postNews } from "./news.mjs";
@@ -35,7 +34,6 @@ Hooks.once("init", () => {
   registerTradeSettings();
   registerEventSettings();
   registerBankSettings();
-  registerCantinaSettings();
   registerYardSettings();
   registerNewsSettings();
   registerSignatureBehavior();
@@ -59,7 +57,6 @@ Hooks.once("ready", () => {
   registerTradeHandlers();
   initEventSocket();
   registerBankHandlers();
-  registerCantinaHandlers();
   registerBridgeHandlers();
   registerYardHandlers();
   initCommsSocket();
@@ -78,7 +75,6 @@ Hooks.once("ready", () => {
     openComms: () => datapad("comms"),
     openTrade: () => datapad("trade"),
     openCredits: () => datapad("bank"),
-    openCantina: () => datapad("cantina"),
     openBridge: () => datapad("bridge"),
     openShipyard: () => datapad("shipyard"),
     openNews: () => datapad("news"),
