@@ -26,15 +26,16 @@ import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { rollSkill } from "./roll.mjs";
 import * as Dock from "./holodock.mjs";
 import * as Comms from "./comms.mjs";
+import * as Trade from "./trade.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -69,7 +70,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge,
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
-      commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen
+      commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      tradeBuy: DatapadApp.#tradeBuy, tradeSell: DatapadApp.#tradeSell, tradeShift: DatapadApp.#tradeShift
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
@@ -85,7 +87,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
-    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && this.view === "holodock" && this.render());
+    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade"].includes(this.view) && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
       "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
@@ -356,6 +358,23 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Comms", threads: all, contacts };
   }
 
+  async _ctx_trade() {
+    const ship = Dock.partyShip();
+    if (!ship) return { title: "Trade", noShip: "No party ship. The GM can set one in the HoloDock." };
+    const planet = await Trade.dockedPlanet();
+    if (!planet) return { title: "Trade", noShip: `${ship.name} isn't docked at a known world. Move it on the galaxy map.` };
+    const info = Dock.shipInfo(ship), held = new Map(info.cargo.filter((c) => c.good).map((c) => [c.good, c]));
+    const goods = Trade.market(planet).map((g) => {
+      const h = held.get(g.id), margin = h?.paid ? g.sell - h.paid : null;
+      return { ...g, held: h?.qty ?? 0, paidTxt: h?.paid ? `paid ${h.paid}` : "",
+        tag: g.factor < 0.85 ? "cheap" : g.factor > 1.2 ? "wanted" : g.restricted ? "restricted" : "", tagTone: g.factor < 0.85 ? "good" : g.factor > 1.2 ? "gold" : "red",
+        margin };
+    });
+    const used = info.cargoUsed, cap = info.cargoCap;
+    return { title: planet.name, planet, goods, shipName: ship.name, used, cap, pct: cap ? Math.min(100, Math.round((used / cap) * 100)) : 0,
+      canTrade: game.user.isGM || info.party || ship.isOwner };
+  }
+
   _ctx_holodock() {
     if (!this.viewId) return { title: "HoloDock", ships: Dock.shipActors().map((a) => Dock.shipInfo(a)) };
     const a = game.actors.get(this.viewId);
@@ -454,6 +473,10 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await Comms.send({ fromId: activeActor()?.id, to: el.dataset.to, text });
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
+
+  static async #tradeBuy(e, el) { await requestGM("tradeBuy", { goodId: el.dataset.good, tons: el.dataset.tons, payerId: activeActor()?.id }); }
+  static async #tradeSell(e, el) { await requestGM("tradeSell", { goodId: el.dataset.good, tons: el.dataset.tons, payerId: activeActor()?.id }); }
+  static async #tradeShift() { if (game.user.isGM) await game.settings.set(MODULE_ID, "tradeSeed", (game.settings.get(MODULE_ID, "tradeSeed") || 1) + 1); }
 
   static async #dockRefuel(e, el) {
     const ship = Dock.shipInfo(game.actors.get(this.viewId));

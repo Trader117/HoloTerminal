@@ -1,6 +1,7 @@
 import { MODULE_ID, SOCKET } from "./store.mjs";
 import * as G from "./galaxy.mjs";
 import * as Dock from "./holodock.mjs";
+import * as Trade from "./trade.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const WOOKIEE = "https://starwars.fandom.com/wiki/";
@@ -95,7 +96,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       card: p && {
         ...p, subText: (p.subregions ?? []).join(", "), regionColor: G.REGION_COLOR[p.region] ?? "#2aa3df", here: shipKey === p.key,
         badge: p.custom ? "Custom" : p.canon && p.legends ? "Canon + Legends" : p.canon ? "Canon" : "Legends",
-        routesText: (p.routes ?? []).join(", "), showNotes: game.user.isGM || p.notesPublic, linkName: p.link ? (fromUuidSync?.(p.link)?.name ?? "Linked") : null,
+        routesText: (p.routes ?? []).join(", "), trade: (({ exports, imports }) => ({ exports: exports.join(", "), imports: imports.join(", ") }))(Trade.summary(p)), showNotes: game.user.isGM || p.notesPublic, linkName: p.link ? (fromUuidSync?.(p.link)?.name ?? "Linked") : null,
         wiki: !p.custom
       },
       menu: this.menuAt, route, linkUrl: this.state.linkUrl || "https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0"

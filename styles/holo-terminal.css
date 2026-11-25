@@ -572,3 +572,21 @@
 @keyframes ht-holo-flicker { 0%, 100% { opacity: 1; } 41% { opacity: .75; } 42% { opacity: 1; } 77% { opacity: .85; transform: translateX(1px); } 78% { opacity: 1; transform: none; } }
 @keyframes ht-holo-sweep { from { top: -20%; } to { top: 110%; } }
 @media (prefers-reduced-motion: reduce) { .ht-holo, .ht-holo::after { animation: none; } }
+
+/* ---------- Trade ---------- */
+.ht-trade-head { display: grid; grid-template-columns: 1.3fr 1fr; gap: 6px; margin-bottom: 8px; }
+.ht-trade-head > div { padding: 6px 10px; background: var(--ht-panel-2); border: 1px solid var(--ht-line); border-radius: 4px; display: flex; flex-direction: column; }
+.ht-trade-head small { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--ht-muted); }
+.ht-trade-head b { color: var(--ht-strong); font: 700 16px var(--ht-font-display); }
+table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ht-trade th { font: 700 10px var(--ht-font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--ht-muted); text-align: left; border-bottom: 1px solid var(--ht-blue); padding: 3px 4px; }
+.ht-trade td { padding: 4px; border-bottom: 1px solid var(--ht-line); vertical-align: middle; }
+.ht-trade .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ht-strong); }
+.ht-trade .num small { display: block; font-size: 10px; color: var(--ht-muted); }
+.ht-trade-name { color: var(--ht-strong); }
+.ht-trade-tag { display: inline-block; margin-left: 5px; padding: 0 4px; border-radius: 2px; font: 700 9px var(--ht-font-display); text-transform: uppercase; letter-spacing: .06em; }
+.ht-trade-tag.good { color: #10161c; background: #5fd08a; } .ht-trade-tag.gold { color: #10161c; background: var(--ht-gold); } .ht-trade-tag.red { color: #fff; background: var(--ht-red); }
+.ht-trade-btns { text-align: right; white-space: nowrap; }
+.ht-screen .ht-trade-btns button { padding: 1px 6px; min-width: 0; font-size: 11px; margin-left: 2px; }
+.ht-trade-help { font-size: 11px; margin-top: 8px; }
+.ht-gx-good { color: #9fe3a9; } .ht-gx-want { color: #ffd27a; }

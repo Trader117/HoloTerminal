@@ -26,6 +26,7 @@
   <button type="button" data-action="dockRefuel" data-units="1"{{#if fuel.max}}{{#if (eq fuel.value fuel.max)}} disabled{{/if}}{{/if}}><i class="fas fa-gas-pump"></i> {{#if ../isGM}}Add 1 fuel{{else}}Buy 1 fuel{{/if}}</button>
   {{#if fuel.max}}<button type="button" data-action="dockRefuel" data-units="fill"{{#if (eq fuel.value fuel.max)}} disabled{{/if}}><i class="fas fa-gas-pump"></i> Fill tanks{{#unless ../isGM}} ({{../fillCost}} cr){{/unless}}</button>{{/if}}
   <button type="button" data-action="galaxy"><i class="fas fa-earth-americas"></i> Plot a jump</button>
+  {{#if party}}<button type="button" data-action="go" data-view="trade"><i class="fas fa-scale-balanced"></i> Trade</button>{{/if}}
 </div>
 {{/if}}
 {{#if crew.length}}
@@ -34,7 +35,7 @@
 {{/if}}
 <h3 class="ht-dock-h">Cargo hold</h3>
 <ul class="ht-dock-list">
-  {{#each cargo}}<li><span class="ht-dock-qty">&times;{{qty}}</span>{{name}}{{#if tons}} <small>{{tons}} t each</small>{{/if}}
+  {{#each cargo}}<li><span class="ht-dock-qty">&times;{{qty}}</span>{{name}}{{#if good}} <small>t{{#if from}} from {{from}}{{/if}}</small>{{else}}{{#if tons}} <small>{{tons}} t each</small>{{/if}}{{/if}}
     {{#if ../../canCommand}}<button type="button" class="ht-icon-btn" data-action="dockCargoRemove" data-id="{{id}}" title="Unload"><i class="fas fa-xmark"></i></button>{{/if}}</li>
   {{else}}<li class="ht-dim">Hold is empty.</li>{{/each}}
 </ul>
