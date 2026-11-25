@@ -57,7 +57,7 @@ class CombatHud {
     if (!this.visible()) { this.el?.remove(); this.el = null; return; }
     const actor = this.actor;
     const data = buildData(actor, {
-      used: this.usedFor(actor), macros: this.macros(actor), theme: setting("hudTheme"),
+      used: this.usedFor(actor), macros: this.macros(actor), theme: "sw5e",
       showBasic: setting("hudBasicActions"), collapsed: setting("hudCollapsed"),
       drawer: this.drawer, help: this.help, saber: saberState(MODULE_ID, actor, this.token)
     });
@@ -69,7 +69,7 @@ class CombatHud {
       this._listen();
     }
     const scroll = [...this.el.querySelectorAll(".htc-group-body, .htc-drawer-col")].map((e) => e.scrollTop);
-    this.el.className = `htc-hud htc-theme-${data.theme}`;
+    this.el.className = "htc-hud";
     this.el.style.setProperty("--htc-scale", setting("hudScale"));
     const pos = setting("hudPosition");
     this.el.style.left = `${pos.left}px`;
@@ -186,10 +186,6 @@ Hooks.once("init", () => {
     name: "Combat HUD: when to show", hint: "Show the action bar for your selected token or assigned character.",
     scope: "client", config: true, type: String, default: "always", onChange: rerender,
     choices: { always: "Always", combat: "Only during combat", off: "Never" }
-  });
-  game.settings.register(MODULE_ID, "hudTheme", {
-    name: "Combat HUD: colour", scope: "client", config: true, type: String, default: "sw5e", onChange: rerender,
-    choices: { sw5e: "SW5e Database (project default)", cyan: "Holo Cyan", amber: "Amber", red: "Sith Red", green: "Terminal Green" }
   });
   game.settings.register(MODULE_ID, "hudScale", {
     name: "Combat HUD: size", scope: "client", config: true, type: Number, default: 1, onChange: rerender,

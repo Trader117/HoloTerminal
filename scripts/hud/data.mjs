@@ -225,7 +225,16 @@ export function buildData(actor, state) {
   }
 
   const death = attr.death ?? {};
+  const dying = isChar && hpVal <= 0 && hpMax > 0;
+  const needsInit = !!(combatant && combatant.initiative === null);
+  const canEndTurn = myTurn && !!combatant?.isOwner;
+  const status = myTurn ? { kind: "turn", text: "YOUR TURN", tip: "It's your turn. Use the boxes above, then press End turn." }
+    : combatant && combat?.started ? { kind: "wait", text: `ROUND ${combat.round}`, tip: `Waiting: ${combat.combatant?.name ?? "someone else"} is acting.` }
+    : combatant ? { kind: "wait", text: "READY", tip: "In the encounter. Combat hasn't started yet." }
+    : { kind: "idle", text: "STANDBY", tip: "Not in combat." };
   return {
+    status,
+    turnKeys: dying || needsInit || canEndTurn,
     theme: state.theme,
     collapsed: state.collapsed,
     help: state.help,
@@ -238,12 +247,11 @@ export function buildData(actor, state) {
     ac: attr.ac?.value ?? "—",
     dc: attr.spelldc ?? null,
     speed: attr.movement?.walk ? `${attr.movement.walk} ${attr.movement.units ?? "ft"}` : null,
-    dying: isChar && hpVal <= 0 && hpMax > 0
-      ? { success: death.success ?? 0, failure: death.failure ?? 0 } : null,
+    dying: dying ? { success: death.success ?? 0, failure: death.failure ?? 0 } : null,
     inCombat: !!combatant,
     myTurn,
-    needsInit: !!(combatant && combatant.initiative === null),
-    canEndTurn: myTurn && combatant?.isOwner,
+    needsInit,
+    canEndTurn,
     groups: groups.filter((g) => !g.empty || g.tracked),
     macros: state.macros.map((m) => ({ uuid: m.uuid, name: m.name, img: m.img,
       tooltip: `<div class="htc-tip"><h4>${esc(m.name)}</h4><p class="htc-tip-keys">Left-click to run · Right-click to remove from this bar</p></div>` })),
