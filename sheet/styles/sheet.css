@@ -38,7 +38,16 @@
 .holo-sheet.holo-theme-green { --hs-fg:#6dff7a; --hs-bg:#031405; }
 
 /* ---------- tablet: the Holo-Terminal device frame (styles/holo-terminal.css) around a sheet grid ---------- */
-.holo-sheet.application { min-width:720px; min-height:560px; }
+.holo-sheet.application { min-width:720px; min-height:560px; display:flex; flex-direction:column; }
+/* the hidden Foundry frame: its content box must not grow with the active tab, so the tablet keeps its size and tabs scroll inside */
+.holo-sheet.application > .window-content { flex:1; min-height:0; height:100%; overflow:hidden; }
+.holo-sheet .holo-device { min-height:0; }
+/* Foundry stretches text inputs to fill their row; keep the sheet's small inline fields their own size */
+.holo-sheet.application .holo-meter-text { white-space:nowrap; min-width:0; }
+.holo-sheet.application .holo-meter-text input[type="text"] { flex:none; width:2.6em; min-width:0; }
+.holo-sheet.application input.holo-meter-side[type="text"] { flex:none; width:3.6em; min-width:0; }
+.holo-sheet.application .holo-fav-uses { flex:none; display:inline-flex; align-items:center; gap:3px; }
+.holo-sheet.application .holo-fav-uses input[type="text"] { flex:none; width:2.2em; min-width:0; }
 .holo-sheet .holo-device { padding:0 14px 10px; }
 .holo-sheet .holo-screen { display:grid; padding:0;
   grid-template-columns:250px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr);
@@ -140,7 +149,7 @@ a.holo-meter-bar:hover { border-color:var(--hs-rule); }
 .holo-fav-uses input { width:2em; height:22px; padding:0; text-align:center; font:700 13px var(--hs-display); color:var(--hs-strong); }
 
 /* ---------- tabs ---------- */
-.holo-body { padding:1rem 1rem 1.5rem; overflow-y:auto; min-height:0; }
+.holo-body { padding:1rem 1rem 1.5rem; overflow-y:auto; overflow-x:hidden; min-height:0; min-width:0; }
 .holo-body.tab:not(.active) { display:none; }
 .holo-h { display:flex; justify-content:space-between; align-items:baseline; margin:1.1rem 0 .5rem; padding:0 0 2px; border:none; border-bottom:2px solid var(--hs-rule);
   font:700 17px var(--hs-display); color:var(--hs-head); text-transform:uppercase; letter-spacing:.4px; }
@@ -167,11 +176,13 @@ a.holo-meter-bar:hover { border-color:var(--hs-rule); }
 .holo-skills li:hover, .holo-saves li:hover { background:var(--hs-band2); color:var(--hs-strong); }
 .holo-skills i, .holo-saves i { font-size:.7em; width:1em; color:var(--hs-bar); }
 .holo-abil { width:2.6em; font:700 11px var(--hs-display); color:var(--hs-bar); }
-.holo-skill-name { flex:1; }
+.holo-skill-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.holo-skills b, .holo-saves b, .holo-skills i, .holo-saves i { flex:none; }
 .holo-skills li.holo-prof .holo-skill-name, .holo-saves li.holo-prof .holo-skill-name { color:var(--hs-strong); }
 .holo-skills b, .holo-saves b { color:var(--hs-strong); min-width:2em; text-align:right; font-family:var(--hs-display); }
 .holo-passive { width:1.8em; text-align:right; font-size:11px; color:var(--hs-muted); }
-.holo-saves { display:grid; grid-template-columns:1fr 1fr; column-gap:.8rem; }
+.holo-saves { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); column-gap:.8rem; }
+.holo-saves li { min-width:0; padding-right:2px; }
 .holo-saves li:nth-child(-n+2) { border-top:none; }
 .holo-id-card { display:flex; align-items:center; gap:.7rem; padding:.45rem .6rem; border:1px solid var(--hs-line); border-radius:8px;
   background:linear-gradient(90deg, var(--hs-panel2), var(--hs-panel) 70%); }

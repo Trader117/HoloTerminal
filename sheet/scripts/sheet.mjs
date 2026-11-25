@@ -383,9 +383,11 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.otherPowers = groupPowers(spells.filter((p) => ![...FORCE_SCHOOLS, ...TECH_SCHOOLS].includes(p.system.school)), null);
     ctx.forceSchools = schoolInfo("force", FORCE_SCHOOLS);
     ctx.techSchools = schoolInfo("tech", TECH_SCHOOLS);
+    // only show the casting a character actually uses: points to spend or powers of that kind
+    const usesForce = ctx.force.max > 0 || ctx.forcePowers.length > 0, usesTech = ctx.tech.max > 0 || ctx.techPowers.length > 0;
     ctx.castCards = [
-      ctx.forceSchools.length && { label: "Forcecasting", cls: "holo-force", points: ctx.force, schools: ctx.forceSchools },
-      ctx.techSchools.length && { label: "Techcasting", cls: "holo-tech", points: ctx.tech, schools: ctx.techSchools }
+      usesForce && ctx.forceSchools.length && { label: "Forcecasting", cls: "holo-force", points: ctx.force, schools: ctx.forceSchools },
+      usesTech && ctx.techSchools.length && { label: "Techcasting", cls: "holo-tech", points: ctx.tech, schools: ctx.techSchools }
     ].filter(Boolean);
     ctx.powerCount = spells.length;
 
@@ -537,8 +539,12 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     drag(this.element.querySelector(".ht-bezel-top"), (s, dx, dy) => ({ left: s.left + dx, top: s.top + dy }));
     drag(this.element.querySelector(".holo-grip"), (s, dx, dy) => ({
       width: Math.max(720, s.width + dx / (s.scale || 1)), height: Math.max(560, s.height + dy / (s.scale || 1)) }));
-    // shrink the whole tablet with the "Datapad & tablet size" setting
-    this.setPosition({ scale: game.settings.get(MODULE_ID, "tabletScale") ?? 1 });
+    // shrink the whole tablet with the "Datapad & tablet size" setting, and never let it run off the bottom of the screen
+    const scale = game.settings.get(MODULE_ID, "tabletScale") ?? 1;
+    const fitH = Math.floor((window.innerHeight - 16) / scale);
+    const height = Math.max(560, Math.min(this.position.height, fitH));
+    const top = Math.max(8, Math.min(this.position.top ?? 8, window.innerHeight - height * scale - 8));
+    this.setPosition({ scale, height, top });
   }
 
   _onRender(context, options) {
