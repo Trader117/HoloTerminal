@@ -188,8 +188,8 @@ Hooks.once("init", () => {
     choices: { always: "Always", combat: "Only during combat", off: "Never" }
   });
   game.settings.register(MODULE_ID, "hudTheme", {
-    name: "Combat HUD: colour", scope: "client", config: true, type: String, default: "cyan", onChange: rerender,
-    choices: { cyan: "Holo Cyan", amber: "Amber", red: "Sith Red", green: "Terminal Green" }
+    name: "Combat HUD: colour", scope: "client", config: true, type: String, default: "sw5e", onChange: rerender,
+    choices: { sw5e: "SW5e Database (project default)", cyan: "Holo Cyan", amber: "Amber", red: "Sith Red", green: "Terminal Green" }
   });
   game.settings.register(MODULE_ID, "hudScale", {
     name: "Combat HUD: size", scope: "client", config: true, type: Number, default: 1, onChange: rerender,

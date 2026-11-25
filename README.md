@@ -55,7 +55,7 @@ An action bar along the bottom of the screen for the selected token (or your ass
 - **Ignite Saber** appears only for characters carrying a lightweapon (any weapon named lightsaber, saberstaff, shoto, lightfoil, saberwhip, lightring and so on). Click it to ignite straight away (blue until you pick a colour): the token gets a pulsing glow and plays the ignition sound. Click again to switch it off, which restores the token's previous light. Shift-click to choose the blade colour; if the saber is already lit it just changes colour. The token must be on the scene. The GM sets the ignite and switch-off sounds in module settings (defaults `media/home/lightsaber-ignition.mp3` and `media/home/lightsaber-deactivation.mp3`).
 - Drag the grip on the left to move the bar. **Alt+H** shows or hides it.
 
-Settings (per player): when to show it (always, only in combat, never), colour theme, size, and whether to show the common actions.
+Settings (per player): when to show it (always, only in combat, never), colour theme (defaults to the shared SW5e Database look; the old holo colours are still available), size, and whether to show the common actions.
 
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.
