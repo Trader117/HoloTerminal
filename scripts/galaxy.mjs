@@ -301,7 +301,7 @@ export function buildSectors(planets, B) {
   for (const [n, list] of Object.entries(CANON_ANCHORS)) for (const w of list) {
     const p = byName.get(w); if (!p) continue;
     const { a, k } = place(p);
-    for (let da = -2; da <= 2; da++) { add(k, a + da, n, da ? 4 : 8); add(k - 1, a + da, n, 1.5); add(k + 1, a + da, n, 1.5); }
+    for (let da = -2; da <= 2; da++) { add(k, a + da, n, da ? 3 : 30); add(k - 1, a + da, n, da ? 1.5 : 6); add(k + 1, a + da, n, da ? 1.5 : 6); }
   }
   // The Slice between its two lanes, from the Colonies outward.
   for (let k = 2; k < K; k++) {
@@ -315,21 +315,28 @@ export function buildSectors(planets, B) {
   const cells = [];
   const L = RING_ORDER.length;
   for (let k = 0; k < K; k++) {
-    // Split the ring in canon order, starting at the Perlemian (the New Territories / Slice border): each cell's
-    // label index never goes back. Dynamic programming finds the split that agrees with the most votes.
-    const start = Math.round(((perl[k] ?? perl.find((v) => v !== null) ?? 0) / TAU) * N);
-    const arc = Array.from({ length: N }, (_, i) => (start + i) % N);
+    // Split the ring in canon order (Slice first, New Territories last): each cell's label index never goes back.
+    // Dynamic programming finds the split that agrees with the most votes, trying every starting cell.
     const score = (a, l) => votes[k][a].get(RING_ORDER[l]) ?? 0;
-    const dp = arc.map(() => new Array(L).fill(-Infinity)), from = arc.map(() => new Array(L).fill(0));
-    for (let l = 0; l < L; l++) dp[0][l] = score(arc[0], l);
-    for (let i = 1; i < N; i++) for (let l = 0; l < L; l++) {
-      let best = -Infinity, bl = 0;
-      for (let q = 0; q <= l; q++) { const v = dp[i - 1][q] - (q === l ? 0 : 0.5); if (v > best) { best = v; bl = q; } }
-      dp[i][l] = best + score(arc[i], l); from[i][l] = bl;
+    let bestRow = null, bestScore = -Infinity;
+    for (let start = 0; start < N; start++) {
+      const arc = Array.from({ length: N }, (_, i) => (start + i) % N);
+      const dp = arc.map(() => new Array(L).fill(-Infinity)), from = arc.map(() => new Array(L).fill(0));
+      for (let l = 0; l < L; l++) dp[0][l] = score(arc[0], l);
+      for (let i = 1; i < N; i++) for (let l = 0; l < L; l++) {
+        let best = -Infinity, bl = 0;
+        for (let q = 0; q <= l; q++) { const v = dp[i - 1][q] - (q === l ? 0 : 0.5); if (v > best) { best = v; bl = q; } }
+        dp[i][l] = best + score(arc[i], l); from[i][l] = bl;
+      }
+      const top = Math.max(...dp.at(-1));
+      if (top <= bestScore + 1e-9) continue;
+      bestScore = top;
+      const row = new Array(N).fill(null);
+      let l = dp.at(-1).indexOf(top);
+      for (let i = N - 1; i >= 0; i--) { row[arc[i]] = RING_ORDER[l]; l = from[i][l]; }
+      bestRow = row;
     }
-    const row = new Array(N).fill(null);
-    let l = dp.at(-1).indexOf(Math.max(...dp.at(-1)));
-    for (let i = N - 1; i >= 0; i--) { row[arc[i]] = RING_ORDER[l]; l = from[i][l]; }
+    const row = bestRow;
     cells.push(row);
   }
   // Labels: in the cell with the most same-region neighbours, preferring thick bands.
