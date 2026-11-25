@@ -1,0 +1,22 @@
+{{#if isGM}}<button type="button" data-action="post" data-kind="contacts">+ New contact</button>{{/if}}
+<div class="ht-contacts">
+{{#each contacts}}
+<article class="ht-contact">
+  {{#if img}}<img src="{{img}}" alt="">{{else}}<span class="ht-comms-ico"><i class="fas fa-user"></i></span>{{/if}}
+  <div class="ht-contact-body">
+    <div class="ht-dock-name">{{name}}{{#if hidden}} <em class="ht-dim">(hidden)</em>{{/if}}</div>
+    <div class="ht-dock-meta">{{role}}{{#if location}} &middot; {{location}}{{/if}}</div>
+    <div class="ht-standing" title="{{standingLabel}}">
+      {{#each pips}}<i class="{{this}}"></i>{{/each}}
+      <span class="ht-standing-label ht-standing-{{standingTone}}">{{standingLabel}}</span>
+      {{#if ../isGM}}<button type="button" class="ht-icon-btn" data-action="contactStanding" data-id="{{id}}" data-delta="-1" title="Worse">-</button><button type="button" class="ht-icon-btn" data-action="contactStanding" data-id="{{id}}" data-delta="1" title="Better">+</button>{{/if}}
+    </div>
+    {{#if notes}}<p>{{notes}}</p>{{/if}}
+    <div class="ht-row">
+      {{#if canMessage}}<button type="button" data-action="go" data-view="comms" data-id="{{actorId}}"><i class="fas fa-tower-broadcast"></i> Message</button>{{/if}}
+      {{#if ../isGM}}<button type="button" data-action="edit" data-kind="contacts" data-id="{{id}}">Edit</button><button type="button" data-action="del" data-kind="contacts" data-id="{{id}}">Delete</button>{{/if}}
+    </div>
+  </div>
+</article>
+{{else}}<p class="ht-dim">-- no contacts on file --</p>{{/each}}
+</div>

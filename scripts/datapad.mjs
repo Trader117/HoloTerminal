@@ -30,12 +30,12 @@ import * as Trade from "./trade.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -71,6 +71,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      missionObj: DatapadApp.#missionObj, missionStatus: DatapadApp.#missionStatus, contactStanding: DatapadApp.#contactStanding,
       tradeBuy: DatapadApp.#tradeBuy, tradeSell: DatapadApp.#tradeSell, tradeShift: DatapadApp.#tradeShift
     }
   };
@@ -222,6 +223,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _ctx_home() {
     const apps = [
       { view: "comms", icon: "fa-tower-broadcast", label: "Comms", tone: "green", count: Comms.unreadCount(activeActor()?.id) },
+      { view: "missions", icon: "fa-list-check", label: "Missions", tone: "gold" },
+      { view: "contacts", icon: "fa-address-book", label: "Contacts", tone: "blue" },
       { view: "network", icon: "fa-network-wired", label: "Local Net", tone: "blue" },
       { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
       { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
@@ -353,9 +356,27 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return { title: thread.title, thread };
     }
     const seen = new Set([me]), contacts = [];
-    for (const a of [...Comms.playerCharacters(), ...all.map((t) => game.actors.get(t.key)).filter(Boolean)])
+    const npcContacts = list("contacts").filter((c) => !c.hidden && c.actorId).map((c) => game.actors.get(c.actorId)).filter(Boolean);
+    for (const a of [...Comms.playerCharacters(), ...npcContacts, ...all.map((t) => game.actors.get(t.key)).filter(Boolean)])
       if (!seen.has(a.id)) { seen.add(a.id); contacts.push({ id: a.id, name: a.name }); }
     return { title: "Comms", threads: all, contacts };
+  }
+
+  _ctx_missions() {
+    const all = list("missions").filter((m) => game.user.isGM || !m.hidden)
+      .map((m) => ({ ...m, status: m.status ?? "active", objectives: m.objectives ?? [], doneCount: (m.objectives ?? []).filter((o) => o.done).length }));
+    const groups = [["active", "Active"], ["done", "Completed"], ["failed", "Failed"]]
+      .map(([k, label]) => ({ label, items: all.filter((m) => m.status === k) })).filter((g) => g.items.length);
+    return { title: "Missions", groups };
+  }
+  _ctx_contacts() {
+    const LABEL = { "-3": "Hostile", "-2": "Unfriendly", "-1": "Wary", 0: "Neutral", 1: "Friendly", 2: "Trusted", 3: "Ally" };
+    const contacts = list("contacts").filter((c) => game.user.isGM || !c.hidden).sort((a, b) => a.name.localeCompare(b.name)).map((c) => {
+      const st = Math.max(-3, Math.min(3, Math.round(Number(c.standing) || 0)));
+      const pips = [-3, -2, -1, 0, 1, 2, 3].map((v) => (v === 0 ? "mid" : (v < 0 ? st <= v : st >= v) ? (v < 0 ? "bad on" : "good on") : (v < 0 ? "bad" : "good")));
+      return { ...c, standing: st, pips, standingLabel: LABEL[st], standingTone: st < 0 ? "bad" : st > 0 ? "good" : "mid", canMessage: !!c.actorId && !!game.actors.get(c.actorId) };
+    });
+    return { title: "Contacts", contacts };
   }
 
   async _ctx_trade() {
@@ -474,6 +495,17 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
 
+  static async #missionObj(e, el) {
+    if (!game.user.isGM) return;
+    const m = find("missions", el.dataset.id); const o = m?.objectives?.[Number(el.dataset.index)]; if (!o) return;
+    o.done = !o.done; await upsert("missions", m);
+  }
+  static async #missionStatus(e, el) { if (!game.user.isGM) return; const m = find("missions", el.dataset.id); if (m) { m.status = el.dataset.status; await upsert("missions", m); } }
+  static async #contactStanding(e, el) {
+    if (!game.user.isGM) return;
+    const c = find("contacts", el.dataset.id); if (!c) return;
+    c.standing = Math.max(-3, Math.min(3, (Number(c.standing) || 0) + Number(el.dataset.delta))); await upsert("contacts", c);
+  }
   static async #tradeBuy(e, el) { await requestGM("tradeBuy", { goodId: el.dataset.good, tons: el.dataset.tons, payerId: activeActor()?.id }); }
   static async #tradeSell(e, el) { await requestGM("tradeSell", { goodId: el.dataset.good, tons: el.dataset.tons, payerId: activeActor()?.id }); }
   static async #tradeShift() { if (game.user.isGM) await game.settings.set(MODULE_ID, "tradeSeed", (game.settings.get(MODULE_ID, "tradeSeed") || 1) + 1); }
