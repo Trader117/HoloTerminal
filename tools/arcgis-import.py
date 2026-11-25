@@ -6,7 +6,8 @@ Inputs are tab-separated dumps of two public ArcGIS feature layers, already conv
   lanes.tsv    FID, hyperspace name, zoom_level, paths ("x,y x,y|x,y ...", already in map units)
 
 Usage: python3 tools/arcgis-import.py planets.tsv lanes.tsv
-Writes data/planets.json (adds x, y to matched rows and appends ArcGIS-only worlds) and data/hyperlanes.json.
+Writes data/planets.json (adds x, y to matched rows, drops worlds the ArcGIS map does not plot, appends ArcGIS-only worlds)
+and data/hyperlanes.json.
 """
 import json, re, sys, unicodedata
 from pathlib import Path
@@ -55,6 +56,9 @@ for r in rows:
         if c0 - 1 <= a["x"] <= c0 + 101 and r0 - 1 <= a["y"] <= r0 + 101: continue
     r[1] = grid_of(a["x"], a["y"])
 
+dropped = len(rows)
+rows = [r for r in rows if len(r) >= 14]
+dropped -= len(rows)
 added = 0
 for a in arc:
     if id(a) in used: continue
@@ -74,4 +78,4 @@ for line in open(ltsv, encoding="utf-8").read().split("\n"):
 (root / "data/hyperlanes.json").write_text(json.dumps({
     "about": "Hyperspace lanes in map units (100 = one grid square; A-1's top-left corner is 0,0). Each entry is one lane segment: n = name ('' for unnamed links), z = the source map's zoom level (1 = most important), p = paths as flat x,y lists. From the 'Hyperspace' layer of Henry Bernberg's Star Wars galaxy map on ArcGIS.",
     "lanes": lanes}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-print(f"planets: {len(rows)} rows, {matched} placed from ArcGIS, {added} ArcGIS-only worlds added; lanes: {len(lanes)} segments")
+print(f"planets: {len(rows)} rows, {matched} placed from ArcGIS, {dropped} unplotted dropped, {added} ArcGIS-only worlds added; lanes: {len(lanes)} segments")
