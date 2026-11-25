@@ -26,7 +26,7 @@ Hooks.once("init", () => {
   registerSettings();
   registerLootSetting();
   registerLootHud();
-  registerRegionBehavior((view, id) => datapad(view, id));
+  registerRegionBehavior((view, id) => (view === "galaxy" ? GalaxyMapApp.instance.render(true) : datapad(view, id)));
   registerScannerSettings();
   registerGalaxySettings();
   registerDockSettings();
