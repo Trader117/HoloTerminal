@@ -5,7 +5,7 @@ const gmWhisper = (content) => ChatMessage.create({ content, whisper: ChatMessag
 
 /* Terminal controls: doors (wall id) and lights (ambient light id) on a scene. */
 export async function runControl(sceneId, control) {
-  const scene = game.scenes.get(sceneId) ?? canvas.scene;
+  const scene = game.scenes.get(control.scene) ?? game.scenes.get(sceneId) ?? canvas.scene;
   if (control.type === "door") {
     const wall = scene?.walls.get(control.id);
     if (!wall) throw new Error(`Wall ${control.id} not found on this scene`);
@@ -30,6 +30,11 @@ export function registerActions() {
   registerHandler("sliceResult", async ({ terminalId, success, actorName, game }, user) => {
     const t = find("terminals", terminalId);
     gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}${game ? ` (${game})` : ""}.`);
+  });
+
+  registerHandler("decryptResult", async ({ terminalId, label, success, how, actorName }, user) => {
+    const t = find("terminals", terminalId);
+    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "decrypted" : "<b>failed</b> to decrypt"} <i>${label}</i> on ${t?.name ?? "a terminal"}${how ? ` (${how})` : ""}.`);
   });
 
   registerHandler("claimBounty", async ({ bountyId, actorName }, user) => {

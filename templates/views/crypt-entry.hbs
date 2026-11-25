@@ -1,0 +1,17 @@
+<details class="ht-item{{#if encrypted}} ht-encrypted{{#if open}} ht-decrypted{{/if}}{{/if}}" data-crypt="{{key}}">
+  <summary>
+    {{#if encrypted}}<i class="fas {{#if open}}fa-lock-open{{else}}fa-lock{{/if}} ht-crypt-icon"></i>{{/if}}
+    {{#if (eq kind "files")}}&#128190; {{name}}{{else}}<b>{{from}}</b> &mdash; {{subject}}{{/if}}
+  </summary>
+  {{#if open}}<div class="ht-text">{{{body}}}</div>
+  {{else}}
+    <div class="ht-text ht-scrambled">{{scrambled}}</div>
+    <div class="ht-crypt-actions">
+      <span class="ht-crypt-label">Encrypted</span>
+      {{#if hasKey}}<button type="button" class="ht-primary" data-action="decryptKey" data-kind="{{kind}}" data-index="{{index}}"><i class="fas fa-key"></i> Use {{keyName}}</button>{{/if}}
+      {{#unless checkUsed}}<button type="button" data-action="decryptCheck" data-kind="{{kind}}" data-index="{{index}}"><i class="fas fa-dice-d20"></i> Decrypt (DC {{dc}})</button>
+      {{else}}<span class="ht-dim">Check failed</span>{{/unless}}
+      {{#if canHack}}<button type="button" data-action="decryptHack" data-kind="{{kind}}" data-index="{{index}}"><i class="fas fa-bolt"></i> Slice it</button>{{/if}}
+    </div>
+  {{/if}}
+</details>
