@@ -134,9 +134,10 @@ function itemPrice(item) {
 export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: ["holo-sheet", "ht-frameless"],
-    // the sheet lives on a Holo-Terminal tablet: no Foundry window frame, the bezel moves it
+    // the sheet lives on a Holo-Terminal tablet; the bezel moves it. Foundry's window frame is kept but hidden
+    // (ht-frameless CSS) because v12 document sheets expect it to exist and fail to open without one.
     position: { width: 960, height: 820 },
-    window: { frame: false, positioned: true },
+    window: { frame: true, positioned: true, resizable: false },
     form: { submitOnChange: true },
     actions: {
       rollAbility: HoloDossierSheet.#onRollAbility,

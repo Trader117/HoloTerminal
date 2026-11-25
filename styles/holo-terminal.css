@@ -6,6 +6,8 @@
 #ht-datapad.application, .ht-frameless.application { background: none; border: 0; box-shadow: none; padding: 0; overflow: visible;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .7)); }
 #ht-datapad .window-content, .ht-frameless .window-content { background: none; padding: 0; overflow: visible; }
+.ht-frameless.application > .window-header { display: none; }
+.ht-frameless.application { border-radius: 0; }
 .ht-device {
   position: relative; height: 100%; display: flex; flex-direction: column;
   padding: 0 14px 10px; border-radius: 20px;
