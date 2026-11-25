@@ -59,12 +59,12 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /* ---------- data ---------- */
   async #ensure() {
     if (!this.galaxy) this.galaxy = await G.loadGalaxy();
-    this.state = G.state();
+    this.gx = G.state();
     const pins = game.user.getFlag(MODULE_ID, "galaxyPins") ?? [];
-    this.planets = G.visiblePlanets(this.galaxy, this.state);
+    this.planets = G.visiblePlanets(this.galaxy, this.gx);
     if (!this.show.legends) this.planets = this.planets.filter((p) => p.canon || p.custom || p.edited);
     this.pmap = new Map(this.planets.map((p) => [p.key, p]));
-    this.pins = [...(this.state.pins ?? []).map((p) => ({ ...p, shared: true })), ...pins.map((p) => ({ ...p, mine: true }))];
+    this.pins = [...(this.gx.pins ?? []).map((p) => ({ ...p, shared: true })), ...pins.map((p) => ({ ...p, mine: true }))];
     this.#index();
   }
   #index() {
@@ -80,7 +80,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     await this.#ensure();
     const p = this.selected ? this.pmap.get(this.selected) : null;
-    const shipKey = this.state.ship?.key;
+    const shipKey = this.gx.ship?.key;
     const results = this.query.length >= 2
       ? this.planets.filter((x) => x.name.toLowerCase().includes(this.query.toLowerCase())).sort((a, b) => a.rank - b.rank).slice(0, 8)
         .map((x) => ({ key: x.key, name: x.name, grid: x.grid, region: x.region })) : [];
@@ -92,7 +92,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isGM: game.user.isGM, show: this.show, layersOpen: this.layersOpen,
       layers: GalaxyMapApp.LAYERS.map(([key, label, hint]) => ({ key, label, hint, on: this.show[key] })), query: this.query, results, count: this.planets.length,
       hyper: this.#hyper(), dock: this.#dockInfo(route),
-      ship: this.state.ship ? { ...this.state.ship, grid: G.gridLabel(this.state.ship.x, this.state.ship.y) } : null,
+      ship: this.gx.ship ? { ...this.gx.ship, grid: G.gridLabel(this.gx.ship.x, this.gx.ship.y) } : null,
       routeFrom: this.routeFrom ? (this.routeFrom.name ?? G.gridLabel(this.routeFrom.x, this.routeFrom.y)) : null,
       moving: this.moving ? this.pmap.get(this.moving)?.name : null,
       card: p && {
@@ -101,7 +101,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
         routesText: (p.routes ?? []).join(", "), trade: (({ exports, imports }) => ({ exports: exports.join(", "), imports: imports.join(", ") }))(Trade.summary(p)), showNotes: game.user.isGM || p.notesPublic, linkName: p.link ? (fromUuidSync?.(p.link)?.name ?? "Linked") : null,
         wiki: !p.custom
       },
-      menu: this.menuAt, route, linkUrl: this.state.linkUrl || "https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0"
+      menu: this.menuAt, route, linkUrl: this.gx.linkUrl || "https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0"
     };
   }
 
@@ -459,7 +459,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
   #drawShip(c) {
-    const s = this.state.ship; if (!s) return;
+    const s = this.gx.ship; if (!s) return;
     const [x, y] = this.toScreen(s.x, s.y), t = performance.now() / 600;
     c.strokeStyle = "rgba(255,81,70,.6)"; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 12 + Math.sin(t) * 2, 0, Math.PI * 2); c.stroke();
     c.fillStyle = "#ff5146"; c.beginPath(); c.moveTo(x, y - 9); c.lineTo(x + 7, y + 7); c.lineTo(x, y + 3); c.lineTo(x - 7, y + 7); c.closePath(); c.fill();
@@ -481,7 +481,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #layers() { this.layersOpen = !this.layersOpen; this.render(); }
   static #pick(e, el) { const p = this.pmap.get(el.dataset.key); if (!p) return; this.selected = p.key; this.query = ""; this.render(); this.flyTo(p.x, p.y); }
   static #closeCard() { this.selected = null; this.render(); }
-  static #findShip() { const s = this.state.ship; if (s) this.flyTo(s.x, s.y); }
+  static #findShip() { const s = this.gx.ship; if (s) this.flyTo(s.x, s.y); }
   #point(el) {
     if (el?.dataset.key) { const p = this.pmap.get(el.dataset.key); return p && { x: p.x, y: p.y, key: p.key, name: p.name }; }
     const m = this.menuAt; if (!m) return null;
@@ -491,7 +491,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #routeFrom(e, el) { this.routeFrom = this.#point(el); this.menuAt = null; this.route = null; this.render(); }
   static #routeTo(e, el) {
     const to = this.#point(el); this.menuAt = null;
-    const from = this.routeFrom ?? (this.state.ship && { x: this.state.ship.x, y: this.state.ship.y, key: this.state.ship.key, name: Dock.partyShip()?.name || this.state.ship.name || "Party ship" });
+    const from = this.routeFrom ?? (this.gx.ship && { x: this.gx.ship.x, y: this.gx.ship.y, key: this.gx.ship.key, name: Dock.partyShip()?.name || this.gx.ship.name || "Party ship" });
     if (!to || !from) { ui.notifications.warn("Set a start point first (or the GM can place the party ship)."); return this.render(); }
     this.routeEnds = { from, to };
     this.#replot();
@@ -596,7 +596,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     else ui.notifications.warn("You don't have access to that entry.");
   }
   static #wiki(e, el) { const p = this.pmap.get(el.dataset.key); if (p) window.open(WOOKIEE + encodeURIComponent((p.title ?? p.name).replace(/ /g, "_")), "_blank", "noopener"); }
-  static #ext() { window.open(this.state.linkUrl || "https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0", "_blank", "noopener"); }
+  static #ext() { window.open(this.gx.linkUrl || "https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0", "_blank", "noopener"); }
   /** Context menu entries: pins, ship, new planet, course. */
   static async #menu(e, el) {
     const m = this.menuAt; this.menuAt = null;
