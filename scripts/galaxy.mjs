@@ -25,7 +25,7 @@ export function registerGalaxySettings() {
   game.settings.register(MODULE_ID, "galaxyClass", { name: "Galaxy map: default hyperdrive class", hint: "Used for route estimates until a ship is chosen.",
     scope: "world", config: true, type: Number, default: 2 });
   game.settings.register(MODULE_ID, "galaxyCanonRegions", { name: "Galaxy map: canon regions",
-    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region outlines traced from the map in Star Wars: The Galactic Explorer's Guide (© Lucasfilm), as shown on Wookieepedia; planet and hyperlane data from Wookieepedia (CC BY-SA 3.0).",
+    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region outlines traced from Henry Bernberg's Star Wars galaxy map (ArcGIS); planet and hyperlane data from Wookieepedia (CC BY-SA 3.0).",
     scope: "world", config: true, type: Boolean, default: true, onChange: () => Hooks.callAll(GALAXY_HOOK) });
 }
 
@@ -246,31 +246,19 @@ export function buildBands(planets, ringInfo) {
 const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
 
 /**
- * The six canon regions, from data/canon-regions.json: outlines of the region map in Star Wars: The Galactic
- * Explorer's Guide, stored as polygons in polar form around the map's centre (so arcs stay round and corners sharp),
- * and placed on this map's grid by a best fit of the worlds that map shows.
- * Returns { regions: [{ name, color, points: [[x, y]...] }], names: [{ name, color, label }] }.
+ * The six canon regions, from data/canon-regions.json: outlines in map units (100 per grid square), several pieces per
+ * region. Returns { regions: [{ name, color, rings: [[x, y]...][] }], names: [{ name, color, label }] }.
  */
 export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
 export const CANON_COLOR = { "The Interior": "#e8b04a", "New Territories": "#d94a6a", "The Slice": "#4fa58f", "Trailing Sectors": "#9b6cc4", "Western Reaches": "#e3784a", "Unknown Regions": "#4f9fcf" };
 
 export function buildSectors(canon) {
-  const { cx, cy, r, rot = 0 } = canon, rad = Math.PI / 180;
-  const regions = canon.regions.map(({ name, poly }) => {
-    // Edges run evenly in angle and radius between corners, at most a degree apart, so arcs come out round.
-    const points = [];
-    poly.forEach(([t0, f0], i) => {
-      const [t1, f1] = poly[(i + 1) % poly.length], dt = ((t1 - t0 + 540) % 360) - 180, steps = Math.max(1, Math.ceil(Math.abs(dt)));
-      for (let k = 0; k < steps; k++) {
-        const t = (t0 + (dt * k) / steps + rot) * rad, f = f0 + ((f1 - f0) * k) / steps;
-        points.push([cx + Math.cos(t) * f * r, cy + Math.sin(t) * f * r]);
-      }
-    });
-    return { name, color: CANON_COLOR[name], points };
-  });
+  const regions = canon.regions.map(({ name, rings }) => ({ name, color: CANON_COLOR[name] ?? "#9fb3c8", rings }));
   const inside = ([x, y], pts) => { let o = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) o = !o; } return o; };
   // Label: the inside point furthest from the region's edge (coarse grid search).
-  const names = regions.map(({ name, color, points }) => {
+  const area = (r) => Math.abs(r.reduce((t, [x, y], i) => { const [x2, y2] = r[(i + 1) % r.length]; return t + x * y2 - x2 * y; }, 0) / 2);
+  const names = regions.map(({ name, color, rings }) => {
+    const points = rings.reduce((a, b) => (area(b) > area(a) ? b : a));
     const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), step = Math.max(x1 - x0, y1 - y0) / 40;
     let best = [(x0 + x1) / 2, (y0 + y1) / 2], bd = -1;

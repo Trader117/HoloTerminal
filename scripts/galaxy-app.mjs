@@ -312,10 +312,9 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Canon regions: one path per region. */
   #sectorArt(g) {
     if (this._sectorArt) return this._sectorArt;
-    const regions = g.sectors.regions.map(({ name, color, points }) => {
+    const regions = g.sectors.regions.map(({ name, color, rings }) => {
       const path = new Path2D();
-      points.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y)));
-      path.closePath();
+      for (const r of rings) { r.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y))); path.closePath(); }
       return { name, color, path };
     });
     return (this._sectorArt = { regions, names: g.sectors.names });
@@ -326,8 +325,8 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     c.save(); c.translate(ox, oy); c.scale(z, z);
     // Coloured regions with white borders, like the printed map; fainter when the main region bands are drawn on top.
     const a = this.show.regions ? 0.18 : 0.42;
-    for (const f of art.regions) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path); }
-    c.lineJoin = "miter"; c.miterLimit = 6; c.lineWidth = 3 / z; c.strokeStyle = "rgba(244,246,248,.9)";
+    for (const f of art.regions) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path, "evenodd"); }
+    c.lineJoin = "miter"; c.miterLimit = 6; c.lineWidth = 1.6 / z; c.strokeStyle = "rgba(240,212,96,.85)";
     for (const f of art.regions) c.stroke(f.path);
     c.restore();
     if (!this.show.regionLabels) return;
