@@ -99,7 +99,6 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
         routesText: (p.routes ?? []).join(", "), showNotes: game.user.isGM || p.notesPublic, linkName: p.link ? (fromUuidSync?.(p.link)?.name ?? "Linked") : null,
         wiki: !p.custom
       },
-      refCredit: this.refShapes && this.show.sectors ? G.REF_MAP_CREDIT : null,
       menu: this.menuAt, route, linkUrl: this.state.linkUrl || "https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0"
     };
   }
