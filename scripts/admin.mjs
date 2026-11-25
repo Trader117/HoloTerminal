@@ -1,6 +1,7 @@
-import { MODULE_ID, CHANGED_HOOK, list, find, upsert, remove, itemPrice, requestGM } from "./store.mjs";
+import { MODULE_ID, CHANGED_HOOK, list, find, upsert, remove, requestGM } from "./store.mjs";
 import { DatapadApp } from "./datapad.mjs";
 import { ShopEditorApp, importMejShops } from "./shop-editor.mjs";
+import { EntryEditorApp } from "./entry-editor.mjs";
 import * as Scan from "./scanner.mjs";
 import { runScan } from "./scan-wheel.mjs";
 import { playPulse } from "./scan-fx.mjs";
@@ -9,8 +10,6 @@ import * as Comms from "./comms.mjs";
 import * as JumpEvents from "./jump-events.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-const getDragData = (event) =>
-  (foundry.applications.ux?.TextEditor?.implementation ?? TextEditor).getDragEventData(event);
 
 export function blank(kind) {
   const id = foundry.utils.randomID();
@@ -50,109 +49,13 @@ export function blank(kind) {
   }
 }
 
-/** Opens the right editor for an entry: the visual one for markets, JSON for the rest. */
+/** Opens the form editor for an entry (markets have their own one with item drag and drop). */
 export function openEditor(kind, id) {
-  return kind === "shops" ? new ShopEditorApp(id).render(true) : new EditorApp(kind, id).render(true);
+  return kind === "shops" ? new ShopEditorApp(id).render(true) : new EntryEditorApp(kind, id).render(true);
 }
 
 const KIND_LABEL = { terminals: "Terminals", shops: "Markets", bounties: "Bounties", missions: "Missions", contacts: "Contacts" };
 const OPEN_VIEW = { terminals: "terminal", shops: "shop", bounties: "bounties", missions: "missions", contacts: "contacts" };
-
-/* ---------- JSON editor (with item drag & drop for shops) ---------- */
-export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
-  static DEFAULT_OPTIONS = {
-    classes: ["ht-app"], window: { title: "Holo-Terminal editor", resizable: true },
-    position: { width: 600, height: 680 },
-    actions: { save: EditorApp.#save, addScene: EditorApp.#addScene, linkSelected: EditorApp.#linkSelected }
-  };
-  static PARTS = { main: { template: `modules/${MODULE_ID}/templates/editor.hbs` } };
-
-  constructor(kind, id, options) { super(options); this.kind = kind; this.docId = id; }
-  get title() { return `Edit ${KIND_LABEL[this.kind]}: ${find(this.kind, this.docId)?.name ?? find(this.kind, this.docId)?.title ?? ""}`; }
-
-  async _prepareContext() {
-    return { kind: this.kind, isShop: this.kind === "shops", sceneName: canvas.scene?.name,
-      json: JSON.stringify(find(this.kind, this.docId), null, 2) };
-  }
-
-  _onRender(context, options) {
-    super._onRender?.(context, options);
-    if (!["shops", "contacts"].includes(this.kind)) return;
-    const zone = this.element.querySelector(".ht-drop");
-    zone?.addEventListener("dragover", (e) => e.preventDefault());
-    zone?.addEventListener("drop", (e) => this.#onDrop(e));
-  }
-
-  #read() {
-    try { return JSON.parse(this.element.querySelector("textarea").value); }
-    catch (err) { ui.notifications.error(`Invalid JSON: ${err.message}`); return null; }
-  }
-  #write(doc) { this.element.querySelector("textarea").value = JSON.stringify(doc, null, 2); }
-
-  async #onDrop(event) {
-    event.preventDefault();
-    const data = getDragData(event);
-    if (this.kind === "contacts") {
-      if (data?.type !== "Actor") return ui.notifications.warn("Drop an Actor here.");
-      const actor = await fromUuid(data.uuid), doc = this.#read();
-      if (!actor || !doc) return;
-      Object.assign(doc, { name: actor.name, img: actor.img, actorId: actor.id });
-      return this.#write(doc);
-    }
-    if (data?.type !== "Item") return ui.notifications.warn("Drop an Item here.");
-    const item = await fromUuid(data.uuid);
-    const doc = this.#read();
-    if (!item || !doc) return;
-    doc.items ??= [];
-    doc.items.push({ name: item.name, uuid: item.uuid, img: item.img, price: itemPrice(item), stock: -1 });
-    this.#write(doc);
-  }
-
-  /** Adds the doors (Walls layer), lights (Lighting layer) and camera Regions the GM has selected on the map as terminal controls. */
-  static #linkSelected() {
-    const doc = this.#read();
-    if (!doc || !canvas.scene) return;
-    doc.controls ??= [];
-    const have = new Set(doc.controls.map((c) => `${c.type}:${c.id}`));
-    let doors = doc.controls.filter((c) => c.type === "door").length, lights = doc.controls.filter((c) => c.type === "light").length;
-    let added = 0;
-    for (const w of canvas.walls?.controlled ?? []) {
-      if (!w.document.door || have.has(`door:${w.document.id}`)) continue;
-      doc.controls.push({ label: `Door ${++doors}`, type: "door", id: w.document.id, scene: canvas.scene.id }); added++;
-    }
-    for (const l of canvas.lighting?.controlled ?? []) {
-      if (have.has(`light:${l.document.id}`)) continue;
-      doc.controls.push({ label: `Light ${++lights}`, type: "light", id: l.document.id, scene: canvas.scene.id }); added++;
-    }
-    let cams = doc.controls.filter((c) => c.type === "camera").length;
-    for (const r of [...(canvas.regions?.controlled ?? []), ...(canvas.drawings?.controlled ?? [])]) {
-      if (have.has(`camera:${r.document.id}`)) continue;
-      const name = r.document.name && r.document.documentName === "Region" ? r.document.name : `Camera ${cams + 1}`;
-      cams++;
-      doc.controls.push({ label: name, type: "camera", id: r.document.id, scene: canvas.scene.id }); added++;
-    }
-    if (!added) return ui.notifications.warn("Select doors (Walls layer), lights (Lighting layer) or camera Regions (Regions layer) on the map first. Hold Shift to select several.");
-    this.#write(doc);
-    ui.notifications.info(`Linked ${added}. Rename them in "controls" (the "label" field), then Save.`);
-  }
-
-  static #addScene() {
-    const doc = this.#read();
-    if (!doc || !canvas.scene) return;
-    doc.scenes ??= [];
-    if (!doc.scenes.includes(canvas.scene.id)) doc.scenes.push(canvas.scene.id);
-    this.#write(doc);
-  }
-
-  static async #save() {
-    const doc = this.#read();
-    if (!doc) return;
-    doc.id = this.docId;
-    await upsert(this.kind, doc);
-    ui.notifications.info("Saved");
-    this.close();
-  }
-}
 
 /* ---------- GM console ---------- */
 export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
