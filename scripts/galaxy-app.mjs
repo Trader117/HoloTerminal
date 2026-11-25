@@ -203,25 +203,88 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const glow = c.createRadialGradient(ccx, ccy, 0, ccx, ccy, outer * z * 1.1);
     glow.addColorStop(0, "rgba(255,226,170,.30)"); glow.addColorStop(0.25, "rgba(230,154,40,.10)"); glow.addColorStop(0.7, "rgba(42,163,223,.07)"); glow.addColorStop(1, "rgba(4,8,12,0)");
     c.fillStyle = glow; c.beginPath(); c.arc(ccx, ccy, outer * z * 1.1, 0, Math.PI * 2); c.fill();
-    if (this.show.regions) {
-      for (const ring of [...rings].reverse()) {
-        c.beginPath(); c.arc(ccx, ccy, ring.r * z, 0, Math.PI * 2);
-        c.strokeStyle = this.#alpha(ring.color, 0.35); c.lineWidth = 1; c.setLineDash([6, 6]); c.stroke(); c.setLineDash([]);
-      }
-      c.font = "600 11px Bahnschrift, 'Segoe UI', sans-serif"; c.textAlign = "center";
-      let prevR = 0;
-      for (const ring of rings) {
-        const band = (ring.r - prevR) * z;
-        if (band > 14) { c.fillStyle = this.#alpha(ring.color, 0.75); c.fillText(ring.region.toUpperCase(), ccx, ccy - (prevR + ring.r) / 2 * z + 4); }
-        prevR = ring.r;
-      }
-    }
+    if (this.show.regions) this.#drawZones(c, g, z);
     if (this.show.grid) this.#drawGrid(c, g, z);
     if (this.show.lanes) this.#drawLanes(c, g, z);
     if (this.route) this.#drawRoute(c, z);
     this.#drawPlanets(c, z);
     this.#drawPins(c);
     this.#drawShip(c);
+  }
+  /** Region art: banded rings from the core, plus the Unknown Regions and Wild Space where the planets put them. Built once. */
+  #zoneArt(g) {
+    if (this._zoneArt) return this._zoneArt;
+    const B = g.bands, Z = g.zones;
+    const poly = (r) => { const p = new Path2D(); r.forEach((v, i) => { const a = ((i + 0.5) / B.n) * Math.PI * 2; const x = B.cx + Math.cos(a) * v, y = B.cy + Math.sin(a) * v; i ? p.lineTo(x, y) : p.moveTo(x, y); }); p.closePath(); return p; };
+    const bands = B.bands.map((b, k) => {
+      const ring = new Path2D(); ring.addPath(poly(b.r)); if (k) ring.addPath(poly(B.bands[k - 1].r));
+      return { region: b.region, color: b.color, fill: ring, edge: poly(b.r) };
+    });
+    // Outer zones (Unknown Regions, Wild Space) from the planet vote, only beyond the Outer Rim edge's inner neighbour.
+    const img = document.createElement("canvas"); img.width = Z.W; img.height = Z.H;
+    const ic = img.getContext("2d"), data = ic.createImageData(Z.W, Z.H), border = new Path2D();
+    const outerIdx = new Set(["Unknown Regions", "Wild Space"].map((r) => G.REGION_ORDER.indexOf(r)));
+    // Keep only sizeable patches (drops specks from a lone planet).
+    const keep = new Int8Array(Z.W * Z.H).fill(-1), seen = new Uint8Array(Z.W * Z.H);
+    for (let s0 = 0; s0 < Z.cells.length; s0++) {
+      if (seen[s0] || !outerIdx.has(Z.cells[s0])) continue;
+      const v = Z.cells[s0], stack = [s0], comp = []; seen[s0] = 1;
+      while (stack.length) {
+        const k = stack.pop(); comp.push(k);
+        const i = k % Z.W, j = (k - i) / Z.W;
+        for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const ii = i + a, jj = j + b, kk = jj * Z.W + ii;
+          if (ii < 0 || jj < 0 || ii >= Z.W || jj >= Z.H || seen[kk] || Z.cells[kk] !== v) continue;
+          seen[kk] = 1; stack.push(kk);
+        }
+      }
+      if (comp.length >= 60) for (const k of comp) keep[k] = v;
+    }
+    const at = (i, j) => (i < 0 || j < 0 || i >= Z.W || j >= Z.H ? -1 : keep[j * Z.W + i]);
+    for (let j = 0; j < Z.H; j++) for (let i = 0; i < Z.W; i++) {
+      const v = at(i, j); if (v < 0) continue;
+      const n = Number.parseInt(G.REGION_COLOR[G.REGION_ORDER[v]].slice(1), 16); data.data.set([n >> 16, (n >> 8) & 255, n & 255, 60], (j * Z.W + i) * 4);
+    }
+    ic.putImageData(data, 0, 0);
+    for (let j = 0; j <= Z.H; j++) for (let i = 0; i <= Z.W; i++) {
+      const v = at(i, j);
+      if (v !== at(i - 1, j)) { border.moveTo(i * Z.cell, j * Z.cell); border.lineTo(i * Z.cell, (j + 1) * Z.cell); }
+      if (v !== at(i, j - 1)) { border.moveTo(i * Z.cell, j * Z.cell); border.lineTo((i + 1) * Z.cell, j * Z.cell); }
+    }
+    const labels = [];
+    let prevR = null;
+    for (const b of B.bands) { // north side, middle of the band
+      const i = Math.round(B.n * 0.75 - 0.5) % B.n, outer = b.r[i], inner = prevR ? prevR[i] : 0;
+      labels.push({ region: b.region, x: B.cx, y: B.cy - (outer + inner) / 2 }); prevR = b.r;
+    }
+    for (const l of Z.labels) if (outerIdx.has(G.REGION_ORDER.indexOf(l.region))) labels.push(l);
+    return (this._zoneArt = { bands, img, border, labels });
+  }
+  #drawZones(c, g, z) {
+    const Z = g.zones, art = this.#zoneArt(g), [ox, oy] = this.toScreen(0, 0);
+    c.save();
+    c.translate(ox, oy); c.scale(z, z);
+    c.imageSmoothingEnabled = false;
+    c.globalAlpha = 1;
+    c.drawImage(art.img, 0, 0, Z.W * Z.cell, Z.H * Z.cell);
+    for (const b of art.bands) { c.fillStyle = this.#alpha(b.color, 0.11); c.fill(b.fill, "evenodd"); }
+    c.lineWidth = 1.4 / z; c.strokeStyle = "rgba(240,212,96,.7)";
+    for (const b of art.bands) c.stroke(b.edge);
+    c.setLineDash([5 / z, 4 / z]); c.strokeStyle = "rgba(240,212,96,.55)"; c.stroke(art.border); c.setLineDash([]);
+    c.restore();
+    if (!this.show.labels) return;
+    c.font = `700 ${Math.min(15, Math.max(10, 9 + z * 6))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
+    const placed = [];
+    for (const l of art.labels) {
+      const [x, y] = this.toScreen(l.x, l.y);
+      if (placed.some(([px, py]) => Math.abs(px - x) < 140 && Math.abs(py - y) < 16)) continue;
+      placed.push([x, y]);
+      if (x < -100 || y < -20 || x > this.W + 100 || y > this.H + 20) continue;
+      const t = l.region.toUpperCase();
+      c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.85)"; c.strokeText(t, x, y + 4);
+      c.fillStyle = this.#alpha(G.REGION_COLOR[l.region], 0.95); c.fillText(t, x, y + 4);
+    }
+    c.textAlign = "left";
   }
   #alpha(hex, a) { const n = Number.parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
   #drawGrid(c, g, z) {

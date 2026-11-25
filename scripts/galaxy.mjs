@@ -12,7 +12,7 @@ export const GALAXY_HOOK = `${MODULE_ID}.galaxy`;
 export const REGION_ORDER = ["Deep Core", "Core Worlds", "Colonies", "Inner Rim", "Expansion Region", "Mid Rim", "Outer Rim Territories", "Wild Space", "Unknown Regions"];
 export const REGION_COLOR = {
   "Deep Core": "#ffe9b3", "Core Worlds": "#ffd27a", "Colonies": "#f6b860", "Inner Rim": "#e69a28", "Expansion Region": "#7cc6ef",
-  "Mid Rim": "#2aa3df", "Outer Rim Territories": "#1d6f9c", "Wild Space": "#3b4d5c", "Unknown Regions": "#26323c"
+  "Mid Rim": "#2aa3df", "Outer Rim Territories": "#1d6f9c", "Wild Space": "#8fa3b3", "Unknown Regions": "#a596c8"
 };
 
 export function registerGalaxySettings() {
@@ -83,7 +83,8 @@ export function buildGalaxy(rows) {
   const sorted = [...planets].sort((a, b) => score(b) - score(a));
   sorted.forEach((p, i) => { p.rank = i; });
   const cols = Math.max(21, ...planets.map((p) => p.g.col + 1)), rows_ = Math.max(21, ...planets.map((p) => p.g.row + 1));
-  return { planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings: buildRings(planets) };
+  const rings = buildRings(planets);
+  return { planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands: buildBands(planets, rings), zones: buildZones(planets, cols, rows_, rings) };
 }
 
 /** Hyperlanes: every route named by at least 3 planets. The planets are joined by a minimum spanning tree, which
@@ -123,7 +124,114 @@ export function buildLanes(planets) {
 
 const REGION_ALIAS = { "Mid Rim Territories": "Mid Rim", "Inner Rim Territories": "Inner Rim", "Outer Rim": "Outer Rim Territories", "Outer Rim Territories/Legends": "Outer Rim Territories",
   "Core": "Core Worlds", "Core Regions": "Core Worlds", "Colonies region": "Colonies", "Expansion region": "Expansion Region" };
-export const normRegion = (r) => REGION_ALIAS[r] ?? r;
+export const normRegion = (r) => { const first = String(r ?? "").split(";")[0].trim(); return REGION_ALIAS[first] ?? first; };
+/** The nine main zones of the galaxy; sub-regions such as Hutt Space count toward the zone around them. */
+const ZONE_OF = { "Hutt Space": "Outer Rim Territories", "The Slice": "Outer Rim Territories", "Galactic Core": "Deep Core", "The Interior": "Core Worlds",
+  "New Territories": "Outer Rim Territories", "Tingel Arm": "Outer Rim Territories" };
+export const zoneOf = (region) => (REGION_ORDER.includes(region) ? region : ZONE_OF[region] ?? null);
+
+/**
+ * Region zones: the map is cut into quarter-squares and each one takes the region most of its nearby planets
+ * belong to (inverse-distance vote), then two smoothing passes tidy the edges. Empty space far from any planet stays blank.
+ * Returns { res, cols, rows, cells: Int8Array (region index or -1), labels: [{region, x, y}] }.
+ */
+export function buildZones(planets, cols, rows, ringInfo = buildRings(planets)) {
+  const res = 5, W = cols * res, H = rows * res, cell = SQ / res;
+  const buckets = new Map();
+  for (const p of planets) {
+    const z = REGION_ORDER.indexOf(zoneOf(p.region));
+    if (z < 0) continue;
+    const k = `${p.g.col},${p.g.row}`;
+    if (!buckets.has(k)) buckets.set(k, []);
+    buckets.get(k).push([p.x, p.y, z]);
+  }
+  let cells = new Int8Array(W * H).fill(-1);
+  const votes = new Float32Array(REGION_ORDER.length);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const x = (i + 0.5) * cell, y = (j + 0.5) * cell, gc = Math.floor(i / res), gr = Math.floor(j / res);
+    votes.fill(0); let any = false;
+    for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) for (const [px, py, z] of buckets.get(`${gc + a},${gr + b}`) ?? []) {
+      const d = Math.hypot(px - x, py - y);
+      if (d > SQ * 1.6) continue;
+      votes[z] += 1 / (d / SQ + 0.35) ** 2; any = true;
+    }
+    // Ring prior: the region you'd expect at this distance from the core, so zones keep the galaxy's banded shape.
+    const dist = Math.hypot(x - ringInfo.cx, y - ringInfo.cy);
+    const ring = ringInfo.rings.find((r) => dist <= r.r);
+    if (ring) { votes[REGION_ORDER.indexOf(ring.region)] += 2.2; any = true; }
+    if (!any) continue;
+    let best = 0; for (let z = 1; z < votes.length; z++) if (votes[z] > votes[best]) best = z;
+    cells[j * W + i] = best;
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    const next = new Int8Array(cells);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const counts = new Map(); let filled = 0;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+        const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue;
+        const v = cells[jj * W + ii]; if (v < 0) continue; filled++; counts.set(v, (counts.get(v) ?? 0) + 1);
+      }
+      if (filled < 4) { next[j * W + i] = filled >= 3 && cells[j * W + i] >= 0 ? cells[j * W + i] : -1; continue; }
+      let bv = cells[j * W + i], bc = counts.get(bv) ?? 0;
+      for (const [v, c] of counts) if (c > bc) { bv = v; bc = c; }
+      next[j * W + i] = bv;
+    }
+    cells = next;
+  }
+  // Labels: ring regions sit due north of the core in the middle of their band; others where they are thickest.
+  const labels = [];
+  let prevR = 0;
+  const target = new Map();
+  for (const r of ringInfo.rings) { target.set(r.region, [ringInfo.cx, ringInfo.cy - (prevR + r.r) / 2]); prevR = r.r; }
+  for (let z = 0; z < REGION_ORDER.length; z++) {
+    const t = target.get(REGION_ORDER[z]);
+    let best = null, bs = -Infinity;
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      if (cells[j * W + i] !== z) continue;
+      let sc;
+      if (t) sc = -Math.hypot((i + 0.5) * cell - t[0], (j + 0.5) * cell - t[1]);
+      else { sc = 0; for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const ii = i + a, jj = j + b; if (ii >= 0 && jj >= 0 && ii < W && jj < H && cells[jj * W + ii] === z) sc++; } }
+      if (sc > bs) { bs = sc; best = [i, j]; }
+    }
+    if (best) labels.push({ region: REGION_ORDER[z], x: (best[0] + 0.5) * cell, y: (best[1] + 0.5) * cell });
+  }
+  return { res, cols, rows, W, H, cell, cells, labels };
+}
+
+/**
+ * Region bands: each ring region's outer edge, measured in 72 directions from the core. In each direction the edge is
+ * where 85% of that region's (and inner regions') planets lie inside, blended with the overall ring size where data is
+ * thin, then smoothed. This keeps the familiar banded galaxy while following where the worlds actually are.
+ */
+export function buildBands(planets, ringInfo) {
+  const N = 72, { cx, cy, rings } = ringInfo;
+  const pts = planets.map((p) => {
+    const z = REGION_ORDER.indexOf(zoneOf(p.region));
+    const a = (Math.atan2(p.y - cy, p.x - cx) + Math.PI * 2) % (Math.PI * 2);
+    return { z, a: Math.floor((a / (Math.PI * 2)) * N) % N, d: Math.hypot(p.x - cx, p.y - cy) };
+  }).filter((p) => p.z >= 0 && p.z < rings.length + 2);
+  const out = [];
+  let prev = null;
+  rings.forEach((ring, k) => {
+    const zi = REGION_ORDER.indexOf(ring.region);
+    let r = new Float32Array(N);
+    for (let a = 0; a < N; a++) {
+      const ds = pts.filter((p) => p.z <= zi && Math.min((p.a - a + N) % N, (a - p.a + N) % N) <= 3).map((p) => p.d).sort((x, y) => x - y);
+      const q = k === rings.length - 1 ? 0.96 : 0.85;
+      const pr = ds.length ? ds[Math.min(ds.length - 1, Math.floor(ds.length * q))] : ring.r;
+      r[a] = (ds.length * pr + 12 * ring.r) / (ds.length + 12);
+    }
+    for (let pass = 0; pass < 3; pass++) {
+      const n = new Float32Array(N);
+      for (let a = 0; a < N; a++) n[a] = (r[(a + N - 2) % N] + 2 * r[(a + N - 1) % N] + 3 * r[a] + 2 * r[(a + 1) % N] + r[(a + 2) % N]) / 9;
+      r = n;
+    }
+    if (prev) for (let a = 0; a < N; a++) r[a] = Math.max(r[a], prev[a] + SQ * 0.25);
+    out.push({ region: ring.region, color: ring.color, r: Array.from(r, (v) => Math.round(v)) });
+    prev = r;
+  });
+  return { cx, cy, n: N, bands: out };
+}
 
 /** Region rings: centred on the Deep Core, radius = 80th-percentile distance of each region's planets. */
 export function buildRings(planets) {
@@ -136,7 +244,7 @@ export function buildRings(planets) {
   for (const region of REGION_ORDER.slice(0, 7)) {
     const ds = planets.filter((p) => p.region === region).map((p) => Math.hypot(p.x - cx, p.y - cy)).sort((a, b) => a - b);
     if (!ds.length) continue;
-    const r = Math.max(last + SQ * 0.3, ds[Math.floor(ds.length * 0.8)]);
+    const r = Math.max(last + SQ * 0.3, ds[Math.floor(ds.length * (region === "Outer Rim Territories" ? 0.95 : 0.8))]);
     rings.push({ region, r, color: REGION_COLOR[region] }); last = r;
   }
   return { cx, cy, rings };
