@@ -99,8 +99,8 @@ The datapad's **Comms** tile is an in-character inbox for the active character, 
 - **Holocalls:** pick a caller (an NPC or an unknown caller), tick the players to call and start the call. Each player sees a floating blue hologram of the caller's portrait. Type lines into the call window to speak as the caller; *End call* closes it for everyone.
 - **Settings:** an optional sound when a message arrives.
 
-## HoloDock (ships)
-The datapad's **HoloDock** tile lists the crew's ships. SW5e starship actors appear on their own; the GM can add any other actor (a vehicle or NPC) from the console's **Ships** tab.
+## Starship app (HoloDock, bridge and shipyard)
+The datapad's **Starship** tile opens the party ship, with tabs for **Status** (the HoloDock screen), **Bridge**, **Shipyard** and **Fleet**. The Fleet tab lists the crew's ships. SW5e starship actors appear on their own; the GM can add any other actor (a vehicle or NPC) from the console's **Ships** tab.
 
 - **Ship status:** hull, shields and fuel bars, hyperdrive class, system damage, power routing, cargo and deployed crew (pilot, crew and passengers from the SW5e sheet). The values are read straight from the starship actor, so damage taken in combat shows at once.
 - **Hyperdrive class** comes from the ship's *Hyperdrive, Class X* item (the best equipped one, ignoring backups). **Fuel capacity**, **cargo capacity** and **fuel price** come from the ship's size item (Tiny to Gargantuan). The GM can override any of these, set shield capacity, a location and a log in the Ships tab (pen button).
@@ -138,7 +138,7 @@ The datapad's **Credits** tile shows the active character's balance and a transa
 - **GM:** the same screen has a *grant or fine* form for any player character and shows the whole ledger.
 
 ## Bridge (crew stations)
-The datapad's **Bridge** tile (also on the party ship's HoloDock screen) is for starship combat on the party ship.
+The **Bridge** tab of the Starship app is for starship combat on the party ship.
 
 - Five stations: **Pilot**, **Gunner**, **Engineer**, **Operator** and **Captain**. Each character takes one (one per station; the GM can move anyone). The station bar shows who sits where.
 - Each station lists the SW5e starship actions on the ship that belong to it (Fly, Evade and Dogfight for the pilot; Fire for the gunner; Patch, Boost and Regenerate Shields for the engineer; Search and Interfere for the operator; Direct for the captain), plus Cast a Power and Use an Object.
@@ -146,7 +146,7 @@ The datapad's **Bridge** tile (also on the party ship's HoloDock screen) is for 
 - Players who own the ship use the actions straight from the datapad. Otherwise the order goes to chat for the GM to resolve.
 
 ## Shipyard
-Open it from the party ship's HoloDock screen (*Shipyard*) or with `api.openShipyard()`. It works wherever the party ship is docked on the galaxy map.
+Open it from the **Shipyard** tab of the Starship app or with `api.openShipyard()`. It works wherever the party ship is docked on the galaxy map.
 
 - **Repairs:** restore hull points, recharge shields and clear system damage. Prices per point are module settings (25, 10 and 500 cr by default).
 - **Upgrades:** browse and search the SW5e starship weapons, equipment and modifications compendiums. Buying one installs a copy on the party ship. Weapons and equipment use their list price; modifications (which have none in SW5e) cost a set amount per grade times the ship size's modification multiplier. A price multiplier setting adjusts everything.

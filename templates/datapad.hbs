@@ -7,7 +7,9 @@
       <div class="ht-title">{{title}}</div>
     </header>
     {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
-    {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
+    {{else}}
+    {{#if shipTabs}}<nav class="ht-ship-tabs">{{#each shipTabs}}<button type="button" class="{{#if active}}active{{/if}}" data-action="go" data-view="{{view}}" data-id="{{id}}"><i class="fas {{icon}}"></i> {{label}}</button>{{/each}}</nav>{{/if}}
+    <section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
   </div>
   <nav class="ht-controls">
     <div class="ht-keys">
