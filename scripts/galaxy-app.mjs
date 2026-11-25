@@ -30,14 +30,14 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Map layers each player can switch on or off; remembered in this browser. */
   static LAYERS = [
-    ["regions", "Main regions", "Deep Core out to the Outer Rim"], ["sectors", "Region slices", "The Slice, Western Reaches, Trailing Sectors..."],
-    ["areas", "Local areas", "Hutt Space, Tion Cluster, Corporate Sector..."], ["regionLabels", "Region names", ""],
+    ["regions", "Main regions", "Deep Core out to the Outer Rim"], ["sectors", "Canon regions", "The Interior, The Slice, New Territories, Trailing Sectors, Western Reaches, Unknown Regions"],
+    ["areas", "Local areas", "Hutt Space, Tion Cluster, Trans-Hydian and other named areas"], ["regionLabels", "Region names", ""],
     ["lanes", "Hyperlanes", ""], ["laneLabels", "Lane names", ""], ["planetLabels", "Planet names", ""],
     ["legends", "Legends worlds", "Worlds only found in Legends"], ["grid", "Grid", ""], ["pins", "Pins", ""]
   ];
   static LAYER_KEY = `${MODULE_ID}.galaxyLayers`;
   static loadLayers() {
-    const base = Object.fromEntries(GalaxyMapApp.LAYERS.map(([k]) => [k, true]));
+    const base = Object.fromEntries(GalaxyMapApp.LAYERS.map(([k]) => [k, k !== "areas"]));
     try { return { ...base, ...JSON.parse(localStorage.getItem(GalaxyMapApp.LAYER_KEY) ?? "{}") }; } catch { return base; }
   }
 

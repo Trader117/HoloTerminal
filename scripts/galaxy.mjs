@@ -86,7 +86,7 @@ export function buildGalaxy(rows) {
   const cols = Math.max(21, ...planets.map((p) => p.g.col + 1)), rows_ = Math.max(21, ...planets.map((p) => p.g.row + 1));
   const rings = buildRings(planets);
   const bands = buildBands(planets, rings), sectors = buildSectors(planets, bands);
-  const wedgeNames = new Set(sectors.names.map((n) => n.name));
+  const wedgeNames = new Set(CANON_REGIONS);
   return { sectors, subregions: buildSubregions(planets, cols, rows_, { skip: wedgeNames }), planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands, zones: buildZones(planets, cols, rows_, rings) };
 }
 
@@ -245,26 +245,37 @@ const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8
  * region are filled, runs are smoothed, and one-cell slivers are absorbed, which gives the familiar sliced-ring map.
  * Returns { n, cx, cy, rings: [{ inner: number[], outer: number[] }], cells: (string|null)[][], names: [{name, color, label}] }.
  */
-export function buildSectors(planets, B, { minCells = 3 } = {}) {
+export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
+const CANON_COLOR = { "The Interior": "#ffd36b", "New Territories": "#7ee0c3", "The Slice": "#ff7eb6", "Trailing Sectors": "#6fd3ff", "Western Reaches": "#c5e86c", "Unknown Regions": "#b39dff" };
+
+export function buildSectors(planets, B, { minCells = 3, only = new Set(CANON_REGIONS) } = {}) {
   const N = B.n, K = B.bands.length, { cx, cy } = B;
   const rings = B.bands.map((b, k) => ({ outer: b.r, inner: k ? B.bands[k - 1].r : new Array(N).fill(0) }));
   const votes = Array.from({ length: K }, () => Array.from({ length: N }, () => new Map()));
   const size = new Map();
   for (const p of planets) for (const n of p.subregions ?? []) size.set(n, (size.get(n) ?? 0) + 1);
+  const namesOf = (p) => {
+    const out = (p.subregions ?? []).filter((n) => only.has(n));
+    if (only.has(p.region) && !out.includes(p.region)) out.push(p.region);
+    return out;
+  };
   for (const p of planets) {
-    if (!p.subregions?.length) continue;
+    const names = namesOf(p);
+    if (!names.length) continue;
     const ang = (Math.atan2(p.y - cy, p.x - cx) + Math.PI * 2) % (Math.PI * 2), a = Math.floor((ang / (Math.PI * 2)) * N) % N;
     const d = Math.hypot(p.x - cx, p.y - cy), k = rings.findIndex((r) => d <= r.outer[a]);
     if (k < 0) continue;
     for (const [da, w] of [[0, 1], [-1, 0.35], [1, 0.35]]) {
       const m = votes[k][(a + da + N) % N];
-      for (const n of p.subregions) if (size.get(n) >= 8) m.set(n, (m.get(n) ?? 0) + w);
+      for (const n of names) m.set(n, (m.get(n) ?? 0) + w);
     }
   }
+  // The Interior fills the inner rings (Deep Core to the Inner Rim) unless another region's worlds say otherwise.
+  if (only.has("The Interior")) votes.forEach((ring, k) => { const w = k <= 3 ? 1.5 : k === 4 ? 0.6 : 0; if (w) for (const m of ring) m.set("The Interior", (m.get("The Interior") ?? 0) + w); });
   let cells = votes.map((ring) => ring.map((m) => {
     let best = null, bv = 0, tot = 0;
     for (const [n, v] of m) { tot += v; if (v > bv) { bv = v; best = n; } }
-    return bv >= 1 && bv >= tot * 0.3 ? best : null;
+    return bv >= 0.6 && bv >= tot * 0.3 ? best : null;
   }));
   const at = (ring, a) => ring[(a + N) % N];
   cells = cells.map((ring) => {
@@ -305,8 +316,42 @@ export function buildSectors(planets, B, { minCells = 3 } = {}) {
         for (let d = 0; d < r.n; d++) cur[(r.a + d) % N] = pick;
       });
     }
+    // Every cell of a ring gets a region: empty ones take the nearest region along the ring.
+    if (cur.some(Boolean)) {
+      const filled = cur.slice();
+      for (let a = 0; a < N; a++) if (!cur[a]) for (let d = 1; d < N; d++) { const v = at(cur, a - d) ?? at(cur, a + d); if (v) { filled[a] = v; break; } }
+      cur = filled;
+    }
     return cur;
   });
+  // Each region keeps only its largest connected piece; stray pieces join the region around them.
+  for (let pass = 0; pass < 2; pass++) {
+    const comp = cells.map((r) => r.map(() => -1)), info = [];
+    for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
+      if (!cells[k][a] || comp[k][a] >= 0) continue;
+      const id = info.length, v = cells[k][a], st = [[k, a]], members = []; comp[k][a] = id;
+      while (st.length) {
+        const [kk, aa] = st.pop(); members.push([kk, aa]);
+        for (const [dk, da] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+          const k2 = kk + dk, a2 = (aa + da + N) % N;
+          if (k2 < 0 || k2 >= K || comp[k2][a2] >= 0 || cells[k2][a2] !== v) continue;
+          comp[k2][a2] = id; st.push([k2, a2]);
+        }
+      }
+      info.push({ v, members });
+    }
+    const biggest = new Map();
+    for (const c of info) if (!biggest.has(c.v) || biggest.get(c.v).members.length < c.members.length) biggest.set(c.v, c);
+    for (const c of info) {
+      if (biggest.get(c.v) === c) continue;
+      const around = new Map();
+      for (const [k, a] of c.members) for (const [dk, da] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+        const v = cells[k + dk]?.[(a + da + N) % N]; if (v && v !== c.v) around.set(v, (around.get(v) ?? 0) + 1);
+      }
+      const to = [...around].sort((x, y) => y[1] - x[1])[0]?.[0];
+      if (to) for (const [k, a] of c.members) cells[k][a] = to;
+    }
+  }
   // Names that hold enough cells to count as a wedge; the rest are cleared and drawn as local areas instead.
   const count = new Map();
   for (const ring of cells) for (const v of ring) if (v) count.set(v, (count.get(v) ?? 0) + 1);
@@ -322,7 +367,7 @@ export function buildSectors(planets, B, { minCells = 3 } = {}) {
       if (sc > bs) { bs = sc; best = [k, a]; }
     }
     const [k, a] = best, ang = ((a + 0.5) / N) * Math.PI * 2, r = (rings[k].inner[a] + rings[k].outer[a]) / 2;
-    return { name, color: SUB_COLORS[i % SUB_COLORS.length], cells: count.get(name), label: { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r } };
+    return { name, color: CANON_COLOR[name] ?? SUB_COLORS[i % SUB_COLORS.length], cells: count.get(name), label: { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r } };
   });
   return { n: N, cx, cy, rings, cells, names };
 }
