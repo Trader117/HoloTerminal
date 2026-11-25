@@ -130,13 +130,12 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const actor = this.actor, sys = actor.system, attr = sys.attributes ?? {};
     const C = cfg();
     ctx.editable ??= this.isEditable;
-    const theme = actor.getFlag(MODULE_ID, "sheetTheme") ?? game.settings.get(MODULE_ID, "sheetTheme");
+    const theme = game.settings.get(MODULE_ID, "sheetTheme");
 
     ctx.actor = actor;
     ctx.system = sys;
     ctx.tabs = this.#prepareTabs("primary");
     ctx.theme = THEMES.includes(theme) ? theme : "sw5e";
-    ctx.themes = THEMES.map((t) => ({ id: t, label: loc(`HOLOSHEET.Theme.${t}`), selected: t === ctx.theme }));
 
     // identity
     const classes = actor.itemTypes.class ?? [];
@@ -408,7 +407,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 /* ---------- registration ---------- */
 Hooks.once("init", () => {
   game.settings.register(MODULE_ID, "sheetTheme", {
-    name: "Character sheet theme", hint: "Each sheet can override this from its header.",
+    name: "Character sheet theme", hint: "SW5e Database matches the rest of Holo-Terminal; the holo styles are alternates.",
     scope: "client", config: true, type: String, default: "sw5e",
     choices: Object.fromEntries(THEMES.map((t) => [t, `HOLOSHEET.Theme.${t}`])),
     onChange: () => [...foundry.applications.instances.values()]

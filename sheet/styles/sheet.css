@@ -58,7 +58,6 @@
 .holo-row { display:flex; gap:.5rem; align-items:center; }
 .holo-name { flex:1; height:auto; font:700 26px/1.1 var(--hs-display); color:var(--hs-head) !important; text-transform:uppercase; letter-spacing:.5px;
   background:transparent !important; border:none !important; border-bottom:1px solid var(--hs-line) !important; border-radius:0 !important; text-shadow:var(--hs-glow); }
-.holo-theme-select { width:auto; height:1.9em; font-size:12px; }
 .holo-sub { display:flex; flex-wrap:wrap; gap:.2rem 1rem; color:var(--hs-muted); font:600 12px var(--hs-display); text-transform:uppercase; letter-spacing:.5px; }
 .holo-sub input { width:5.5em; height:1.5em; }
 .holo-vitals { display:flex; gap:.4rem; flex-wrap:wrap; }

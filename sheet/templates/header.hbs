@@ -3,9 +3,6 @@
   <div class="holo-ident">
     <div class="holo-row">
       <input class="holo-name" type="text" name="name" value="{{actor.name}}" placeholder="Name" {{#unless editable}}disabled{{/unless}}>
-      <select class="holo-theme-select" name="flags.holo-terminal.sheetTheme" data-tooltip="Sheet theme">
-        {{#each themes}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-      </select>
     </div>
     <div class="holo-sub">
       <span>{{#if species}}{{species}}{{else}}Unknown species{{/if}}</span>
