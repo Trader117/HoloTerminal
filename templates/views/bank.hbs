@@ -1,0 +1,26 @@
+{{#if noActor}}<p class="ht-dim">Select your token or assign a character to use your account.</p>{{/if}}
+{{#if actor}}
+<div class="ht-bank-bal"><small>{{actor.name}} &middot; available</small><b>{{balance}}<span>cr</span></b></div>
+<div class="ht-bank-form">
+  <label>Pay <select name="bank-to">{{#each payees}}<option value="{{id}}">{{name}}</option>{{else}}<option value="">No one to pay</option>{{/each}}</select></label>
+  <label>Amount <input name="bank-amount" type="number" min="1" step="1" placeholder="0"></label>
+  <label class="wide">Memo <input name="bank-memo" type="text" maxlength="120" placeholder="What's it for?"></label>
+  <button type="button" class="ht-primary" data-action="bankSend"><i class="fas fa-money-bill-transfer"></i> Transfer</button>
+</div>
+{{/if}}
+{{#if isGM}}
+<h3 class="ht-dock-h">GM: grant or fine</h3>
+<div class="ht-bank-form">
+  <label>Character <select name="bank-grant-to">{{#each pcs}}<option value="{{id}}">{{name}} ({{credits}} cr)</option>{{/each}}</select></label>
+  <label>Amount <input name="bank-grant-amount" type="number" step="1" placeholder="+500 or -200"></label>
+  <label class="wide">Memo <input name="bank-grant-memo" type="text" maxlength="120" placeholder="Bounty paid, docking fine..."></label>
+  <button type="button" data-action="bankGrant"><i class="fas fa-scale-balanced"></i> Apply</button>
+</div>
+{{/if}}
+<h3 class="ht-dock-h">{{#if isGM}}Ledger{{else}}Transactions{{/if}}</h3>
+<ul class="ht-bank-log">
+  {{#each history}}
+  <li><span class="ht-bank-who">{{#if ../isGM}}{{from.name}} <i class="fas fa-arrow-right"></i> {{to.name}}{{else}}{{other}}{{/if}}<small>{{time}}{{#if memo}} &middot; {{memo}}{{/if}}</small></span>
+    <b class="{{#if incoming}}in{{else}}out{{/if}}">{{#if incoming}}+{{/if}}{{signed}}</b></li>
+  {{else}}<li class="ht-dim">No transactions yet.</li>{{/each}}
+</ul>

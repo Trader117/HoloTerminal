@@ -27,15 +27,16 @@ import { rollSkill } from "./roll.mjs";
 import * as Dock from "./holodock.mjs";
 import * as Comms from "./comms.mjs";
 import * as Trade from "./trade.mjs";
+import * as Bank from "./bank.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -71,6 +72,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      bankSend: DatapadApp.#bankSend, bankGrant: DatapadApp.#bankGrant,
       missionObj: DatapadApp.#missionObj, missionStatus: DatapadApp.#missionStatus, contactStanding: DatapadApp.#contactStanding,
       tradeBuy: DatapadApp.#tradeBuy, tradeSell: DatapadApp.#tradeSell, tradeShift: DatapadApp.#tradeShift
     }
@@ -87,6 +89,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
+    Hooks.on(Bank.BANK_HOOK, () => this.rendered && this.view === "bank" && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
     Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade"].includes(this.view) && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
@@ -225,6 +228,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "comms", icon: "fa-tower-broadcast", label: "Comms", tone: "green", count: Comms.unreadCount(activeActor()?.id) },
       { view: "missions", icon: "fa-list-check", label: "Missions", tone: "gold" },
       { view: "contacts", icon: "fa-address-book", label: "Contacts", tone: "blue" },
+      { view: "bank", icon: "fa-wallet", label: "Credits", tone: "green" },
       { view: "network", icon: "fa-network-wired", label: "Local Net", tone: "blue" },
       { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
       { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
@@ -362,6 +366,23 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Comms", threads: all, contacts };
   }
 
+  _ctx_bank(ctx, actor) {
+    const fmt = (ts) => new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    const pcs = Comms.playerCharacters();
+    const out = { title: "Credits", isGM: game.user.isGM, noActor: !actor && !game.user.isGM };
+    if (actor) {
+      const seen = new Set([actor.id]), payees = [];
+      const npcs = list("contacts").filter((c) => !c.hidden && c.actorId).map((c) => game.actors.get(c.actorId)).filter(Boolean);
+      for (const a of [...pcs, ...npcs]) if (!seen.has(a.id)) { seen.add(a.id); payees.push({ id: a.id, name: a.name }); }
+      Object.assign(out, { actor: { id: actor.id, name: actor.name }, balance: getCredits(actor), payees });
+    }
+    const rows = game.user.isGM ? Bank.ledger().reverse().map((e) => ({ ...e, signed: e.amount, incoming: true }))
+      : actor ? Bank.historyFor(actor.id).map((e) => ({ ...e, incoming: e.signed > 0 })) : [];
+    out.history = rows.slice(0, 100).map((e) => ({ ...e, time: fmt(e.ts) }));
+    if (game.user.isGM) out.pcs = pcs.map((a) => ({ id: a.id, name: a.name, credits: getCredits(a) }));
+    return out;
+  }
+
   _ctx_missions() {
     const all = list("missions").filter((m) => game.user.isGM || !m.hidden)
       .map((m) => ({ ...m, status: m.status ?? "active", objectives: m.objectives ?? [], doneCount: (m.objectives ?? []).filter((o) => o.done).length }));
@@ -494,6 +515,19 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await Comms.send({ fromId: activeActor()?.id, to: el.dataset.to, text });
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
+
+  static async #bankSend() {
+    const q = (n) => this.element.querySelector(`[name="bank-${n}"]`);
+    const amount = Number(q("amount")?.value), to = q("to")?.value;
+    if (!to || !(amount > 0)) return ui.notifications.warn("Pick who to pay and an amount.");
+    const name = game.actors.get(to)?.name ?? "them";
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Confirm transfer" }, content: `<p>Send ${Math.floor(amount)} cr to ${Handlebars.escapeExpression(name)}?</p>` });
+    if (ok) await requestGM("bankSend", { fromId: activeActor()?.id, toId: to, amount, memo: q("memo")?.value.trim() });
+  }
+  static async #bankGrant() {
+    const q = (n) => this.element.querySelector(`[name="bank-grant-${n}"]`);
+    await requestGM("bankGrant", { toId: q("to")?.value, amount: q("amount")?.value, memo: q("memo")?.value.trim() });
+  }
 
   static async #missionObj(e, el) {
     if (!game.user.isGM) return;

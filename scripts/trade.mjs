@@ -1,6 +1,7 @@
 import { MODULE_ID, registerHandler, notifyUser, getCredits, setCredits } from "./store.mjs";
 import * as G from "./galaxy.mjs";
 import * as Dock from "./holodock.mjs";
+import { record } from "./bank.mjs";
 
 /* Trade runs: every world prices a common list of cargo from what it is (terrain, climate, class) and where it is
    (Core to Rim). Prices drift when the GM shifts the markets. Buying and selling goes through the party ship's hold. */
@@ -77,6 +78,7 @@ export function registerTradeHandlers() {
       if (!payer?.testUserPermission(user, "OWNER")) return notifyUser(user.id, "warn", "Pick your character first.");
       if (getCredits(payer) < cost) return notifyUser(user.id, "warn", `${payer.name} needs ${cost} cr for ${n} t of ${g.name}.`);
       await setCredits(payer, getCredits(payer) - cost);
+      await record({ from: payer, to: `${planet.name} exchange`, amount: cost, memo: `${n} t ${g.name}` });
     }
     await Dock.editCargo(ship, (list) => {
       const c = list.find((x) => x.good === g.id);
@@ -94,7 +96,7 @@ export function registerTradeHandlers() {
     if (!g || !cargo) return;
     const n = Math.min(cargo.qty, Math.max(1, Math.floor(Number(tons) || 1))), earn = n * g.sell;
     if (!user.isGM && !payer?.testUserPermission(user, "OWNER")) return notifyUser(user.id, "warn", "Pick your character first.");
-    if (payer) await setCredits(payer, getCredits(payer) + earn);
+    if (payer) { await setCredits(payer, getCredits(payer) + earn); await record({ from: `${planet.name} exchange`, to: payer, amount: earn, memo: `${n} t ${g.name}` }); }
     await Dock.editCargo(ship, (list) => list.map((c) => (c.good === goodId ? { ...c, qty: c.qty - n } : c)).filter((c) => c.qty > 0));
     const profit = earn - n * (cargo.paid ?? g.sell);
     notifyUser(user.id, "info", `Sold ${n} t of ${g.name} for ${earn} cr (${profit >= 0 ? "+" : ""}${profit} cr).`);

@@ -11,6 +11,7 @@ import { registerCommsSettings, registerCommsHandlers, initCommsSocket, send as 
 import { HolocallApp } from "./holocall.mjs";
 import { registerTradeSettings, registerTradeHandlers } from "./trade.mjs";
 import { registerEventSettings, initEventSocket, maybeEvent } from "./jump-events.mjs";
+import { registerBankSettings, registerBankHandlers } from "./bank.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -29,6 +30,7 @@ Hooks.once("init", () => {
   registerCommsSettings();
   registerTradeSettings();
   registerEventSettings();
+  registerBankSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -49,6 +51,7 @@ Hooks.once("ready", () => {
   registerCommsHandlers();
   registerTradeHandlers();
   initEventSocket();
+  registerBankHandlers();
   initCommsSocket();
   HolocallApp.register();
   initSocket(datapad);
@@ -64,6 +67,7 @@ Hooks.once("ready", () => {
     openHoloDock: (actorId = null) => datapad("holodock", actorId),
     openComms: () => datapad("comms"),
     openTrade: () => datapad("trade"),
+    openCredits: () => datapad("bank"),
     /** GM: roll on the hyperspace event table now. */
     jumpEvent: () => maybeEvent({ force: true }),
     /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */
