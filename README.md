@@ -137,15 +137,6 @@ The datapad's **Credits** tile shows the active character's balance and a transa
 - **One ledger:** transfers, GM grants and fines, fuel purchases and trade buys and sales are all recorded.
 - **GM:** the same screen has a *grant or fine* form for any player character and shows the whole ledger.
 
-## Cantina: Nova
-An original card game against the house, from the datapad's **Cantina** tile. Stakes come out of the active character's credits and go through the GM.
-
-- Four suits run 1 to 11. Suns, Moons and Comets count up; Voids count against you.
-- Three rounds to get closest to **23**. Each round: draw a card (5 at most), swap one of yours for the face-up discard, or hold. The house plays after you, and on the last round it sees how close you are.
-- Between rounds the flux die rolls. On a 6 every hand loses its biggest card and draws a new one.
-- Beat the house to double your stake; win on exactly 23 (a **Nova**) for three times your stake. Ties go to the house. Results go to chat and the ledger.
-- The *Cantina: table limit* setting caps a stake (500 cr by default).
-
 ## Bridge (crew stations)
 The datapad's **Bridge** tile (also on the party ship's HoloDock screen) is for starship combat on the party ship.
 
@@ -160,6 +151,16 @@ Open it from the party ship's HoloDock screen (*Shipyard*) or with `api.openShip
 - **Repairs:** restore hull points, recharge shields and clear system damage. Prices per point are module settings (25, 10 and 500 cr by default).
 - **Upgrades:** browse and search the SW5e starship weapons, equipment and modifications compendiums. Buying one installs a copy on the party ship. Weapons and equipment use their list price; modifications (which have none in SW5e) cost a set amount per grade times the ship size's modification multiplier. A price multiplier setting adjusts everything.
 - The active character pays; every purchase goes to the ledger and is whispered to the GM.
+
+## HoloNet news
+
+The datapad has a **HoloNet** app: an in-world news feed with a scrolling ticker on the home screen.
+
+- The GM writes stories from the app (headline, tag, source, body) and can delete any story.
+- Big moments can write their own stories: a large or restricted trade sale, a ship arriving after a jump, a hyperspace event shown to players, or a mission marked done.
+- The **Auto news** setting decides what happens to those: *queue* (default, the GM approves or spikes each one), *publish* straight away, or *off*.
+- Unread stories show as a count on the home tile and are marked read when the player opens the feed.
+- Macro api: `game.modules.get("holo-terminal").api.openNews()` and `api.postNews({headline, body, source, tag})`.
 
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
@@ -196,7 +197,6 @@ api.openComms();
 api.sendComms({ fromId: npc.id, to: pc.id, text: "Bay 12, midnight." });
 api.holocall({ actorId: npc.id, line: "We need to talk." }); // GM, all players
 api.openCredits();
-api.openCantina();
 api.openBridge();
 api.openShipyard();
 api.openHoloDock();                    // ship list, or pass an actor id for one ship

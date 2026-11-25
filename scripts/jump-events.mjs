@@ -1,5 +1,6 @@
 import { MODULE_ID, SOCKET } from "./store.mjs";
 import * as Dock from "./holodock.mjs";
+import * as News from "./news.mjs";
 
 /* Hyperspace events: when the GM makes a jump on the galaxy map there's a chance something happens on the way.
    The GM keeps a weighted table, sees the result first, and chooses whether the players see it. */
@@ -65,6 +66,7 @@ export async function maybeEvent({ force = false, where = "" } = {}) {
       ChatMessage.create({ content });
       game.socket.emit(SOCKET, { type: "jumpAlert", name: ev.name });
       alert(ev.name);
+      News.auto("event", { name: ev.name, text: ev.text, planet: where });
     } else ChatMessage.create({ content, whisper: game.users.filter((u) => u.isGM).map((u) => u.id) });
     return;
   }

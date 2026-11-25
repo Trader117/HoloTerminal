@@ -3,6 +3,7 @@ import * as G from "./galaxy.mjs";
 import * as Dock from "./holodock.mjs";
 import * as Trade from "./trade.mjs";
 import * as JumpEvents from "./jump-events.mjs";
+import * as News from "./news.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const WOOKIEE = "https://starwars.fandom.com/wiki/";
@@ -518,7 +519,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
         content: `<p>${esc(a.name)} needs ${need} fuel for this trip and has ${Dock.shipInfo(a).fuel.value}. Jump anyway and empty the tanks?</p>` });
       if (!ok) return;
     }
-    const name = end.name ?? G.gridLabel(end.x, end.y);
+    const name = end.name ?? G.gridLabel(end.x, end.y), hours = this.route.hours, start = this.route.path[0]?.name ?? "";
     const s = G.state(); s.ship = { ...(s.ship ?? {}), x: end.x, y: end.y, key: end.key ?? null, name: a?.name ?? s.ship?.name ?? "Party ship" };
     await G.saveState(s);
     if (a) {
@@ -527,6 +528,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     ChatMessage.create({ content: `<p><b>${esc(a?.name ?? "The party ship")}</b> jumps to hyperspace and arrives at <b>${esc(name)}</b> after ${G.formatHours(this.route.hours)}${need ? ` (${need} fuel used)` : ""}.</p>` });
     this.route = null; this.routeFrom = null; this.routeEnds = null; this.render();
+    News.auto("arrival", { planet: name, time: G.formatHours(hours), from: start });
     JumpEvents.maybeEvent({ where: name });
   }
   static #clearRoute() { this.route = null; this.routeFrom = null; this.routeEnds = null; this.render(); }

@@ -12,9 +12,9 @@ import { HolocallApp } from "./holocall.mjs";
 import { registerTradeSettings, registerTradeHandlers } from "./trade.mjs";
 import { registerEventSettings, initEventSocket, maybeEvent } from "./jump-events.mjs";
 import { registerBankSettings, registerBankHandlers } from "./bank.mjs";
-import { registerCantinaSettings, registerCantinaHandlers } from "./cantina.mjs";
 import { registerBridgeHandlers } from "./bridge.mjs";
 import { registerYardSettings, registerYardHandlers } from "./shipyard.mjs";
+import { registerNewsSettings, post as postNews } from "./news.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -34,8 +34,8 @@ Hooks.once("init", () => {
   registerTradeSettings();
   registerEventSettings();
   registerBankSettings();
-  registerCantinaSettings();
   registerYardSettings();
+  registerNewsSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -57,7 +57,6 @@ Hooks.once("ready", () => {
   registerTradeHandlers();
   initEventSocket();
   registerBankHandlers();
-  registerCantinaHandlers();
   registerBridgeHandlers();
   registerYardHandlers();
   initCommsSocket();
@@ -76,9 +75,11 @@ Hooks.once("ready", () => {
     openComms: () => datapad("comms"),
     openTrade: () => datapad("trade"),
     openCredits: () => datapad("bank"),
-    openCantina: () => datapad("cantina"),
     openBridge: () => datapad("bridge"),
     openShipyard: () => datapad("shipyard"),
+    openNews: () => datapad("news"),
+    /** GM: publish a HoloNet story { headline, body, source, tag }. */
+    postNews: (story) => postNews(story),
     /** GM: roll on the hyperspace event table now. */
     jumpEvent: () => maybeEvent({ force: true }),
     /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */
