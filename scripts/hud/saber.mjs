@@ -21,8 +21,23 @@ export function registerSaberSettings(moduleId) {
   });
 }
 
+/** A lightweapon by its SW5e weapon type (simpleLW / martialLW, "Martial Lightweapon"), its Luminous property, or its name. */
+export function isSaber(item) {
+  if (item.type !== "weapon") return false;
+  const s = item.system ?? {};
+  const type = String(s.type?.value ?? s.weaponType ?? "");
+  if (/LW$|lightweapon/i.test(type)) return true;
+  const typeLabel = String(CONFIG.DND5E?.weaponTypes?.[type]?.label ?? CONFIG.DND5E?.weaponTypes?.[type] ?? "");
+  if (/lightweapon/i.test(typeLabel)) return true;
+  const props = s.properties instanceof Set ? [...s.properties] : Object.keys(s.properties ?? {}).filter((k) => s.properties[k]);
+  if (props.some((p) => /^lum/i.test(p))) return true;
+  const base = String(s.type?.baseItem ?? s.baseItem ?? "");
+  return SABER_NAME.test(item.name) || SABER_NAME.test(base);
+}
+
 export function sabersOf(actor) {
-  return actor.items.filter((i) => i.type === "weapon" && SABER_NAME.test(i.name));
+  // equipped lightweapons first, so a renamed saber in hand wins over one in the pack
+  return actor.items.filter(isSaber).sort((a, b) => Number(!!b.system.equipped) - Number(!!a.system.equipped));
 }
 
 /** What the HUD needs to draw the button, or null when the actor has no lightweapon. */
