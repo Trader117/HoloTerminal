@@ -1,11 +1,13 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
-import { EditorApp, blank } from "./admin.mjs";
+import { EditorApp, ConsoleApp, blank } from "./admin.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
 export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop"];
 export const PARTIAL_PATHS = VIEWS.map(T);
+const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
+  bounties: "Contracts", shops: "Markets", shop: "Vendor" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -36,9 +38,10 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static DEFAULT_OPTIONS = {
     id: "ht-datapad", classes: ["ht-app"],
-    window: { title: "Datapad", icon: "fas fa-tablet-screen-button", resizable: true },
-    position: { width: 560, height: 640 },
+    window: { title: "Datapad", frame: false, positioned: true },
+    position: { width: 460, height: 720 },
     actions: {
+      home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console,
       go: DatapadApp.#go, back: DatapadApp.#back, tab: DatapadApp.#tab,
       login: DatapadApp.#login, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
@@ -77,12 +80,29 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (sound) foundry.audio.AudioHelper.play({ src: sound, volume: 0.6 }, false);
     setTimeout(() => { this.booting = false; this.render(); }, 1200);
   }
+  /** Frameless window: drag it by the status bar. */
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    const handle = this.element.querySelector(".ht-status");
+    if (!handle || handle.dataset.drag) return;
+    handle.dataset.drag = "1";
+    handle.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      const start = { x: ev.clientX, y: ev.clientY, left: this.position.left, top: this.position.top };
+      const move = (e) => this.setPosition({ left: start.left + e.clientX - start.x, top: start.top + e.clientY - start.y });
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+  }
+
   _onClose(options) { super._onClose(options); this.booting = true; }
 
   async _prepareContext() {
     const actor = activeActor();
     const ctx = {
-      view: this.view, viewId: this.viewId, partial: T(this.view), booting: this.booting, isGM: game.user.isGM, theme: "cyan",
+      view: this.view, viewId: this.viewId, partial: T(this.view), kicker: KICKER[this.view],
+      clock: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), booting: this.booting, isGM: game.user.isGM, theme: "cyan",
       actorName: actor?.name, credits: actor ? getCredits(actor) : null, canBack: this.view !== "home",
       bootText: ["DATAPAD OS 4.2", "Linking to local net...", `Node: ${canvas.scene?.name ?? "deep space"}`, "READY"].join("\n")
     };
@@ -90,11 +110,13 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _ctx_home() {
-    return { title: "Datapad", apps: [
-      { view: "network", icon: "fa-network-wired", label: "Local Net" },
-      { view: "bounties", icon: "fa-crosshairs", label: "Bounties" },
-      { view: "shops", icon: "fa-store", label: "Markets" }
-    ] };
+    const apps = [
+      { view: "network", icon: "fa-network-wired", label: "Local Net", tone: "blue" },
+      { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
+      { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" }
+    ];
+    if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "green" });
+    return { title: "Apps", apps };
   }
 
   _ctx_network() {
@@ -159,6 +181,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /* ---------- actions ---------- */
+  static #home() { this.#navigate("home"); this.render(); }
+  static #closePad() { this.close(); }
+  static #console() { ConsoleApp.instance.render(true); }
   static #go(e, el) { this.#navigate(el.dataset.view, el.dataset.id ?? null); this.render(); }
   static #back() { this.#navigate(PARENT[this.view] ?? "home"); this.render(); }
   static #tab(e, el) { this.tab = el.dataset.tab; this.render(); }

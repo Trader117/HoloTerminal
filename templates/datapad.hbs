@@ -1,11 +1,23 @@
 <div class="ht-device">
-  <div class="ht-screen ht-theme-{{theme}}">
-    <header class="ht-header">
-      {{#if canBack}}<button type="button" class="ht-icon" data-action="back" title="Back">&#9664;</button>{{/if}}
-      <span class="ht-title">{{title}}</span>
-      <span class="ht-meta">{{#if actorName}}{{actorName}}{{#if (ne credits null)}} &middot; {{credits}} cr{{/if}}{{else}}no ID linked{{/if}}</span>
-    </header>
-    {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
-    {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
+  <div class="ht-frame">
+    <div class="ht-sensor" aria-hidden="true"><span></span><i></i><i></i></div>
+    <div class="ht-status" title="Drag to move">
+      <span class="ht-brand"><i class="fas fa-satellite-dish"></i> Holo-Terminal</span>
+      <span class="ht-status-id">{{#if actorName}}{{actorName}}{{#if (ne credits null)}} <b>{{credits}} cr</b>{{/if}}{{else}}No ID linked{{/if}}</span>
+      <span class="ht-clock">{{clock}}</span>
+    </div>
+    <div class="ht-screen ht-theme-{{theme}}">
+      <header class="ht-header">
+        <div class="ht-kicker">{{kicker}}</div>
+        <div class="ht-title">{{title}}</div>
+      </header>
+      {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
+      {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
+    </div>
+    <nav class="ht-dock">
+      <button type="button" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><i class="fas fa-chevron-left"></i></button>
+      <button type="button" class="ht-home" data-action="home" title="Home"><i class="fas fa-circle-dot"></i></button>
+      <button type="button" data-action="close" title="Power off"><i class="fas fa-power-off"></i></button>
+    </nav>
   </div>
 </div>
