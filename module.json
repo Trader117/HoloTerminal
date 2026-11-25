@@ -18,6 +18,7 @@
     "scripts/hud/hud.mjs"
   ],
   "styles": [
+    "styles/theme.css",
     "styles/holo-terminal.css",
     "sheet/styles/sheet.css",
     "styles/hud.css"

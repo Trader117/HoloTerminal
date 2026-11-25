@@ -60,6 +60,7 @@ Settings (per player): when to show it (always, only in combat, never), colour t
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.
 - **Slicing skill**: default `inv` (Investigation) on dnd5e, `tec` (Technology) on the SW5e system. Any skill key the system knows works.
+- **Look**: colours come from `styles/theme.css` (the SW5e Database scheme). Every part of the module reads its `--ht-*` variables, so you can change the palette in that one file.
 - **Boot sound**: optional audio played when the datapad opens.
 
 ## Macro / Region API

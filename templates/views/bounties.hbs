@@ -3,13 +3,13 @@
   <article class="ht-card ht-status-{{status}}">
     {{#if img}}<img src="{{img}}" alt="">{{/if}}
     <div class="ht-card-body">
-      <header><b>{{title}}</b> <span class="ht-tag">{{status}}</span>{{#if hidden}} <em>(hidden)</em>{{/if}}</header>
+      <header><span class="ht-card-name">{{title}}</span> <span class="ht-tag">{{status}}</span>{{#if hidden}} <em>(hidden)</em>{{/if}}</header>
       <p><b>Target:</b> {{target}}{{#if location}} &middot; <b>Last seen:</b> {{location}}{{/if}}</p>
       <p class="ht-reward">{{reward}} credits</p>
       <div class="ht-text">{{{description}}}</div>
       {{#if claimants.length}}<p class="ht-dim">Hunters: {{#each claimants}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}</p>{{/if}}
       <div class="ht-row">
-        {{#unless ../isGM}}{{#unless claimed}}{{#if (ne status "completed")}}<button type="button" data-action="claim" data-id="{{id}}">Take contract</button>{{/if}}{{/unless}}{{/unless}}
+        {{#unless ../isGM}}{{#unless claimed}}{{#if (ne status "completed")}}<button type="button" data-action="claim" class="ht-primary" data-id="{{id}}">Take contract</button>{{/if}}{{/unless}}{{/unless}}
         {{#if ../isGM}}{{#if (ne status "completed")}}
           <button type="button" data-action="complete" data-id="{{id}}" data-payout="true">Complete &amp; pay</button>
           <button type="button" data-action="complete" data-id="{{id}}" data-payout="false">Complete</button>
