@@ -31,9 +31,9 @@ Open it from the **terminal icon** in Token controls. It has tabs for Terminals,
 
 **Moving from Monk's Enhanced Journal:** in the console's Markets tab, press *Import Monk's shops*. Every Monk's shop is copied in with its items, prices and quantities, and starts hidden so you can check it first. Importing again refreshes the copies.
 
-**Linking doors and lights to a terminal:** open the terminal's editor. On the map, select one or more doors (Walls layer) or lights (Lighting layer), holding Shift to pick several, and press *Add selected*. Each one is added under `controls` with a placeholder name. Change its `label`, then Save. Linked controls remember their scene, so a terminal can open a door on another map. On the datapad they show colour-coded states: SEALED, OPEN, LOCKED, ON, OFF, or OFFLINE if the door or light was deleted.
+**Linking doors and lights to a terminal:** open the terminal's editor. On the map, select one or more doors (Walls layer) or lights (Lighting layer), holding Shift to pick several, and press *Add selected*. Each one appears in the *Doors, lights and cameras* list with a placeholder name. Type the name players should see, then Save. Linked controls remember their scene, so a terminal can open a door on another map. On the datapad they show colour-coded states: SEALED, OPEN, LOCKED, ON, OFF, or OFFLINE if the door or light was deleted.
 
-Terminals and bounties still use the JSON editor. Use *Limit to current scene* to tie one to the map you're on. An empty `scenes` list means it shows up everywhere.
+**Terminals, bounties, missions and contacts** open in a plain form: labelled boxes, drop-downs and tick boxes, no code. On a terminal you set its name and screen colour, which scenes it shows up on (*Only this scene* is one click), and its security: switch on *Needs a password*, *Can be sliced* (pick the hacking game, difficulty and DC), or both. Messages and files are cards you can add, reorder and remove, and each has an *Encrypted* switch that reveals its decrypt DC, key item and slicing game. Linked doors, lights and cameras are listed by name with buttons to rename, reorder, show on the map or unlink. Nothing is saved until you press Save. *Advanced* shows the raw data for anyone who wants it.
 
 Bounties: *Complete & pay* splits `reward` between the hunters who took the contract and adds it to their credits. It matches hunters to actors by name.
 
@@ -169,7 +169,7 @@ Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +)
 - **Only once per player**: each player gets it the first time only. Turn it off and on again to reset.
 
 ## Encrypted messages and files
-Any message or file on a terminal can be encrypted:
+Any message or file on a terminal can be encrypted: tick *Encrypted* on its card in the terminal editor. In the raw data (*Advanced*) it looks like this:
 ```json
 { "from": "Unknown", "subject": "Priority burst", "body": "The real cargo moves through bay 12.",
   "encrypted": { "dc": 15, "key": "Code Cylinder", "game": "signal", "difficulty": "normal" } }
@@ -232,5 +232,4 @@ Add a Region behavior **Execute Script** on token enter that calls `api.openShop
 ## Known limits (prototype)
 - Not yet tested inside a live Foundry world.
 - Other modules (such as the combat HUD) live in their own folders under `scripts/`, `templates/` and `styles/`.
-- Editing uses JSON. A visual editor is planned.
 - Players can see every entry's data in the world settings if they go digging, so don't put true secrets there yet.

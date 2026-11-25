@@ -1,19 +1,203 @@
-<div class="ht-editor">
-  {{#if (eq kind "contacts")}}<div class="ht-drop">Drag an Actor here to fill in the name and portrait and link it, so players can message them from Comms. <code>standing</code> runs from -3 (hostile) to 3 (ally).</div>{{/if}}
-  {{#if (eq kind "missions")}}<p class="hint">Mission <code>status</code>: active, done or failed. Players see objectives as a checklist; you can tick them from the datapad too.</p>{{/if}}
-  {{#if isShop}}<div class="ht-drop">Drag items here from the sidebar or a compendium to add them to stock. Set <code>stock</code> to -1 for unlimited.</div>{{/if}}
-  <p class="hint">Edit as JSON. <code>scenes</code> limits where it shows up (empty = every scene). <code>hidden</code> hides it from players.
-  {{#if (eq kind "terminals")}} Linked doors and lights appear under <code>controls</code>; change each <code>label</code> to name it. They keep working from any scene. Slice <code>game</code>: cipher, circuit, signal, firewall or random. Difficulty: easy, normal, hard, elite. Remove <code>slice</code> or set <code>password</code> to "" to change locking. Any message or file can add <code>"encrypted": {"dc": 15, "key": "Code Cylinder", "game": "signal"}</code> (every field optional; <code>"game": "none"</code> means it can't be sliced).{{/if}}</p>
-  {{#if (eq kind "terminals")}}
-  <div class="ht-link-box">
-    <b><i class="fas fa-link"></i> Link doors, lights and cameras</b>
-    <span>On the map, select doors (Walls layer), lights (Lighting layer) or cameras: a Region you draw over the area to watch (Regions layer, any shape; players never see Regions). Hold Shift to pick several. Then press:</span>
-    <button type="button" class="ht-primary" data-action="linkSelected"><i class="fas fa-plus"></i> Add selected</button>
-  </div>
-  {{/if}}
-  <textarea name="json" spellcheck="false">{{json}}</textarea>
-  <div class="ht-row">
-    <button type="button" data-action="addScene">Limit to current scene{{#if sceneName}} ({{sceneName}}){{/if}}</button>
-    <button type="button" data-action="save"><i class="fas fa-save"></i> Save</button>
-  </div>
+<div class="ht-editor ht-form-editor">
+{{#if jsonMode}}
+  <p class="hint"><i class="fas fa-code"></i> Advanced: the raw data behind this {{label}}. Only change this if you know what you're doing. Press <b>Back to form</b> to check it and return.</p>
+  <textarea class="ht-json" spellcheck="false">{{json}}</textarea>
+  <footer class="ht-fe-foot">
+    <button type="button" data-action="showForm"><i class="fas fa-arrow-left"></i> Back to form</button>
+    <span class="ht-grow"></span>
+    <button type="button" data-action="cancel">Cancel</button>
+    <button type="button" class="ht-primary" data-action="save"><i class="fas fa-save"></i> Save</button>
+  </footer>
+{{else}}
+<div class="ht-fe-body">
+
+{{!-- ================= TERMINAL ================= --}}
+{{#if isTerminal}}
+  <section class="ht-fe-sec">
+    <h3>Basics</h3>
+    <div class="ht-form-grid">
+      <label for="fe-name">Terminal name</label><input id="fe-name" type="text" data-path="name" value="{{doc.name}}" placeholder="e.g. Security Node">
+      <label for="fe-theme">Screen colour</label><select id="fe-theme" data-path="theme">{{#each themeOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      <span class="ht-fl">Players</span><label class="ht-check"><input type="checkbox" data-path="hidden" {{#if doc.hidden}}checked{{/if}}> Hidden from players (they won't see it on the Local Net)</label>
+      <span class="ht-fl">Shows up on</span>
+      <div>
+        <label class="ht-check"><input type="radio" name="ht-scope" value="all" {{#if everywhere}}checked{{/if}}> Every scene</label>
+        <label class="ht-check"><input type="radio" name="ht-scope" value="some" {{#unless everywhere}}checked{{/unless}}> Only these scenes</label>
+        <button type="button" data-action="thisScene"><i class="fas fa-map"></i> Only this scene</button>
+        {{#unless everywhere}}<div class="ht-scene-list">
+          {{#each scenes}}<label class="ht-check"><input type="checkbox" name="ht-scene" value="{{id}}" {{#if checked}}checked{{/if}}> {{name}}{{#if current}} <em>(current)</em>{{/if}}</label>{{/each}}
+        </div>{{/unless}}
+      </div>
+    </div>
+  </section>
+
+  <section class="ht-fe-sec">
+    <h3>Security</h3>
+    <p class="ht-dim">With neither switched on, anyone can open the terminal. With both, players can type the password or try to slice in.</p>
+    <label class="ht-switch"><input type="checkbox" data-toggle="password" {{#if hasPassword}}checked{{/if}}> <b>Needs a password</b></label>
+    {{#if hasPassword}}<div class="ht-form-grid ht-sub">
+      <label for="fe-pw">Password</label><input id="fe-pw" type="text" data-path="password" value="{{doc.password}}" placeholder="What players have to type">
+    </div>{{/if}}
+    <label class="ht-switch"><input type="checkbox" data-toggle="slice" {{#if hasSlice}}checked{{/if}}> <b>Can be sliced (hacked)</b></label>
+    {{#if hasSlice}}<div class="ht-form-grid ht-sub">
+      <label for="fe-game">Hacking game</label><select id="fe-game" data-path="slice.game">{{#each gameOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      <label for="fe-diff">Difficulty</label><select id="fe-diff" data-path="slice.difficulty">{{#each diffOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      <label for="fe-dc">Skill check DC</label><div class="ht-inline"><input id="fe-dc" type="number" min="1" class="ht-num" data-path="slice.dc" data-type="number" data-default="15" value="{{slice.dc}}"> <span class="ht-dim">a good roll gives the player an edge in the game</span></div>
+    </div>{{/if}}
+  </section>
+
+  <section class="ht-fe-sec">
+    <h3>Messages <small>{{messages.length}}</small></h3>
+    {{#each messages}}
+    <article class="ht-fcard{{#if isEnc}} ht-enc{{/if}}" data-list-row="messages">
+      <header>
+        <span class="ht-fcard-n">#{{n}}</span>
+        <input type="text" class="ht-grow" data-path="messages.{{i}}.subject" value="{{subject}}" placeholder="Subject" aria-label="Subject">
+        <button type="button" data-action="moveRow" data-list="messages" data-index="{{i}}" data-dir="-1" title="Move up" {{#if first}}disabled{{/if}}><i class="fas fa-arrow-up"></i></button>
+        <button type="button" data-action="moveRow" data-list="messages" data-index="{{i}}" data-dir="1" title="Move down" {{#if last}}disabled{{/if}}><i class="fas fa-arrow-down"></i></button>
+        <button type="button" data-action="removeRow" data-list="messages" data-index="{{i}}" title="Remove message"><i class="fas fa-trash"></i></button>
+      </header>
+      <div class="ht-form-grid">
+        <label>From</label><input type="text" data-path="messages.{{i}}.from" value="{{from}}" placeholder="Who sent it">
+        <label>Message</label><textarea rows="3" data-path="messages.{{i}}.body" placeholder="What it says">{{body}}</textarea>
+      </div>
+      {{> htEncrypted kind="messages"}}
+    </article>
+    {{else}}<p class="ht-dim">No messages yet.</p>{{/each}}
+    <button type="button" class="ht-add" data-action="addRow" data-list="messages"><i class="fas fa-plus"></i> Add message</button>
+  </section>
+
+  <section class="ht-fe-sec">
+    <h3>Files <small>{{files.length}}</small></h3>
+    {{#each files}}
+    <article class="ht-fcard{{#if isEnc}} ht-enc{{/if}}" data-list-row="files">
+      <header>
+        <span class="ht-fcard-n"><i class="fas fa-file-lines"></i></span>
+        <input type="text" class="ht-grow" data-path="files.{{i}}.name" value="{{name}}" placeholder="File name, e.g. manifest.dat" aria-label="File name">
+        <button type="button" data-action="moveRow" data-list="files" data-index="{{i}}" data-dir="-1" title="Move up" {{#if first}}disabled{{/if}}><i class="fas fa-arrow-up"></i></button>
+        <button type="button" data-action="moveRow" data-list="files" data-index="{{i}}" data-dir="1" title="Move down" {{#if last}}disabled{{/if}}><i class="fas fa-arrow-down"></i></button>
+        <button type="button" data-action="removeRow" data-list="files" data-index="{{i}}" title="Remove file"><i class="fas fa-trash"></i></button>
+      </header>
+      <div class="ht-form-grid">
+        <label>Contents</label><textarea rows="3" data-path="files.{{i}}.body" placeholder="What's in the file">{{body}}</textarea>
+      </div>
+      {{> htEncrypted kind="files"}}
+    </article>
+    {{else}}<p class="ht-dim">No files yet.</p>{{/each}}
+    <button type="button" class="ht-add" data-action="addRow" data-list="files"><i class="fas fa-plus"></i> Add file</button>
+  </section>
+
+  <section class="ht-fe-sec">
+    <h3>Doors, lights and cameras <small>{{controls.length}}</small></h3>
+    <div class="ht-link-box">
+      <span>On the map, select doors (Walls layer), lights (Lighting layer) or cameras: a Region drawn over the area to watch (Regions layer; players never see Regions). Hold Shift to pick several, then press:</span>
+      <button type="button" class="ht-primary" data-action="linkSelected"><i class="fas fa-link"></i> Add selected</button>
+    </div>
+    {{#if controls.length}}
+    <ul class="ht-fe-controls">
+      {{#each controls}}
+      <li>
+        <span class="ht-ctl-type" title="{{typeLabel}}"><i class="fas {{icon}}"></i></span>
+        <input type="text" class="ht-grow" data-path="controls.{{i}}.label" value="{{label}}" placeholder="Name players see, e.g. Cell block door" aria-label="Name">
+        <small class="ht-dim">{{typeLabel}} · {{sceneName}}{{#if missing}} · <span class="ht-warn"><i class="fas fa-triangle-exclamation"></i> not found</span>{{/if}}</small>
+        <button type="button" data-action="pingControl" data-index="{{i}}" title="Show on map" {{#unless here}}disabled{{/unless}}><i class="fas fa-location-crosshairs"></i></button>
+        <button type="button" data-action="moveRow" data-list="controls" data-index="{{i}}" data-dir="-1" title="Move up" {{#if first}}disabled{{/if}}><i class="fas fa-arrow-up"></i></button>
+        <button type="button" data-action="moveRow" data-list="controls" data-index="{{i}}" data-dir="1" title="Move down" {{#if last}}disabled{{/if}}><i class="fas fa-arrow-down"></i></button>
+        <button type="button" data-action="removeRow" data-list="controls" data-index="{{i}}" title="Unlink"><i class="fas fa-link-slash"></i></button>
+      </li>
+      {{/each}}
+    </ul>
+    {{else}}<p class="ht-dim">Nothing linked yet. Linked doors and lights keep working from any scene.</p>{{/if}}
+  </section>
+{{/if}}
+
+{{!-- ================= BOUNTY ================= --}}
+{{#if isBounty}}
+  <section class="ht-fe-sec">
+    <h3>Bounty</h3>
+    <div class="ht-form-grid">
+      <label for="fe-title">Title</label><input id="fe-title" type="text" data-path="title" value="{{doc.title}}" placeholder="e.g. Wanted: Rogue Droid">
+      <label for="fe-target">Target</label><input id="fe-target" type="text" data-path="target" value="{{doc.target}}" placeholder="Who or what to bring in">
+      <label for="fe-loc">Last seen</label><input id="fe-loc" type="text" data-path="location" value="{{doc.location}}" placeholder="Where to look">
+      <label for="fe-reward">Reward</label><div class="ht-inline"><input id="fe-reward" type="number" min="0" step="50" class="ht-num" data-path="reward" data-type="number" value="{{doc.reward}}"> <span class="ht-dim">credits</span></div>
+      <label for="fe-desc">Details</label><textarea id="fe-desc" rows="4" data-path="description" placeholder="Terms, conditions, what the client wants">{{doc.description}}</textarea>
+      <label for="fe-img">Picture</label>
+      <div class="ht-inline"><input id="fe-img" type="text" data-path="img" value="{{doc.img}}" placeholder="Optional wanted poster image">
+        <button type="button" data-action="pickImage" title="Browse"><i class="fas fa-file-image"></i></button></div>
+      <label for="fe-status">Status</label><select id="fe-status" data-path="status">{{#each statusOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      <span class="ht-fl">Taken by</span>
+      <div class="ht-chips">{{#each claimants}}<span class="ht-chip">{{this}} <button type="button" data-action="removeClaimant" data-index="{{@index}}" title="Remove {{this}}"><i class="fas fa-xmark"></i></button></span>{{else}}<span class="ht-dim">Nobody yet. Players add themselves with "Take contract".</span>{{/each}}</div>
+      <span class="ht-fl">Players</span><label class="ht-check"><input type="checkbox" data-path="hidden" {{#if doc.hidden}}checked{{/if}}> Hidden from players</label>
+    </div>
+  </section>
+{{/if}}
+
+{{!-- ================= MISSION ================= --}}
+{{#if isMission}}
+  <section class="ht-fe-sec">
+    <h3>Mission</h3>
+    <div class="ht-form-grid">
+      <label for="fe-title">Title</label><input id="fe-title" type="text" data-path="title" value="{{doc.title}}" placeholder="e.g. Recover the shipment">
+      <label for="fe-status">Status</label><select id="fe-status" data-path="status">{{#each statusOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      <label for="fe-giver">Given by</label><input id="fe-giver" type="text" data-path="giver" value="{{doc.giver}}" placeholder="Who asked for it">
+      <label for="fe-loc">Location</label><input id="fe-loc" type="text" data-path="location" value="{{doc.location}}">
+      <label for="fe-reward">Reward</label><input id="fe-reward" type="text" data-path="reward" value="{{doc.reward}}" placeholder="e.g. 3000 credits and a favour">
+      <label for="fe-sum">Briefing</label><textarea id="fe-sum" rows="4" data-path="summary" placeholder="What the players know">{{doc.summary}}</textarea>
+      <span class="ht-fl">Players</span><label class="ht-check"><input type="checkbox" data-path="hidden" {{#if doc.hidden}}checked{{/if}}> Hidden from players</label>
+    </div>
+  </section>
+  <section class="ht-fe-sec">
+    <h3>Objectives <small>{{objectives.length}}</small></h3>
+    <p class="ht-dim">Players see these as a checklist. Tick one when it's done (you can also tick them from the datapad).</p>
+    <ul class="ht-fe-controls">
+      {{#each objectives}}
+      <li data-list-row="objectives">
+        <input type="checkbox" data-path="objectives.{{i}}.done" {{#if done}}checked{{/if}} title="Done">
+        <input type="text" class="ht-grow" data-path="objectives.{{i}}.text" value="{{text}}" placeholder="What needs doing" aria-label="Objective">
+        <button type="button" data-action="moveRow" data-list="objectives" data-index="{{i}}" data-dir="-1" title="Move up" {{#if first}}disabled{{/if}}><i class="fas fa-arrow-up"></i></button>
+        <button type="button" data-action="moveRow" data-list="objectives" data-index="{{i}}" data-dir="1" title="Move down" {{#if last}}disabled{{/if}}><i class="fas fa-arrow-down"></i></button>
+        <button type="button" data-action="removeRow" data-list="objectives" data-index="{{i}}" title="Remove"><i class="fas fa-trash"></i></button>
+      </li>
+      {{else}}<li class="ht-dim">No objectives yet.</li>{{/each}}
+    </ul>
+    <button type="button" class="ht-add" data-action="addRow" data-list="objectives"><i class="fas fa-plus"></i> Add objective</button>
+  </section>
+{{/if}}
+
+{{!-- ================= CONTACT ================= --}}
+{{#if isContact}}
+  <div class="ht-drop">Drag an Actor here to fill in the name and portrait and link it, so players can message them from Comms.</div>
+  <section class="ht-fe-sec">
+    <h3>Contact</h3>
+    <div class="ht-fe-contact">
+      {{#if doc.img}}<img src="{{doc.img}}" alt="">{{else}}<div class="ht-fe-noimg"><i class="fas fa-user"></i></div>{{/if}}
+      <div class="ht-form-grid ht-grow">
+        <label for="fe-name">Name</label><input id="fe-name" type="text" data-path="name" value="{{doc.name}}">
+        <label for="fe-role">Role</label><input id="fe-role" type="text" data-path="role" value="{{doc.role}}" placeholder="e.g. Fence and information broker">
+        <label for="fe-loc">Location</label><input id="fe-loc" type="text" data-path="location" value="{{doc.location}}">
+        <label for="fe-img">Portrait</label>
+        <div class="ht-inline"><input id="fe-img" type="text" data-path="img" value="{{doc.img}}" data-rerender>
+          <button type="button" data-action="pickImage" title="Browse"><i class="fas fa-file-image"></i></button></div>
+      </div>
+    </div>
+    <div class="ht-form-grid">
+      <label for="fe-actor">Linked actor</label>
+      <div class="ht-inline"><select id="fe-actor" class="ht-grow" data-path="actorId" data-rerender>{{#each actorOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+        {{#if actorDiffers}}<button type="button" data-action="useActor" title="Copy the actor's name and portrait"><i class="fas fa-user-check"></i> Use actor's name and picture</button>{{/if}}</div>
+      {{#if actorMissing}}<span></span><span class="ht-warn"><i class="fas fa-triangle-exclamation"></i> The linked actor was deleted. Pick another one.</span>{{/if}}
+      <label for="fe-standing">Standing</label><select id="fe-standing" data-path="standing" data-type="number">{{#each standingOpts}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      <label for="fe-notes">Notes</label><textarea id="fe-notes" rows="4" data-path="notes" placeholder="What the players know about them">{{doc.notes}}</textarea>
+      <span class="ht-fl">Players</span><label class="ht-check"><input type="checkbox" data-path="hidden" {{#if doc.hidden}}checked{{/if}}> Hidden from players</label>
+    </div>
+  </section>
+{{/if}}
+
+</div>
+<footer class="ht-fe-foot">
+  <button type="button" data-action="showJson" title="Edit the raw data (for advanced users)"><i class="fas fa-code"></i> Advanced</button>
+  <span class="ht-grow"></span>
+  <button type="button" data-action="cancel">Cancel</button>
+  <button type="button" class="ht-primary" data-action="save"><i class="fas fa-save"></i> Save</button>
+</footer>
+{{/if}}
 </div>
