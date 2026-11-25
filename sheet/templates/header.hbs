@@ -1,60 +1,38 @@
 <header class="holo-header">
-  <img class="holo-portrait" src="{{actor.img}}" alt="{{actor.name}}" data-action="editImage" data-tooltip="Change portrait">
   <div class="holo-ident">
-    <div class="holo-row">
-      <input class="holo-name" type="text" name="name" value="{{actor.name}}" placeholder="Name" {{#unless editable}}disabled{{/unless}}>
-    </div>
-    <div class="holo-sub">
-      <span>{{#if species}}{{species}}{{else}}Unknown species{{/if}}</span>
-      <span>{{#if classLine}}{{classLine}}{{else}}No class{{/if}}</span>
-      {{#if background}}<span>{{background}}</span>{{/if}}
-      <span>LVL {{level}}</span>
-      {{#if xp.max}}<span>XP <input type="number" name="system.details.xp.value" value="{{xp.value}}" data-delta data-current="{{xp.value}}"> / {{xp.max}}</span>{{/if}}
-    </div>
-    <div class="holo-vitals">
-      <div class="holo-stat holo-hp">
-        <label>HP</label>
-        <div class="holo-bar"><span style="width:{{hp.pct}}%"></span></div>
-        <div class="holo-hp-nums">
-          <input type="text" name="system.attributes.hp.value" value="{{hp.value}}" data-delta data-current="{{hp.value}}" data-tooltip="Type -5 or +5 to adjust">
-          <span>/ {{hp.max}}</span>
-          <input class="holo-temp" type="text" name="system.attributes.hp.temp" value="{{#if hp.temp}}{{hp.temp}}{{/if}}" placeholder="tmp" data-delta data-current="{{hp.temp}}">
-        </div>
-      </div>
-      <div class="holo-stat"><label>AC</label><b>{{ac}}</b></div>
-      <div class="holo-stat holo-click" data-action="rollInit"><label>INIT</label><b>{{init}}</b></div>
-      <div class="holo-stat"><label>PROF</label><b>{{prof}}</b></div>
-      <div class="holo-stat"><label>SPEED</label><b>{{speed}}</b></div>
-      {{#if hd}}<div class="holo-stat"><label>HIT DICE</label><b>{{hd.value}}/{{hd.max}}</b></div>{{/if}}
-      <div class="holo-stat holo-click {{#if inspiration}}holo-on{{/if}}" data-action="toggleInspiration"><label>INSPIRE</label><b><i class="fa-solid fa-star"></i></b></div>
-    </div>
-    <div class="holo-pools">
-      {{#if force.show}}
-      <div class="holo-pool holo-force"><label>{{localize "HOLOSHEET.ForcePoints"}}</label>
-        <div class="holo-bar"><span style="width:{{force.pct}}%"></span></div>
-        <input type="text" name="{{force.path}}" value="{{force.value}}" data-delta data-current="{{force.value}}"><span>/ {{force.max}}</span></div>
-      {{/if}}
-      {{#if tech.show}}
-      <div class="holo-pool holo-tech"><label>{{localize "HOLOSHEET.TechPoints"}}</label>
-        <div class="holo-bar"><span style="width:{{tech.pct}}%"></span></div>
-        <input type="text" name="{{tech.path}}" value="{{tech.value}}" data-delta data-current="{{tech.value}}"><span>/ {{tech.max}}</span></div>
-      {{/if}}
-      {{#if superiority.show}}
-      <div class="holo-pool holo-sup"><label>{{localize "HOLOSHEET.Superiority"}} {{superiority.die}}</label>
-        <div class="holo-bar"><span style="width:{{superiority.pct}}%"></span></div>
-        <input type="text" name="system.superiority.dice.value" value="{{superiority.value}}" data-delta data-current="{{superiority.value}}"><span>/ {{superiority.max}}</span></div>
-      {{/if}}
-      <div class="holo-rest">
-        <button type="button" data-action="rest" data-type="short"><i class="fa-solid fa-mug-hot"></i> {{localize "HOLOSHEET.ShortRest"}}</button>
-        <button type="button" data-action="rest" data-type="long"><i class="fa-solid fa-bed"></i> {{localize "HOLOSHEET.LongRest"}}</button>
-      </div>
-    </div>
-    {{#if death.show}}
-    <div class="holo-death"><label>{{localize "HOLOSHEET.DeathSaves"}}</label>
-      <span>✔ <input type="number" min="0" max="3" name="system.attributes.death.success" value="{{death.success}}"></span>
-      <span>✖ <input type="number" min="0" max="3" name="system.attributes.death.failure" value="{{death.failure}}"></span>
-      <button type="button" data-action="deathSave"><i class="fa-solid fa-skull"></i> Roll</button>
-    </div>
+    {{#if editMode}}
+    <input class="holo-name" type="text" name="name" value="{{actor.name}}" placeholder="Name">
+    {{else}}
+    <h1 class="holo-name">{{actor.name}}</h1>
     {{/if}}
+    <div class="holo-sub">
+      {{#if species}}<span>{{species}}</span>{{/if}}
+      {{#if classLine}}<span class="holo-strong">{{classLine}}</span>{{/if}}
+      {{#if background}}<span>{{background}}</span>{{/if}}
+      {{#if alignment}}<span>{{alignment}}</span>{{/if}}
+    </div>
+    <div class="holo-xp">
+      <span class="holo-level">LVL {{level}}</span>
+      {{#if xp.max}}
+      <div class="holo-bar holo-xp-bar"><span style="width:{{xp.pct}}%"></span></div>
+      <span class="holo-dim"><input type="text" name="system.details.xp.value" value="{{xp.value}}" data-delta data-current="{{xp.value}}"> / {{xp.max}} XP</span>
+      {{/if}}
+    </div>
+  </div>
+  <div class="holo-vitals">
+    <div class="holo-stat holo-ac" data-tooltip="Armor Class"><label>AC</label><b>{{ac}}</b></div>
+    <div class="holo-stat holo-click" data-action="rollInit" data-tooltip="Roll initiative"><label>INIT</label><b>{{init}}</b></div>
+    <div class="holo-stat" data-tooltip="Proficiency bonus"><label>PROF</label><b>{{prof}}</b></div>
+    <div class="holo-stat" data-tooltip="{{otherSpeeds}}"><label>SPEED</label><b>{{speed}}</b></div>
+    <div class="holo-stat holo-click {{#if inspiration}}holo-on{{/if}}" data-action="toggleInspiration" data-tooltip="Inspiration"><label>INSPIRE</label><b><i class="fa-solid fa-star"></i></b></div>
+  </div>
+  <div class="holo-header-tools">
+    {{#if editable}}
+    <button type="button" class="holo-mode {{#if editMode}}holo-on{{/if}}" data-action="toggleMode" data-tooltip="Unlock to edit scores and details">
+      {{#if editMode}}<i class="fa-solid fa-lock-open"></i> Editing{{else}}<i class="fa-solid fa-lock"></i> Play{{/if}}
+    </button>
+    {{/if}}
+    <button type="button" data-action="rest" data-type="short"><i class="fa-solid fa-mug-hot"></i> {{localize "HOLOSHEET.ShortRest"}}</button>
+    <button type="button" data-action="rest" data-type="long"><i class="fa-solid fa-bed"></i> {{localize "HOLOSHEET.LongRest"}}</button>
   </div>
 </header>

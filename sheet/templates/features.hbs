@@ -1,7 +1,13 @@
 <section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="features">
-  <h3 class="holo-h">Features <a data-action="createItem" data-type="feat"><i class="fa-solid fa-plus"></i></a></h3>
+  {{#if identityItems.length}}
+  <h3 class="holo-h">Class, Species &amp; Background</h3>
+  <ul class="holo-list">{{#each identityItems}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
+  {{/if}}
   {{#each featureGroups}}
-  <h4 class="holo-lvl">{{label}}</h4>
+  <h3 class="holo-h">{{label}}{{#if @first}} <a data-action="createItem" data-type="feat" data-tooltip="Add feature"><i class="fa-solid fa-plus"></i></a>{{/if}}</h3>
   <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
-  {{else}}<p class="holo-dim">{{localize "HOLOSHEET.Empty"}}</p>{{/each}}
+  {{else}}
+  <h3 class="holo-h">Features <a data-action="createItem" data-type="feat"><i class="fa-solid fa-plus"></i></a></h3>
+  <p class="holo-dim holo-empty">{{localize "HOLOSHEET.Empty"}}</p>
+  {{/each}}
 </section>

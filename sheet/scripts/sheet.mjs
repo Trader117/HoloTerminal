@@ -7,18 +7,19 @@ const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
 const THEMES = ["sw5e", "cyan", "amber", "red", "green"];
 const INVENTORY_TYPES = ["weapon", "equipment", "consumable", "tool", "container", "loot"];
-/* v12 / v13 compatibility */
+const FORCE_SCHOOLS = ["lgt", "uni", "drk"];
+const TECH_SCHOOLS = ["tec"];
+const TPL = (name) => `modules/${MODULE_ID}/sheet/templates/${name}.hbs`;
+
+/* ---------- v12 / v13 compatibility ---------- */
 const TextEditorImpl = () => foundry.applications.ux?.TextEditor?.implementation ?? TextEditor;
 const FilePickerImpl = () => foundry.applications.apps?.FilePicker?.implementation ?? FilePicker;
 const DragDropImpl = () => foundry.applications.ux?.DragDrop?.implementation ?? DragDrop;
-/** Register a named partial on both v12 and v13. */
+const NEW_ROLL_API = () => foundry.utils.isNewerVersion(game.system.version, "4.0.99");
 async function registerPartial(name, path) {
   const getTpl = foundry.applications.handlebars?.getTemplate ?? getTemplate;
   Handlebars.registerPartial(name, await getTpl(path));
 }
-const NEW_ROLL_API = () => foundry.utils.isNewerVersion(game.system.version, "4.0.99");
-const FORCE_SCHOOLS = ["lgt", "uni", "drk"];
-const TECH_SCHOOLS = ["tec"];
 
 /* ---------- small helpers ---------- */
 const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -26,6 +27,33 @@ const signed = (v) => (num(v) >= 0 ? `+${num(v)}` : `${num(v)}`);
 const pct = (v, m) => (m > 0 ? Math.clamp(Math.round((v / m) * 100), 0, 100) : 0);
 const cfg = () => CONFIG.DND5E ?? {};
 const loc = (s) => (s ? game.i18n.localize(s) : "");
+const toArray = (v) => (v instanceof Set ? [...v] : Array.isArray(v) ? v : v ? [v] : []);
+
+/** Label for a trait key (language, weapon, armor, tool, damage type, condition) using dnd5e's own lookup. */
+function traitLabel(trait, key) {
+  try {
+    const label = globalThis.dnd5e?.documents?.Trait?.keyLabel?.(key, { trait });
+    if (label) return label;
+  } catch { /* fall through */ }
+  const C = cfg();
+  const pools = { dr: C.damageTypes, di: C.damageTypes, dv: C.damageTypes, ci: C.conditionTypes, languages: C.languages };
+  const found = findLabel(pools[trait], key);
+  return found ?? key.replace(/^.*:/, "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
+}
+function findLabel(tree, key) {
+  if (!tree) return null;
+  for (const [k, v] of Object.entries(tree)) {
+    if (k === key) return loc(typeof v === "string" ? v : v.label);
+    if (v?.children) { const f = findLabel(v.children, key); if (f) return f; }
+  }
+  return null;
+}
+function traitList(trait, data) {
+  if (!data) return [];
+  const list = toArray(data.value).map((k) => traitLabel(trait, k));
+  if (data.custom) list.push(...String(data.custom).split(";").map((s) => s.trim()).filter(Boolean));
+  return list;
+}
 
 /** Find a points pool on the actor, returning its data and the update path. */
 function pool(sys, castType) {
@@ -33,7 +61,6 @@ function pool(sys, castType) {
   if (sys.attributes?.[castType]?.points) return { data: sys.attributes[castType].points, path: `system.attributes.${castType}.points.value` };
   return { data: null, path: "" };
 }
-
 function resource(points) {
   const value = num(points?.value);
   const max = num(points?.max) + num(points?.tempmax);
@@ -45,7 +72,6 @@ function itemUses(item) {
   if (!u || !num(u.max)) return null;
   return { value: num(u.value), max: num(u.max) };
 }
-
 function itemSummary(item) {
   const s = item.system, labels = item.labels ?? {};
   const bits = [];
@@ -58,54 +84,61 @@ function itemSummary(item) {
   if (labels.activation && !bits.length) bits.push(labels.activation);
   return bits.filter(Boolean).join(" · ");
 }
-
-function itemRow(item) {
-  const s = item.system;
-  return {
-    id: item.id, name: item.name, img: item.img, type: item.type,
-    quantity: s.quantity ?? null,
-    weight: num(s.weight?.value ?? s.weight),
-    equipped: !!s.equipped, equippable: "equipped" in s,
-    uses: itemUses(item), summary: itemSummary(item),
-    activation: s.activation?.type ?? item.system.activities?.contents?.[0]?.activation?.type ?? ""
-  };
+function itemPrice(item) {
+  const p = item.system.price;
+  if (!p || !num(p.value)) return "";
+  return `${num(p.value).toLocaleString()} cr`;
 }
 
 /* ---------- the sheet ---------- */
 export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: ["holo-sheet"],
-    position: { width: 820, height: 760 },
+    position: { width: 940, height: 820 },
     window: { resizable: true },
     form: { submitOnChange: true },
     actions: {
       rollAbility: HoloDossierSheet.#onRollAbility,
       rollSave: HoloDossierSheet.#onRollSave,
       rollSkill: HoloDossierSheet.#onRollSkill,
+      rollTool: HoloDossierSheet.#onRollTool,
       rollInit: HoloDossierSheet.#onRollInit,
+      rollHitDie: HoloDossierSheet.#onRollHitDie,
       deathSave: HoloDossierSheet.#onDeathSave,
       rest: HoloDossierSheet.#onRest,
       useItem: HoloDossierSheet.#onUseItem,
       editItem: HoloDossierSheet.#onEditItem,
       deleteItem: HoloDossierSheet.#onDeleteItem,
       toggleEquip: HoloDossierSheet.#onToggleEquip,
+      toggleFavorite: HoloDossierSheet.#onToggleFavorite,
       expandItem: HoloDossierSheet.#onExpandItem,
+      toggleContainer: HoloDossierSheet.#onToggleContainer,
       createItem: HoloDossierSheet.#onCreateItem,
       editImage: HoloDossierSheet.#onEditImage,
       toggleInspiration: HoloDossierSheet.#onToggleInspiration,
+      toggleMode: HoloDossierSheet.#onToggleMode,
+      toggleCondition: HoloDossierSheet.#onToggleCondition,
+      setExhaustion: HoloDossierSheet.#onSetExhaustion,
+      createEffect: HoloDossierSheet.#onCreateEffect,
+      editEffect: HoloDossierSheet.#onEditEffect,
+      toggleEffect: HoloDossierSheet.#onToggleEffect,
+      deleteEffect: HoloDossierSheet.#onDeleteEffect,
+      editTraits: HoloDossierSheet.#onEditTraits,
       holoTab: HoloDossierSheet.#onTab
     }
   };
 
   static PARTS = {
-    header: { template: `modules/${MODULE_ID}/sheet/templates/header.hbs` },
-    nav: { template: `modules/${MODULE_ID}/sheet/templates/nav.hbs` },
-    overview: { template: `modules/${MODULE_ID}/sheet/templates/overview.hbs` },
-    combat: { template: `modules/${MODULE_ID}/sheet/templates/combat.hbs` },
-    powers: { template: `modules/${MODULE_ID}/sheet/templates/powers.hbs` },
-    gear: { template: `modules/${MODULE_ID}/sheet/templates/gear.hbs` },
-    features: { template: `modules/${MODULE_ID}/sheet/templates/features.hbs` },
-    bio: { template: `modules/${MODULE_ID}/sheet/templates/bio.hbs` }
+    header: { template: TPL("header") },
+    sidebar: { template: TPL("sidebar") },
+    nav: { template: TPL("nav") },
+    overview: { template: TPL("overview") },
+    combat: { template: TPL("combat") },
+    powers: { template: TPL("powers") },
+    gear: { template: TPL("gear") },
+    features: { template: TPL("features") },
+    effects: { template: TPL("effects") },
+    bio: { template: TPL("bio") }
   };
 
   static TAB_LIST = {
@@ -117,10 +150,18 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         { id: "powers", icon: "fa-solid fa-atom", label: "HOLOSHEET.Tab.Powers" },
         { id: "gear", icon: "fa-solid fa-box-open", label: "HOLOSHEET.Tab.Gear" },
         { id: "features", icon: "fa-solid fa-dna", label: "HOLOSHEET.Tab.Features" },
+        { id: "effects", icon: "fa-solid fa-bolt", label: "HOLOSHEET.Tab.Effects" },
         { id: "bio", icon: "fa-solid fa-book", label: "HOLOSHEET.Tab.Bio" }
       ]
     }
   };
+
+  /** Play mode locks scores and names; Edit mode unlocks them. */
+  _editMode = false;
+  /** Containers the user has opened, and the current inventory filter. */
+  _openContainers = new Set();
+  _search = "";
+  #dragDrop = null;
 
   get title() { return this.actor.name; }
 
@@ -130,14 +171,14 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const actor = this.actor, sys = actor.system, attr = sys.attributes ?? {};
     const C = cfg();
     ctx.editable ??= this.isEditable;
-    const theme = game.settings.get(MODULE_ID, "sheetTheme");
-
+    ctx.editMode = this._editMode && ctx.editable;
     ctx.actor = actor;
     ctx.system = sys;
     ctx.tabs = this.#prepareTabs("primary");
+    const theme = game.settings.get(MODULE_ID, "sheetTheme");
     ctx.theme = THEMES.includes(theme) ? theme : "sw5e";
 
-    // identity
+    /* identity */
     const classes = actor.itemTypes.class ?? [];
     const subclasses = actor.itemTypes.subclass ?? [];
     ctx.classLine = classes.map((c) => {
@@ -147,22 +188,38 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.species = (actor.itemTypes.race ?? actor.itemTypes.species ?? [])[0]?.name ?? "";
     ctx.background = (actor.itemTypes.background ?? [])[0]?.name ?? "";
     ctx.level = num(sys.details?.level);
-    ctx.xp = sys.details?.xp ?? {};
+    const xp = sys.details?.xp ?? {};
+    ctx.xp = { value: num(xp.value), max: num(xp.max), pct: num(xp.pct, pct(num(xp.value) - num(xp.min), num(xp.max) - num(xp.min))) };
+    ctx.alignment = sys.details?.alignment ?? "";
 
-    // vitals
+    /* vitals */
     const hp = attr.hp ?? {};
     const hpMax = num(hp.max) + num(hp.tempmax);
-    ctx.hp = { value: num(hp.value), max: hpMax, temp: num(hp.temp), pct: pct(num(hp.value), hpMax) };
+    ctx.hp = { value: num(hp.value), max: hpMax, temp: num(hp.temp), pct: pct(num(hp.value), hpMax), tempPct: pct(num(hp.temp), hpMax) };
+    ctx.hp.state = ctx.hp.pct <= 25 ? "critical" : ctx.hp.pct <= 50 ? "hurt" : "ok";
     ctx.ac = attr.ac?.value ?? "—";
     ctx.init = signed(attr.init?.total ?? attr.init?.mod);
     ctx.prof = signed(attr.prof);
-    ctx.speed = `${num(attr.movement?.walk)} ${attr.movement?.units ?? "ft"}`;
-    ctx.hd = attr.hd ? { value: num(attr.hd.value), max: num(attr.hd.max) } : null;
-    ctx.death = { success: num(attr.death?.success), failure: num(attr.death?.failure), show: ctx.hp.value <= 0 };
+    const mv = attr.movement ?? {};
+    ctx.speed = `${num(mv.walk)} ${mv.units ?? "ft"}`;
+    ctx.otherSpeeds = ["fly", "swim", "climb", "burrow"].filter((k) => num(mv[k])).map((k) => `${k} ${num(mv[k])}`).join(", ");
+    ctx.death = { success: num(attr.death?.success), failure: num(attr.death?.failure), show: ctx.hp.value <= 0 && ctx.hp.max > 0 };
+    ctx.death.successPips = [1, 2, 3].map((n) => n <= ctx.death.success);
+    ctx.death.failurePips = [1, 2, 3].map((n) => n <= ctx.death.failure);
     ctx.inspiration = !!attr.inspiration;
-    ctx.exhaustion = num(attr.exhaustion);
+    const exh = num(attr.exhaustion);
+    ctx.exhaustion = { level: exh, pips: Array.from({ length: 6 }, (_, i) => ({ n: i + 1, on: i < exh })) };
 
-    // abilities + saves
+    /* hit dice per class */
+    ctx.hitDice = classes.map((c) => {
+      const hd = c.system.hd ?? {};
+      const denom = hd.denomination ?? c.system.hitDice ?? "d8";
+      const max = num(hd.max, num(c.system.levels));
+      const spent = num(hd.spent ?? c.system.hitDiceUsed);
+      return { denom, value: Math.max(0, max - spent), max };
+    }).filter((h) => h.max > 0);
+
+    /* abilities + saves */
     ctx.abilities = Object.entries(sys.abilities ?? {}).map(([k, a]) => {
       const save = typeof a.save === "object" ? a.save?.value : a.save;
       return {
@@ -171,25 +228,68 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     });
 
-    // skills (sw5e-module rewrites CONFIG.DND5E.skills to the SW5e list)
+    /* skills and tools (sw5e-module rewrites CONFIG.DND5E.skills to the SW5e list) */
     const profIcons = { 0: "fa-regular fa-circle", 0.5: "fa-solid fa-circle-half-stroke", 1: "fa-solid fa-circle", 2: "fa-solid fa-circle-dot" };
+    const profTips = { 0: "Not proficient", 0.5: "Half proficiency", 1: "Proficient", 2: "Expertise" };
     ctx.skills = Object.entries(sys.skills ?? {})
       .filter(([k]) => !C.skills || k in C.skills)
       .map(([k, s]) => ({
-        key: k, label: loc(C.skills?.[k]?.label) || k, total: signed(s.total ?? s.mod),
-        passive: s.passive, ability: (s.ability ?? "").toUpperCase(), icon: profIcons[num(s.value)] ?? profIcons[0]
+        key: k, label: loc(C.skills?.[k]?.label) || k, total: signed(s.total ?? s.mod), passive: s.passive,
+        ability: (s.ability ?? "").toUpperCase(), icon: profIcons[num(s.value)] ?? profIcons[0], tip: profTips[num(s.value)] ?? "",
+        proficient: num(s.value) > 0
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
+    ctx.tools = Object.entries(sys.tools ?? {}).map(([k, t]) => ({
+      key: k, label: traitLabel("tool", k), total: signed(t.total ?? t.mod ?? 0),
+      ability: (t.ability ?? "").toUpperCase(), icon: profIcons[num(t.value)] ?? profIcons[0]
+    })).sort((a, b) => a.label.localeCompare(b.label));
 
-    // resources
-    const pc = sys.powercasting ?? {};
+    /* traits for the sidebar */
+    const senses = attr.senses ?? {};
+    const senseList = ["darkvision", "blindsight", "tremorsense", "truesight"]
+      .filter((k) => num(senses[k])).map((k) => `${k[0].toUpperCase()}${k.slice(1)} ${num(senses[k])} ${senses.units ?? "ft"}`);
+    if (senses.special) senseList.push(senses.special);
+    const tr = sys.traits ?? {};
+    ctx.traits = [
+      { label: "Senses", values: senseList },
+      { label: "Languages", values: traitList("languages", tr.languages) },
+      { label: "Armor", values: traitList("armor", tr.armorProf) },
+      { label: "Weapons", values: traitList("weapon", tr.weaponProf) },
+      { label: "Resistances", values: traitList("dr", tr.dr) },
+      { label: "Immunities", values: [...traitList("di", tr.di), ...traitList("ci", tr.ci)] },
+      { label: "Vulnerabilities", values: traitList("dv", tr.dv) }
+    ].filter((t) => t.values.length);
+    ctx.size = loc(C.actorSizes?.[tr.size]?.label ?? C.actorSizes?.[tr.size]) || "";
+
+    /* conditions */
+    const statuses = actor.statuses ?? new Set();
+    ctx.conditions = (CONFIG.statusEffects ?? [])
+      .filter((s) => s.id !== "dead" && s.id !== "exhaustion" && (s.name || s.label))
+      .map((s) => ({ id: s.id, name: loc(s.name ?? s.label), img: s.img ?? s.icon, active: statuses.has(s.id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    ctx.activeConditions = ctx.conditions.filter((c) => c.active);
+
+    /* resources */
     const fp = pool(sys, "force"), tp = pool(sys, "tech");
     ctx.force = { ...resource(fp.data), path: fp.path };
     ctx.tech = { ...resource(tp.data), path: tp.path };
     ctx.superiority = sys.superiority ? { ...resource(sys.superiority.dice), die: sys.superiority.die ? `d${sys.superiority.die}` : "" } : { show: false };
     ctx.hasSW5e = !!(fp.data || tp.data);
 
-    // powers
+    /* favourites (dnd5e stores these on system.favorites as relative item uuids) */
+    const favIds = new Set();
+    const favs = [];
+    for (const f of sys.favorites ?? []) {
+      if (f.type !== "item") continue;
+      const id = String(f.id).split(".").pop();
+      const item = actor.items.get(id);
+      if (item) { favIds.add(id); favs.push(item); }
+    }
+    const row = (item) => this.#itemRow(item, favIds);
+    ctx.favorites = favs.map(row);
+    ctx.canFavorite = typeof sys.addFavorite === "function";
+
+    /* powers */
     const spells = actor.itemTypes.spell ?? [];
     const schoolCfg = C.spellSchools ?? {};
     const groupPowers = (list, castType) => {
@@ -199,12 +299,13 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (!levels.has(lvl)) levels.set(lvl, { level: lvl, label: lvl === 0 ? loc("HOLOSHEET.AtWill") : `${loc("HOLOSHEET.Level")} ${lvl}`, powers: [] });
         const school = p.system.school ?? "";
         levels.get(lvl).powers.push({
-          ...itemRow(p), school, schoolLabel: loc(schoolCfg[school]?.label) || school,
+          ...row(p), school, schoolLabel: loc(schoolCfg[school]?.label) || school,
           cost: castType && lvl > 0 ? lvl + 1 : 0, concentration: p.system.properties?.has?.("concentration") ?? false
         });
       }
       return [...levels.values()];
     };
+    const pc = sys.powercasting ?? {};
     const schoolInfo = (castType, keys) => keys
       .filter((k) => pc[castType]?.schools?.[k])
       .map((k) => {
@@ -216,30 +317,47 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.otherPowers = groupPowers(spells.filter((p) => ![...FORCE_SCHOOLS, ...TECH_SCHOOLS].includes(p.system.school)), null);
     ctx.forceSchools = schoolInfo("force", FORCE_SCHOOLS);
     ctx.techSchools = schoolInfo("tech", TECH_SCHOOLS);
+    ctx.powerCount = spells.length;
 
-    // combat
-    const weapons = (actor.itemTypes.weapon ?? []).map(itemRow).sort((a, b) => b.equipped - a.equipped);
-    ctx.weapons = weapons;
+    /* combat */
+    ctx.weapons = (actor.itemTypes.weapon ?? []).map(row).sort((a, b) => b.equipped - a.equipped);
     const actionTypes = new Set(["action", "bonus", "reaction"]);
     const feats = actor.itemTypes.feat ?? [];
-    ctx.actions = feats.map(itemRow).filter((f) => actionTypes.has(f.activation));
-    ctx.maneuvers = actor.items.filter((i) => i.type.endsWith("maneuver")).map(itemRow);
+    const actionRows = feats.map(row).filter((f) => actionTypes.has(f.activation));
+    ctx.actionGroups = [
+      { label: "Actions", items: actionRows.filter((f) => f.activation === "action") },
+      { label: "Bonus Actions", items: actionRows.filter((f) => f.activation === "bonus") },
+      { label: "Reactions", items: actionRows.filter((f) => f.activation === "reaction") }
+    ].filter((g) => g.items.length);
+    ctx.maneuvers = actor.items.filter((i) => i.type.endsWith("maneuver")).map(row);
 
-    // gear
+    /* gear */
     ctx.credits = sys.currency?.gc ?? sys.currency?.gp ?? 0;
     ctx.creditsKey = sys.currency && "gc" in sys.currency ? "gc" : "gp";
+    const contents = (containerId) => actor.items.filter((i) => i.system.container === containerId).map(row);
     ctx.gear = INVENTORY_TYPES.map((type) => ({
       type, label: loc(CONFIG.Item.typeLabels?.[type]) || type,
-      items: (actor.itemTypes[type] ?? []).filter((i) => !i.system.container).map(itemRow)
+      items: (actor.itemTypes[type] ?? []).filter((i) => !i.system.container).map((i) => {
+        const r = row(i);
+        if (i.type === "container") {
+          r.isContainer = true;
+          r.open = this._openContainers.has(i.id);
+          r.contents = contents(i.id);
+          r.count = r.contents.length;
+        }
+        return r;
+      })
     }));
     const enc = attr.encumbrance ?? {};
     ctx.encumbrance = { value: Math.round(num(enc.value) * 10) / 10, max: num(enc.max), pct: num(enc.pct, pct(num(enc.value), num(enc.max))) };
+    ctx.encumbrance.state = ctx.encumbrance.pct >= 100 ? "critical" : ctx.encumbrance.pct >= 66 ? "hurt" : "ok";
+    ctx.search = this._search;
 
-    // features
+    /* features */
     const featGroups = { class: [], race: [], background: [], feat: [], other: [] };
     for (const f of feats) {
       const t = f.system.type?.value;
-      (featGroups[t === "species" ? "race" : t] ?? featGroups.other).push(itemRow(f));
+      (featGroups[t === "species" ? "race" : t] ?? featGroups.other).push(row(f));
     }
     ctx.featureGroups = [
       { label: "Class Features", items: featGroups.class },
@@ -248,12 +366,49 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       { label: "Feats", items: featGroups.feat },
       { label: "Other", items: featGroups.other }
     ].filter((g) => g.items.length);
+    ctx.identityItems = [...classes, ...subclasses, ...(actor.itemTypes.race ?? []), ...(actor.itemTypes.background ?? [])].map(row);
 
-    // bio
-    const bio = sys.details?.biography?.value ?? "";
+    /* effects */
+    const allEffects = actor.allApplicableEffects ? [...actor.allApplicableEffects()] : [...actor.effects];
+    const fx = allEffects.filter((e) => !e.statuses?.size || e.statuses.size > 1 || !ctx.conditions.some((c) => e.statuses.has(c.id)))
+      .map((e) => ({
+        uuid: e.uuid, name: e.name ?? e.label, img: e.img ?? e.icon, disabled: e.disabled,
+        source: e.parent && e.parent !== actor ? e.parent.name : "", duration: e.duration?.label ?? "",
+        temporary: e.isTemporary
+      }));
+    ctx.effectGroups = [
+      { label: "Temporary", type: "temporary", items: fx.filter((e) => e.temporary && !e.disabled) },
+      { label: "Passive", type: "passive", items: fx.filter((e) => !e.temporary && !e.disabled) },
+      { label: "Inactive", type: "inactive", items: fx.filter((e) => e.disabled) }
+    ];
+
+    /* bio */
+    const details = sys.details ?? {};
+    const bio = details.biography?.value ?? "";
     ctx.bioValue = bio;
     ctx.bioHTML = await TextEditorImpl().enrichHTML(bio, { secrets: actor.isOwner, rollData: actor.getRollData(), relativeTo: actor });
+    ctx.personality = [
+      { key: "trait", label: "Personality", value: details.trait ?? "" },
+      { key: "ideal", label: "Ideal", value: details.ideal ?? "" },
+      { key: "bond", label: "Bond", value: details.bond ?? "" },
+      { key: "flaw", label: "Flaw", value: details.flaw ?? "" }
+    ];
+    ctx.appearance = details.appearance ?? "";
     return ctx;
+  }
+
+  #itemRow(item, favIds) {
+    const s = item.system;
+    return {
+      id: item.id, name: item.name, img: item.img, type: item.type,
+      quantity: s.quantity ?? null,
+      weight: num(s.weight?.value ?? s.weight) || "",
+      price: itemPrice(item),
+      equipped: !!s.equipped, equippable: "equipped" in s,
+      uses: itemUses(item), summary: itemSummary(item),
+      favorite: favIds.has(item.id),
+      activation: s.activation?.type ?? s.activities?.contents?.[0]?.activation?.type ?? ""
+    };
   }
 
   #prepareTabs(group) {
@@ -274,7 +429,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const el = this.element;
     el.classList.remove(...THEMES.map((t) => `holo-theme-${t}`));
     el.classList.add(`holo-theme-${context.theme}`);
-    // relative entries like "-7" or "+3" in number fields
+    el.classList.toggle("holo-edit", context.editMode);
     this.#renderBio(el.querySelector(".holo-bio-editor"), context);
     if (!this.#dragDrop) {
       const DD = DragDropImpl();
@@ -285,6 +440,8 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     }
     this.#dragDrop.bind(el);
+
+    // relative entries like "-7" or "+3" in number fields
     el.querySelectorAll("input[data-delta]").forEach((input) => {
       input.addEventListener("change", () => {
         const v = input.value.trim();
@@ -292,9 +449,37 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
       input.addEventListener("focus", () => input.select());
     });
+    // inline item fields (quantity, uses) edit the item, not the actor
+    el.querySelectorAll("input[data-item-field]").forEach((input) => {
+      input.addEventListener("change", async (ev) => {
+        ev.stopPropagation();
+        const item = this.actor.items.get(input.closest("[data-item-id]")?.dataset.itemId);
+        if (!item) return;
+        const field = input.dataset.itemField;
+        let value = input.value.trim();
+        const current = num(foundry.utils.getProperty(item, field));
+        value = /^[+-]\d+$/.test(value) ? current + Number(value) : num(value, current);
+        if (field === "system.uses.value") return item.update({ "system.uses.spent": num(item.system.uses?.max) - value });
+        return item.update({ [field]: value });
+      });
+      input.addEventListener("focus", () => input.select());
+    });
+    // inventory search, filtered in place
+    const search = el.querySelector("input.holo-search");
+    if (search) {
+      const apply = () => {
+        const q = search.value.trim().toLowerCase();
+        this._search = search.value;
+        el.querySelectorAll(".holo-gear .holo-item").forEach((li) => {
+          const name = li.querySelector(".holo-item-name")?.textContent.toLowerCase() ?? "";
+          li.hidden = !!q && !name.includes(q) && !li.querySelector(".holo-contents")?.textContent.toLowerCase().includes(q);
+        });
+      };
+      search.addEventListener("input", apply);
+      search.addEventListener("change", (ev) => ev.stopPropagation());
+      apply();
+    }
   }
-
-  #dragDrop = null;
 
   /** Rich-text bio: ProseMirror element when available, plain textarea otherwise. */
   #renderBio(host, context) {
@@ -325,9 +510,23 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #onDropData(event) {
     const data = TextEditorImpl().getDragEventData(event);
-    if (data?.type !== "Item" || !this.isEditable) return;
+    if (!this.isEditable) return;
+    if (data?.type === "ActiveEffect") {
+      const effect = await ActiveEffect.implementation.fromDropData(data);
+      if (effect && effect.parent !== this.actor) return this.actor.createEmbeddedDocuments("ActiveEffect", [effect.toObject()]);
+      return;
+    }
+    if (data?.type !== "Item") return;
     const item = await Item.implementation.fromDropData(data);
-    if (!item || item.parent === this.actor) return;
+    if (!item) return;
+    // dropping onto a container moves the item into it
+    const containerId = event.target.closest?.("[data-container-id]")?.dataset.containerId;
+    if (item.parent === this.actor) {
+      if (containerId !== undefined && containerId !== item.id && item.system.container !== (containerId || null)) {
+        return item.update({ "system.container": containerId || null });
+      }
+      return;
+    }
     // SW5e class/species/background items run dnd5e advancement (level-up) when dropped.
     const AM = globalThis.dnd5e?.applications?.advancement?.AdvancementManager;
     const advTypes = ["class", "subclass", "background", "race", "species"];
@@ -337,15 +536,17 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
     const itemData = item.toObject();
     delete itemData._id;
+    if (containerId) foundry.utils.setProperty(itemData, "system.container", containerId);
     return this.actor.createEmbeddedDocuments("Item", [itemData]);
   }
 
   /* ----- action handlers ----- */
   static #item(target) { return this.actor.items.get(target.closest("[data-item-id]")?.dataset.itemId); }
+  static #effect(target) { return fromUuidSync(target.closest("[data-effect-uuid]")?.dataset.effectUuid); }
 
-  static #onTab(event, target) {
-    this.changeTab(target.dataset.tab, target.dataset.group ?? "primary", { event });
-  }
+  static #onTab(event, target) { this.changeTab(target.dataset.tab, target.dataset.group ?? "primary", { event }); }
+  static #onToggleMode() { this._editMode = !this._editMode; this.render(); }
+
   static #onRollAbility(event, target) {
     const ability = target.closest("[data-ability]").dataset.ability;
     if (this.actor.rollAbilityCheck) return this.actor.rollAbilityCheck({ ability, event });
@@ -360,7 +561,15 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const skill = target.closest("[data-skill]").dataset.skill;
     return NEW_ROLL_API() ? this.actor.rollSkill({ skill, event }) : this.actor.rollSkill(skill, { event });
   }
+  static #onRollTool(event, target) {
+    const tool = target.closest("[data-tool]").dataset.tool;
+    return NEW_ROLL_API() ? this.actor.rollToolCheck?.({ tool, event }) : this.actor.rollToolCheck?.(tool, { event });
+  }
   static #onRollInit(event) { return this.actor.rollInitiativeDialog?.({ event }) ?? this.actor.rollInitiative({ createCombatants: true }); }
+  static #onRollHitDie(event, target) {
+    const denomination = target.dataset.denom;
+    return NEW_ROLL_API() ? this.actor.rollHitDie({ denomination }) : this.actor.rollHitDie(denomination);
+  }
   static #onDeathSave(event) { return this.actor.rollDeathSave?.({ event }); }
   static #onRest(event, target) { return target.dataset.type === "long" ? this.actor.longRest() : this.actor.shortRest(); }
   static #onUseItem(event, target) { return HoloDossierSheet.#item.call(this, target)?.use({ event }); }
@@ -377,9 +586,16 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = HoloDossierSheet.#item.call(this, target);
     return item?.update({ "system.equipped": !item.system.equipped });
   }
+  static async #onToggleFavorite(event, target) {
+    const item = HoloDossierSheet.#item.call(this, target);
+    const sys = this.actor.system;
+    if (!item || typeof sys.addFavorite !== "function") return;
+    const id = item.getRelativeUUID ? item.getRelativeUUID(this.actor) : `.Item.${item.id}`;
+    return sys.hasFavorite?.(id) ? sys.removeFavorite(id) : sys.addFavorite({ type: "item", id });
+  }
   static async #onExpandItem(event, target) {
     const row = target.closest("[data-item-id]");
-    const existing = row.querySelector(".holo-desc");
+    const existing = row.querySelector(":scope > .holo-desc");
     if (existing) return existing.remove();
     const item = this.actor.items.get(row.dataset.itemId);
     const html = await TextEditorImpl().enrichHTML(item.system.description?.value ?? "", {
@@ -387,8 +603,13 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
     const div = document.createElement("div");
     div.className = "holo-desc";
-    div.innerHTML = html || "<em>—</em>";
-    row.append(div);
+    div.innerHTML = html || "<em>No description.</em>";
+    row.querySelector(":scope > .holo-item-row").after(div);
+  }
+  static #onToggleContainer(event, target) {
+    const id = target.closest("[data-item-id]").dataset.itemId;
+    if (this._openContainers.has(id)) this._openContainers.delete(id); else this._openContainers.add(id);
+    this.render();
   }
   static #onCreateItem(event, target) {
     const type = target.dataset.type;
@@ -396,12 +617,48 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (target.dataset.school) data.system = { school: target.dataset.school, level: 0 };
     return this.actor.createEmbeddedDocuments("Item", [data]).then(([i]) => i?.sheet.render(true));
   }
-  static #onEditImage(event, target) {
+  static #onEditImage() {
     if (!this.isEditable) return;
     const FP = FilePickerImpl();
     return new FP({ type: "image", current: this.actor.img, callback: (path) => this.actor.update({ img: path }) }).browse();
   }
   static #onToggleInspiration() { return this.actor.update({ "system.attributes.inspiration": !this.actor.system.attributes.inspiration }); }
+  static #onToggleCondition(event, target) { return this.actor.toggleStatusEffect?.(target.dataset.conditionId); }
+  static #onSetExhaustion(event, target) {
+    const n = num(target.dataset.level);
+    const current = num(this.actor.system.attributes.exhaustion);
+    return this.actor.update({ "system.attributes.exhaustion": current === n ? n - 1 : n });
+  }
+  static #onCreateEffect(event, target) {
+    const type = target.dataset.type;
+    const data = { name: "New Effect", img: "icons/svg/aura.svg", origin: this.actor.uuid, disabled: type === "inactive" };
+    if (type === "temporary") data.duration = { rounds: 1 };
+    return this.actor.createEmbeddedDocuments("ActiveEffect", [data]).then(([e]) => e?.sheet.render(true));
+  }
+  static #onEditEffect(event, target) { return HoloDossierSheet.#effect.call(this, target)?.sheet.render(true); }
+  static #onToggleEffect(event, target) {
+    const effect = HoloDossierSheet.#effect.call(this, target);
+    return effect?.update({ disabled: !effect.disabled });
+  }
+  static async #onDeleteEffect(event, target) {
+    const effect = HoloDossierSheet.#effect.call(this, target);
+    if (!effect) return;
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      window: { title: effect.name }, content: `<p>${game.i18n.format("HOLOSHEET.ConfirmDelete", { name: effect.name })}</p>`
+    });
+    if (ok) await effect.delete();
+  }
+  /** Open dnd5e's own trait editor (languages, proficiencies, resistances) when it is available. */
+  static #onEditTraits(event, target) {
+    const trait = target.dataset.trait;
+    const apps = globalThis.dnd5e?.applications?.actor;
+    const Config = apps?.TraitsConfig ?? apps?.TraitSelector;
+    if (trait === "senses" && apps?.SensesConfig) return new apps.SensesConfig({ document: this.actor }).render(true);
+    if (Config && trait !== "senses") {
+      try { return new Config({ document: this.actor, trait }).render(true); } catch { return new Config(this.actor, { trait }).render(true); }
+    }
+    ui.notifications.info("Edit this in the dnd5e sheet: Sheet button in the window header.");
+  }
 }
 
 /* ---------- registration ---------- */
@@ -419,5 +676,6 @@ Hooks.once("init", () => {
   if (DSC) DSC.registerSheet(Actor, `${MODULE_ID}-sheet`, HoloDossierSheet, sheetOpts);
   else Actors.registerSheet(`${MODULE_ID}-sheet`, HoloDossierSheet, sheetOpts);
 
-  registerPartial("holo-terminal.sheet-item", `modules/${MODULE_ID}/sheet/templates/_item.hbs`);
+  registerPartial("holo-terminal.sheet-item", TPL("_item"));
+  registerPartial("holo-terminal.sheet-gear-item", TPL("_gear-item"));
 });

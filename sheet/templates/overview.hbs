@@ -3,19 +3,46 @@
     {{#each abilities}}
     <div class="holo-ability" data-ability="{{key}}">
       <a class="holo-abbr" data-action="rollAbility" data-tooltip="{{label}} check">{{abbr}}</a>
-      <b class="holo-mod" data-action="rollAbility">{{mod}}</b>
-      <input type="number" name="system.abilities.{{key}}.value" value="{{value}}">
-      <a class="holo-save {{#if proficient}}holo-on{{/if}}" data-action="rollSave" data-tooltip="{{label}} save">SAVE {{save}}</a>
+      <b class="holo-mod" data-action="rollAbility" data-tooltip="{{label}} check">{{mod}}</b>
+      {{#if ../editMode}}<input type="number" name="system.abilities.{{key}}.value" value="{{value}}">{{else}}<span class="holo-score">{{value}}</span>{{/if}}
+      <a class="holo-save {{#if proficient}}holo-save-prof{{/if}}" data-action="rollSave" data-tooltip="{{label}} saving throw">SAVE {{save}}</a>
     </div>
     {{/each}}
   </div>
-  <h3 class="holo-h">Skills</h3>
-  <ul class="holo-skills">
-    {{#each skills}}
-    <li data-skill="{{key}}" data-action="rollSkill">
-      <i class="{{icon}}"></i><span class="holo-skill-name">{{label}}</span>
-      <span class="holo-dim">{{ability}}</span><b>{{total}}</b><span class="holo-dim" data-tooltip="Passive">({{passive}})</span>
-    </li>
+
+  {{#if favorites.length}}
+  <h3 class="holo-h">Favourites</h3>
+  <div class="holo-favs">
+    {{#each favorites}}
+    <div class="holo-fav-card" data-item-id="{{id}}">
+      <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+      <div class="holo-fav-text"><a class="holo-item-name" data-action="useItem">{{name}}</a><span class="holo-dim">{{summary}}</span></div>
+      {{#if uses}}<span class="holo-uses">{{uses.value}}/{{uses.max}}</span>{{/if}}
+    </div>
     {{/each}}
-  </ul>
+  </div>
+  {{/if}}
+
+  <div class="holo-two">
+    <div>
+      <h3 class="holo-h">Skills</h3>
+      <ul class="holo-skills">
+        {{#each skills}}
+        <li data-skill="{{key}}" data-action="rollSkill" class="{{#if proficient}}holo-prof{{/if}}">
+          <i class="{{icon}}" data-tooltip="{{tip}}"></i><span class="holo-skill-name">{{label}}</span>
+          <span class="holo-dim holo-small">{{ability}}</span><b>{{total}}</b><span class="holo-dim holo-small" data-tooltip="Passive">{{passive}}</span>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+    <div>
+      <h3 class="holo-h">Tools</h3>
+      <ul class="holo-skills holo-tools">
+        {{#each tools}}
+        <li data-tool="{{key}}" data-action="rollTool"><i class="{{icon}}"></i><span class="holo-skill-name">{{label}}</span><span class="holo-dim holo-small">{{ability}}</span><b>{{total}}</b></li>
+        {{else}}<li class="holo-dim holo-small">No tool proficiencies.</li>{{/each}}
+      </ul>
+      {{#if size}}<p class="holo-dim holo-small holo-size">Size: {{size}}</p>{{/if}}
+    </div>
+  </div>
 </section>

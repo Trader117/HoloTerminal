@@ -36,12 +36,19 @@ A hidden glyph code. Each guess reports **LOCK** (right glyph, right slot) and *
 Difficulties are `easy` (3 slots, 5 glyphs), `normal` (4, 6), `hard` (5, 7) and `elite` (5, 8). The GM gets a whisper for every success, failure and terminal control used.
 
 ## Character sheet (SW5e)
-Holo-Terminal also includes an original holo-datapad **character sheet** for dnd5e characters, built for SW5e (`sw5e-module`). It does not replace your sheet until you choose it: open a character, click **Sheet** in the window header and pick **Holo-Terminal Dossier (SW5e)**. Tick *default* there to use it for every character.
-- **Header:** HP bar with temp HP, AC, initiative (click to roll), proficiency, speed, hit dice, inspiration, and Force Point, Tech Point and Superiority Dice pools. Short/long rest buttons. Death saves show at 0 HP.
-- **Tabs:** Dossier (abilities, saves, SW5e skills), Combat (weapons, actions, maneuvers), Powers (Force and Tech side by side, with DC and attack per school and point costs), Gear (credits, load, inventory), Features, Bio.
-- Number fields accept relative edits: `-7` in HP takes 7 damage, `+250` in credits adds 250.
+Holo-Terminal also includes an original **character sheet** for dnd5e characters, built for SW5e (`sw5e-module`) and styled like the SW5e Database. It does not replace your sheet until you choose it: open a character, click **Sheet** in the window header and pick **Holo-Terminal Dossier (SW5e)**. Tick *default* there to use it for every character.
+- **Header:** name, species, class (archetype) and level, background, alignment, XP bar, AC, initiative (click to roll), proficiency, speed, inspiration, short/long rest, and a **Play / Editing** lock. Play mode protects ability scores, the name and delete buttons; unlock to change them.
+- **Sidebar:** portrait with an HP bar and temp HP over it, hit dice per class (click to spend), Force Points, Tech Points, Superiority Dice, exhaustion (click a level), active conditions, senses, languages, armor and weapon proficiencies, resistances, immunities and vulnerabilities. In edit mode, buttons open dnd5e's own trait editors.
+- **Dossier:** ability cards (click for checks, SAVE for saving throws), favourites (star any item, power or feature), SW5e skills with passives, and tools.
+- **Combat:** weapons with to-hit and damage, then actions, bonus actions and reactions, then maneuvers.
+- **Powers:** Force and Tech, with DC and attack per school (Light, Universal, Dark, Tech), grouped by level with point costs and concentration.
+- **Gear:** credits, load bar, search, and an inventory table (quantity, weight, price, uses) by type. Containers open in place; drag items onto a container to pack them.
+- **Features:** class, archetype, species and background, then class features, species traits, background features and feats.
+- **Effects:** one-click condition toggles, and temporary, passive and inactive effects with their source and duration.
+- **Bio:** personality, ideal, bond and flaw, plus the biography.
+- Number fields accept relative edits: `-7` in HP takes 7 damage, `+250` in credits adds 250. Quantity and uses can be edited right in the lists.
 - Click an item's icon to use it, its name to show its description. Drag items in from compendiums; classes, species and backgrounds still run the dnd5e level-up flow.
-- Themes: SW5e Database (default, matching the rest of Holo-Terminal), plus Holo Cyan, Amber, Sith Red and Green, chosen in module settings.
+- Theme: SW5e Database by default. Holo Cyan, Amber, Sith Red and Green are available in module settings.
 
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.

@@ -1,13 +1,18 @@
-<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="gear">
+<section class="tab holo-body holo-gear {{tab.cssClass}}" data-group="primary" data-tab="gear">
   <div class="holo-wallet">
     <label><i class="fa-solid fa-coins"></i> {{localize "HOLOSHEET.Credits"}}</label>
     <input type="text" name="system.currency.{{creditsKey}}" value="{{credits}}" data-delta data-current="{{credits}}">
     {{#if encumbrance.max}}
-    <div class="holo-enc"><label>Load {{encumbrance.value}} / {{encumbrance.max}}</label><div class="holo-bar"><span style="width:{{encumbrance.pct}}%"></span></div></div>
+    <div class="holo-enc holo-enc-{{encumbrance.state}}"><label>Load {{encumbrance.value}} / {{encumbrance.max}}</label><div class="holo-bar"><span style="width:{{encumbrance.pct}}%"></span></div></div>
     {{/if}}
   </div>
+  <div class="holo-search-row"><i class="fa-solid fa-magnifying-glass"></i><input class="holo-search" type="search" placeholder="Search inventory" value="{{search}}"></div>
   {{#each gear}}
-  <h3 class="holo-h">{{label}} <a data-action="createItem" data-type="{{type}}"><i class="fa-solid fa-plus"></i></a></h3>
-  <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-item"}}{{else}}<li class="holo-dim">—</li>{{/each}}</ul>
+  <div class="holo-gear-head">
+    <h3 class="holo-h">{{label}}</h3>
+    <span class="holo-col-num">Qty</span><span class="holo-col-num">Wt</span><span class="holo-col-price">Price</span><span class="holo-col-num">Uses</span>
+    <span class="holo-controls"><a data-action="createItem" data-type="{{type}}" data-tooltip="Add {{label}}"><i class="fa-solid fa-plus"></i></a></span>
+  </div>
+  <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-gear-item"}}{{else}}<li class="holo-dim holo-small holo-empty">None.</li>{{/each}}</ul>
   {{/each}}
 </section>

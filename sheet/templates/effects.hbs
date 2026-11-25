@@ -1,0 +1,32 @@
+<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="effects">
+  <h3 class="holo-h">Conditions</h3>
+  <div class="holo-cond-grid">
+    {{#each conditions}}
+    <a class="holo-cond {{#if active}}holo-cond-on{{/if}}" data-action="toggleCondition" data-condition-id="{{id}}"><img src="{{img}}"><span>{{name}}</span></a>
+    {{/each}}
+  </div>
+  {{#each effectGroups}}
+  <div class="holo-gear-head">
+    <h3 class="holo-h">{{label}}</h3>
+    <span class="holo-col-price">Source</span><span class="holo-col-price">Duration</span>
+    <span class="holo-controls"><a data-action="createEffect" data-type="{{type}}" data-tooltip="Add effect"><i class="fa-solid fa-plus"></i></a></span>
+  </div>
+  <ul class="holo-list">
+    {{#each items}}
+    <li class="holo-item" data-effect-uuid="{{uuid}}">
+      <div class="holo-item-row holo-gear-row">
+        <img src="{{img}}">
+        <span class="holo-gear-name"><a class="holo-item-name" data-action="editEffect">{{name}}</a></span>
+        <span class="holo-col-price holo-dim">{{source}}</span>
+        <span class="holo-col-price holo-dim">{{duration}}</span>
+        <span class="holo-controls">
+          <a data-action="toggleEffect" data-tooltip="{{#if disabled}}Enable{{else}}Disable{{/if}}"><i class="fa-solid {{#if disabled}}fa-toggle-off{{else}}fa-toggle-on{{/if}}"></i></a>
+          <a data-action="editEffect" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+          <a data-action="deleteEffect" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+        </span>
+      </div>
+    </li>
+    {{else}}<li class="holo-dim holo-small holo-empty">None.</li>{{/each}}
+  </ul>
+  {{/each}}
+</section>

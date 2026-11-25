@@ -1,0 +1,24 @@
+<li class="holo-item draggable {{#if isContainer}}holo-container{{/if}}" data-item-id="{{id}}" draggable="true" {{#if isContainer}}data-container-id="{{id}}"{{/if}}>
+  <div class="holo-item-row holo-gear-row">
+    <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+    <span class="holo-gear-name">
+      {{#if isContainer}}<a class="holo-caret" data-action="toggleContainer"><i class="fa-solid {{#if open}}fa-caret-down{{else}}fa-caret-right{{/if}}"></i></a>{{/if}}
+      <a class="holo-item-name" data-action="expandItem">{{name}}</a>
+      {{#if isContainer}}<span class="holo-dim">({{count}})</span>{{/if}}
+      <span class="holo-item-summary holo-dim">{{summary}}</span>
+    </span>
+    <span class="holo-col-num">{{#if quantity}}<input type="text" data-item-field="system.quantity" value="{{quantity}}">{{/if}}</span>
+    <span class="holo-col-num holo-dim">{{weight}}</span>
+    <span class="holo-col-price holo-dim">{{price}}</span>
+    <span class="holo-col-num">{{#if uses}}<input type="text" data-item-field="system.uses.value" value="{{uses.value}}">/{{uses.max}}{{/if}}</span>
+    <span class="holo-controls">
+      {{#if equippable}}<a data-action="toggleEquip" class="{{#if equipped}}holo-on{{/if}}" data-tooltip="{{#if equipped}}Unequip{{else}}Equip{{/if}}"><i class="fa-solid fa-shield-halved"></i></a>{{/if}}
+      <a data-action="toggleFavorite" class="holo-fav {{#if favorite}}holo-fav-on{{/if}}" data-tooltip="Favourite"><i class="fa-solid fa-star"></i></a>
+      <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+      <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+    </span>
+  </div>
+  {{#if open}}
+  <ul class="holo-list holo-contents">{{#each contents}}{{> "holo-terminal.sheet-gear-item"}}{{else}}<li class="holo-dim holo-small holo-empty">Empty. Drag items here.</li>{{/each}}</ul>
+  {{/if}}
+</li>
