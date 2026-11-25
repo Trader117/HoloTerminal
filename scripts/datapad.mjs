@@ -1,5 +1,20 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
+import * as Circuit from "./hacks/circuit.mjs";
+import * as Signal from "./hacks/signal.mjs";
+import * as Firewall from "./hacks/firewall.mjs";
+
+/* Slicing games a terminal can use. "random" picks one each attempt. */
+export const HACKS = {
+  cipher: { name: "Cipher Lock", rules: "Crack the hidden glyph code. LOCK means right glyph, right slot. DRIFT means right glyph, wrong slot.",
+    boost: "extra attempts", make: (d, b) => newPuzzle(d, b) },
+  circuit: { name: "Circuit Reroute", rules: "Click tiles to rotate them and route power from the source on the left to the core on the right before time runs out.",
+    boost: "extra time", make: (d, b) => Circuit.newCircuit(d, b), timed: true },
+  signal: { name: "Signal Tuning", rules: "Turn the frequency, amplitude and phase dials until your carrier (blue) sits exactly on the intercepted signal (red), then lock in. A wrong lock costs 5 seconds.",
+    boost: "extra time", make: (d, b) => Signal.newSignal(d, b), timed: true },
+  firewall: { name: "Firewall Run", rules: "Move your probe to the data core. Every move, the trace sentinels step along their lines. Get caught or run out of moves and you're locked out. Cells a sentinel will reach next glow.",
+    boost: "extra moves", make: (d, b) => Firewall.newFirewall(d, b) }
+};
 import { openEditor, ConsoleApp, blank } from "./admin.mjs";
 import { isLootable, lootSummary } from "./loot.mjs";
 
@@ -47,6 +62,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       login: DatapadApp.#login, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
+      rotateTile: DatapadApp.#rotateTile, lockIn: DatapadApp.#lockIn, fwMove: DatapadApp.#fwMove,
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
       lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits
@@ -55,7 +71,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
 
   history = [{ view: "home", id: null }]; hIndex = 0;
-  view = "home"; viewId = null; tab = "messages"; denied = false; booting = true; puzzle = null; bonus = 0;
+  view = "home"; viewId = null; tab = "messages"; denied = false; booting = true; puzzle = null; bonus = 0; game = null; #timer = null;
 
   constructor(options) {
     super(options);
@@ -81,7 +97,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     this.view = view; this.viewId = id; this.denied = false;
     if (view === "terminal") this.tab = "messages";
-    if (view !== "slice") this.puzzle = null;
+    if (view !== "slice") { this.puzzle = null; this.game = null; this.#stopTimer(); }
   }
 
   async _onFirstRender(context, options) {
@@ -93,6 +109,24 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    if (!this._hackBound) {
+      this._hackBound = true;
+      this.element.addEventListener("input", (ev) => {
+        const key = ev.target?.dataset?.dial;
+        if (!key || this.game !== "signal" || !this.puzzle) return;
+        Signal.setDial(this.puzzle, key, ev.target.value);
+        this.element.querySelector(".ht-wave-player")?.setAttribute("d", Signal.wavePath(this.puzzle.dials));
+        const out = this.element.querySelector(`[data-dial-out="${key}"]`); if (out) out.textContent = this.puzzle.dials[key];
+        const sy = this.element.querySelector(".ht-sync"); if (sy) sy.textContent = `${Signal.sync(this.puzzle)}%`;
+      });
+      this.element.addEventListener("keydown", (ev) => {
+        const dir = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[ev.key];
+        if (!dir || this.game !== "firewall") return;
+        ev.preventDefault();
+        this.#firewallStep(dir);
+      });
+    }
+    if (this.game === "firewall" && this.puzzle?.state === "playing") this.element.querySelector(".ht-fw-grid")?.focus();
     const handle = this.element.querySelector(".ht-bezel-top");
     if (!handle || handle.dataset.drag) return;
     handle.dataset.drag = "1";
@@ -106,7 +140,29 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  _onClose(options) { super._onClose(options); this.booting = true; }
+  _onClose(options) { super._onClose(options); this.booting = true; this.#stopTimer(); }
+
+  #stopTimer() { if (this.#timer) clearInterval(this.#timer); this.#timer = null; }
+  #startTimer() {
+    this.#stopTimer();
+    this.#timer = setInterval(() => {
+      const p = this.puzzle;
+      if (!p || p.state !== "playing") return this.#stopTimer();
+      p.time = Math.max(0, p.time - 1);
+      const el = this.element?.querySelector(".ht-timer");
+      if (el) { el.textContent = `${p.time}s`; el.classList.toggle("low", p.time <= 10); }
+      if (p.time <= 0) { p.state = "lost"; this.#finishHack(); }
+    }, 1000);
+  }
+  /** Reports the result once a game ends and unlocks the terminal on a win. */
+  async #finishHack() {
+    this.#stopTimer();
+    const success = this.puzzle?.state === "won";
+    requestGM("sliceResult", { terminalId: this.viewId, success, actorName: activeActor()?.name, game: HACKS[this.game]?.name });
+    if (success) await unlock(this.viewId);
+    this.bonus = 0;
+    this.render();
+  }
 
   async _prepareContext() {
     const actor = activeActor();
@@ -159,13 +215,31 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _ctx_slice() {
     const t = find("terminals", this.viewId);
+    const cfg = t?.slice ?? {};
     const p = this.puzzle;
-    return {
-      title: `Slicing: ${t?.name ?? "?"}`, theme: "green", difficulty: t?.slice?.difficulty ?? "normal",
-      dc: t?.slice?.dc ?? 15, bonus: this.bonus, puzzle: p, ready: !p,
-      slots: p ? Array.from({ length: p.length }, (_, i) => p.current[i] ?? "_") : [],
-      remaining: p ? p.attempts - p.guesses.length : 0
+    const chosen = cfg.game && cfg.game !== "random" ? cfg.game : null;
+    const game = this.game ?? chosen;
+    const info = HACKS[game];
+    const ctx = {
+      title: t?.name ?? "?", theme: "green", difficulty: cfg.difficulty ?? "normal", dc: cfg.dc ?? 15,
+      game, gameName: info?.name ?? "Unknown system", rules: info?.rules ?? "The security system is shifting. You won't know which countermeasure you face until you're in.",
+      boostText: info?.boost ?? "an edge", timed: !!info?.timed, bonus: this.bonus, puzzle: p, ready: !p,
+      playing: p?.state === "playing", won: p?.state === "won", lost: p?.state === "lost", time: p?.time, timeLow: p?.time <= 10,
     };
+    if (!p) return ctx;
+    if (game === "cipher") Object.assign(ctx, {
+      slots: Array.from({ length: p.length }, (_, i) => p.current[i] ?? "_"), remaining: p.attempts - p.guesses.length });
+    if (game === "circuit") {
+      const lit = Circuit.powered(p);
+      Object.assign(ctx, { size: p.size, sourceRow: Math.floor(p.source / p.size) + 1, sinkRow: Math.floor(p.sink / p.size) + 1,
+        tiles: p.tiles.map((m, i) => ({ i, svg: Circuit.tileSvg(m, lit.has(i) || p.state === "won") })) });
+    }
+    if (game === "signal") Object.assign(ctx, {
+      targetPath: Signal.wavePath(p.target, p.noise, p.seed), playerPath: Signal.wavePath(p.dials), sync: Signal.sync(p),
+      dials: Object.entries(Signal.RANGES).map(([key, [min, max]]) => ({ key, min, max, value: p.dials[key],
+        label: { freq: "Frequency", amp: "Amplitude", phase: "Phase" }[key] })) });
+    if (game === "firewall") Object.assign(ctx, { size: p.size, cells: Firewall.cells(p), movesLeft: p.movesLeft });
+    return ctx;
   }
 
   _ctx_bounties(ctx, actor) {
@@ -236,8 +310,31 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     DatapadApp.#sliceBegin.call(this);
   }
   static #sliceBegin() {
-    const t = find("terminals", this.viewId);
-    this.puzzle = newPuzzle(t?.slice?.difficulty ?? "normal", this.bonus);
+    const cfg = find("terminals", this.viewId)?.slice ?? {};
+    let game = cfg.game && HACKS[cfg.game] ? cfg.game : "cipher";
+    if (cfg.game === "random") { const keys = Object.keys(HACKS); game = keys[Math.floor(Math.random() * keys.length)]; }
+    this.game = game;
+    this.puzzle = HACKS[game].make(cfg.difficulty ?? "normal", this.bonus);
+    if (HACKS[game].timed) this.#startTimer();
+    this.render();
+  }
+  static #rotateTile(e, el) {
+    if (this.game !== "circuit") return;
+    Circuit.rotateTile(this.puzzle, Number(el.dataset.i));
+    if (this.puzzle.state !== "playing") return this.#finishHack();
+    this.render();
+  }
+  static #lockIn() {
+    if (this.game !== "signal") return;
+    Signal.lockIn(this.puzzle);
+    if (this.puzzle.state !== "playing") return this.#finishHack();
+    this.render();
+  }
+  static #fwMove(e, el) { this.#firewallStep(el.dataset.dir); }
+  #firewallStep(dir) {
+    if (this.game !== "firewall" || this.puzzle?.state !== "playing") return;
+    Firewall.move(this.puzzle, dir);
+    if (this.puzzle.state !== "playing") return this.#finishHack();
     this.render();
   }
   static #glyph(e, el) {
@@ -247,12 +344,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #glyphBack() { this.puzzle?.current.pop(); this.render(); }
   static async #transmit() {
     const p = submit(this.puzzle);
-    if (p.state !== "playing") {
-      const success = p.state === "won";
-      requestGM("sliceResult", { terminalId: this.viewId, success, actorName: activeActor()?.name });
-      if (success) await unlock(this.viewId);
-      this.bonus = 0;
-    }
+    if (p.state !== "playing") return this.#finishHack();
     this.render();
   }
 

@@ -34,27 +34,14 @@ Terminals and bounties still use the JSON editor. Use *Limit to current scene* t
 
 Bounties: *Complete & pay* splits `reward` between the hunters who took the contract and adds it to their credits. It matches hunters to actors by name.
 
-## Cipher Lock (slicing)
-A hidden glyph code. Each guess reports **LOCK** (right glyph, right slot) and **DRIFT** (right glyph, wrong slot). Before starting, a player can roll the slicing skill against the terminal's DC:
-- a success gives +1 attempt, plus 1 more for every 5 points over the DC (up to +3),
-- a failure costs 1 attempt.
+## Slicing games
+A locked terminal can be sliced instead of using its access code. Set the terminal's `slice.game` to pick the game, or use `random` to roll a different one each attempt:
+- **Cipher Lock** (`cipher`): crack a hidden glyph code. Each guess shows LOCK (right glyph, right slot) and DRIFT (right glyph, wrong slot).
+- **Circuit Reroute** (`circuit`): click tiles to rotate them until power runs from the source on the left to the core on the right, against the clock.
+- **Signal Tuning** (`signal`): turn frequency, amplitude and phase dials until your wave sits on the intercepted one, then lock in. A wrong lock costs 5 seconds.
+- **Firewall Run** (`firewall`): move a probe to the data core. Trace sentinels step along their lines after every move, and the cells they'll reach next glow red. Arrow keys work.
 
-Difficulties are `easy` (3 slots, 5 glyphs), `normal` (4, 6), `hard` (5, 7) and `elite` (5, 8). The GM gets a whisper for every success, failure and terminal control used.
-
-## Character sheet (SW5e)
-Holo-Terminal also includes an original **character sheet** for dnd5e characters, built for SW5e (`sw5e-module`) and styled like the SW5e Database. It does not replace your sheet until you choose it: open a character, click **Sheet** in the window header and pick **Holo-Terminal Dossier (SW5e)**. Tick *default* there to use it for every character.
-- **Header:** name, class (archetype) and level, species, background, alignment, a level badge with an XP ring, short/long rest, inspiration, and a **lock** (Play / Editing). Play mode protects ability scores, the name and delete buttons; unlock to change them.
-- **Sidebar:** portrait card with the AC shield and death-save pips, initiative (click to roll), speed and proficiency, then Hit Points (with temp HP), Force Points, Tech Points, Superiority Dice and Hit Dice bars (click Hit Dice to spend one), and your favourites list.
-- **Dossier:** ability tiles (click for checks), Skills and Tools panels, Saving Throws panel, species and background cards, and chips for senses, armor, weapons, languages, resistances, immunities and vulnerabilities. In edit mode, pencils open dnd5e's own trait editors.
-- **Combat:** weapons table (time, range, hit, damage, uses), then actions, bonus actions and reactions with uses and recovery, then maneuvers.
-- **Powers:** Forcecasting and Techcasting cards (ability, attack and DC per school), search, and tables by level with time, range, roll, point cost and uses.
-- **Gear:** load bar, credits, search, and inventory tables (price, weight, quantity with − / +, uses) by type. Containers open in place; drag items onto a container to pack them.
-- **Features:** class cards with archetype and level, search, then class features, species traits, background and feats with uses and recovery.
-- **Effects:** temporary, passive and inactive effects with source, duration and on/off switches, then exhaustion levels and condition switches.
-- **Bio:** personality, ideal, bond and flaw, plus the biography.
-- Number fields accept relative edits: `-7` in HP takes 7 damage, `+250` in credits adds 250. Quantity and uses can be edited right in the lists.
-- Click an item's icon to use it, its name to show its description. Drag items in from compendiums; classes, species and backgrounds still run the dnd5e level-up flow.
-- Theme: SW5e Database by default. Holo Cyan, Amber, Sith Red and Green are available in module settings.
+Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and number of sentinels. Before starting, a player can roll the slicing skill against the terminal's DC. Success gives +1, plus 1 more for every 5 over the DC (up to +3), and a failure gives -1. Each point is an attempt (Cipher), 15 seconds (Circuit), 10 seconds (Signal) or 3 moves (Firewall). The GM gets a whisper naming the game for every success and failure.
 
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.

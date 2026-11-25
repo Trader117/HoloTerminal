@@ -11,7 +11,7 @@ export function blank(kind) {
   switch (kind) {
     case "terminals": return {
       id, name: "Security Node", theme: "cyan", hidden: false, scenes: [], password: "",
-      slice: { difficulty: "normal", dc: 15 },
+      slice: { game: "random", difficulty: "normal", dc: 15 }, // game: cipher, circuit, signal, firewall or random
       messages: [{ from: "Duty Officer", subject: "Shift change", body: "Patrol rotates at 0300. Dock 7 unmonitored for ten minutes." }],
       files: [{ name: "manifest.dat", body: "12 crates logged. 1 crate unlisted." }],
       controls: [] // { "label": "Blast door", "type": "door", "id": "<wall id>" } or type "light" with an ambient light id
