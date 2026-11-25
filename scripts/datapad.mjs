@@ -218,11 +218,22 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const t = find("terminals", this.viewId);
     if (!t) return { title: "NO SIGNAL", missing: true };
     const locked = !game.user.isGM && !!(t.password || t.slice) && !unlockedIds().has(t.id);
-    const scene = canvas.scene;
     const state = (c) => {
-      if (c.type === "door") { const w = scene?.walls.get(c.id); return w ? (w.ds === CONST.WALL_DOOR_STATES.OPEN ? "OPEN" : "SEALED") : "OFFLINE"; }
-      if (c.type === "light") { const l = scene?.lights.get(c.id); return l ? (l.hidden ? "OFF" : "ON") : "OFFLINE"; }
-      return "?";
+      const scene = game.scenes.get(c.scene) ?? canvas.scene;
+      if (c.type === "door") {
+        const w = scene?.walls.get(c.id);
+        if (!w) return { state: "OFFLINE", tone: "off", icon: "fa-door-closed" };
+        const { OPEN, LOCKED } = CONST.WALL_DOOR_STATES;
+        if (w.ds === OPEN) return { state: "OPEN", tone: "good", icon: "fa-door-open" };
+        if (w.ds === LOCKED) return { state: "LOCKED", tone: "gold", icon: "fa-lock" };
+        return { state: "SEALED", tone: "red", icon: "fa-door-closed" };
+      }
+      if (c.type === "light") {
+        const l = scene?.lights.get(c.id);
+        if (!l) return { state: "OFFLINE", tone: "off", icon: "fa-lightbulb" };
+        return l.hidden ? { state: "OFF", tone: "dim", icon: "fa-lightbulb" } : { state: "ON", tone: "blue", icon: "fa-lightbulb" };
+      }
+      return { state: "?", tone: "off", icon: "fa-question" };
     };
     return {
       title: t.name, terminal: t, theme: t.theme ?? "cyan", locked, denied: this.denied,
@@ -230,7 +241,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       messages: this.#cryptEntries(t, "messages", (m) => `${m.from} ${m.subject}`),
       files: this.#cryptEntries(t, "files", (f) => f.name),
       tabs: ["messages", "files", "controls"].map((id) => ({ id, active: id === this.tab, label: game.i18n.localize(`HT.${id}`) })),
-      controls: (t.controls ?? []).map((c, i) => ({ ...c, index: i, state: state(c) }))
+      controls: (t.controls ?? []).map((c, i) => ({ ...c, index: i, ...state(c) }))
     };
   }
 

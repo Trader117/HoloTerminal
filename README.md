@@ -30,6 +30,8 @@ Open it from the **terminal icon** in Token controls. It has tabs for Terminals,
 
 **Moving from Monk's Enhanced Journal:** in the console's Markets tab, press *Import Monk's shops*. Every Monk's shop is copied in with its items, prices and quantities, and starts hidden so you can check it first. Importing again refreshes the copies.
 
+**Linking doors and lights to a terminal:** open the terminal's editor. On the map, select one or more doors (Walls layer) or lights (Lighting layer), holding Shift to pick several, and press *Add selected*. Each one is added under `controls` with a placeholder name. Change its `label`, then Save. Linked controls remember their scene, so a terminal can open a door on another map. On the datapad they show colour-coded states: SEALED, OPEN, LOCKED, ON, OFF, or OFFLINE if the door or light was deleted.
+
 Terminals and bounties still use the JSON editor. Use *Limit to current scene* to tie one to the map you're on. An empty `scenes` list means it shows up everywhere.
 
 Bounties: *Complete & pay* splits `reward` between the hunters who took the contract and adds it to their credits. It matches hunters to actors by name.

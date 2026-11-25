@@ -265,3 +265,16 @@
 .ht-scrambled { font: 13px/1.5 Consolas, "Courier New", monospace; color: #7aa7c4; letter-spacing: 1px; word-break: break-all; opacity: .8; }
 .ht-crypt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .ht-crypt-label { font: 700 10px var(--ht-font-display); color: var(--ht-gold); text-transform: uppercase; letter-spacing: 1.5px; margin-right: auto; }
+
+/* ---------- terminal controls ---------- */
+.ht-control { gap: 10px; }
+.ht-control > span { flex: 1; color: var(--ht-strong); }
+.ht-control-icon { width: 1.4em; text-align: center; color: var(--tone, var(--ht-muted)); }
+.ht-control button { min-width: 92px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font: 700 11px var(--ht-font-display) !important; letter-spacing: 1px; color: var(--tone, var(--ht-muted)) !important; border-color: color-mix(in srgb, var(--tone, #888) 55%, transparent) !important; }
+.ht-led { width: 7px; height: 7px; border-radius: 50%; background: var(--tone, var(--ht-muted)); box-shadow: 0 0 6px var(--tone, transparent); }
+.ht-control.ht-tone-good { --tone: var(--ht-good); } .ht-control.ht-tone-red { --tone: var(--ht-red); }
+.ht-control.ht-tone-gold { --tone: var(--ht-gold); } .ht-control.ht-tone-blue { --tone: #7cc6ef; }
+.ht-control.ht-tone-dim { --tone: #6b7f8f; } .ht-control.ht-tone-off { --tone: #4b5a66; }
+.ht-link-box { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--ht-line); border-left: 3px solid var(--ht-blue); border-radius: var(--ht-radius); background: var(--ht-panel); }
+.ht-link-box b { color: var(--ht-strong); } .ht-link-box span { flex: 1 1 100%; color: var(--ht-muted); }

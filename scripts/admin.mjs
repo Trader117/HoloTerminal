@@ -45,7 +45,7 @@ export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     classes: ["ht-app"], window: { title: "Holo-Terminal editor", resizable: true },
     position: { width: 600, height: 680 },
-    actions: { save: EditorApp.#save, addScene: EditorApp.#addScene }
+    actions: { save: EditorApp.#save, addScene: EditorApp.#addScene, linkSelected: EditorApp.#linkSelected }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/editor.hbs` } };
 
@@ -81,6 +81,27 @@ export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     doc.items ??= [];
     doc.items.push({ name: item.name, uuid: item.uuid, img: item.img, price: itemPrice(item), stock: -1 });
     this.#write(doc);
+  }
+
+  /** Adds the doors (Walls layer) and lights (Lighting layer) the GM has selected on the map as terminal controls. */
+  static #linkSelected() {
+    const doc = this.#read();
+    if (!doc || !canvas.scene) return;
+    doc.controls ??= [];
+    const have = new Set(doc.controls.map((c) => `${c.type}:${c.id}`));
+    let doors = doc.controls.filter((c) => c.type === "door").length, lights = doc.controls.filter((c) => c.type === "light").length;
+    let added = 0;
+    for (const w of canvas.walls?.controlled ?? []) {
+      if (!w.document.door || have.has(`door:${w.document.id}`)) continue;
+      doc.controls.push({ label: `Door ${++doors}`, type: "door", id: w.document.id, scene: canvas.scene.id }); added++;
+    }
+    for (const l of canvas.lighting?.controlled ?? []) {
+      if (have.has(`light:${l.document.id}`)) continue;
+      doc.controls.push({ label: `Light ${++lights}`, type: "light", id: l.document.id, scene: canvas.scene.id }); added++;
+    }
+    if (!added) return ui.notifications.warn("Select one or more doors (Walls layer) or lights (Lighting layer) on the map first. Hold Shift to select several.");
+    this.#write(doc);
+    ui.notifications.info(`Linked ${added}. Rename them in "controls" (the "label" field), then Save.`);
   }
 
   static #addScene() {

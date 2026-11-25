@@ -18,7 +18,7 @@
     {{#each files}}{{> cryptEntry}}{{else}}<p class="ht-dim">-- no files --</p>{{/each}}
   {{/if}}
   {{#if (eq tab "controls")}}
-    {{#each controls}}<div class="ht-control"><span>{{label}}</span><button type="button" data-action="control" data-index="{{index}}">{{state}}</button></div>
+    {{#each controls}}<div class="ht-control ht-tone-{{tone}}"><i class="fas {{icon}} ht-control-icon"></i><span>{{label}}</span><button type="button" data-action="control" data-index="{{index}}" {{#if (eq tone "off")}}disabled{{/if}}><span class="ht-led"></span>{{state}}</button></div>
     {{else}}<p class="ht-dim">-- no linked systems --</p>{{/each}}
   {{/if}}
 {{/if}}

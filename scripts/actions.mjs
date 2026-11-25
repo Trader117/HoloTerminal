@@ -5,7 +5,7 @@ const gmWhisper = (content) => ChatMessage.create({ content, whisper: ChatMessag
 
 /* Terminal controls: doors (wall id) and lights (ambient light id) on a scene. */
 export async function runControl(sceneId, control) {
-  const scene = game.scenes.get(sceneId) ?? canvas.scene;
+  const scene = game.scenes.get(control.scene) ?? game.scenes.get(sceneId) ?? canvas.scene;
   if (control.type === "door") {
     const wall = scene?.walls.get(control.id);
     if (!wall) throw new Error(`Wall ${control.id} not found on this scene`);
