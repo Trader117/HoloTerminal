@@ -278,3 +278,26 @@
 .ht-control.ht-tone-dim { --tone: #6b7f8f; } .ht-control.ht-tone-off { --tone: #4b5a66; }
 .ht-link-box { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--ht-line); border-left: 3px solid var(--ht-blue); border-radius: var(--ht-radius); background: var(--ht-panel); }
 .ht-link-box b { color: var(--ht-strong); } .ht-link-box span { flex: 1 1 100%; color: var(--ht-muted); }
+
+/* ---------- security cameras ---------- */
+.ht-feed { position: relative; width: 390px; max-width: 100%; margin: 0 auto 6px; overflow: hidden; border-radius: 6px;
+  background: #010a12; border: 1px solid var(--ht-line); box-shadow: inset 0 0 0 1px rgba(42, 163, 223, .15); }
+.ht-feed-layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; filter: grayscale(.3) contrast(1.1) brightness(.92); }
+.ht-feed-layer img { position: absolute; border: 0; max-width: none; transform-origin: 50% 50%; }
+.ht-feed-token { transition: left .45s linear, top .45s linear; }
+.ht-feed::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .55) 100%), linear-gradient(rgba(42, 163, 223, .10), rgba(42, 163, 223, .10)); }
+.ht-feed-tape .ht-feed-layer { filter: grayscale(.85) contrast(1.2) brightness(.85) sepia(.35); }
+.ht-feed-hud { position: absolute; left: 8px; right: 8px; top: 6px; z-index: 2; display: flex; justify-content: space-between;
+  font: 700 11px Consolas, monospace; letter-spacing: 1px; color: #dff3ff; text-shadow: 0 0 4px #000, 0 0 2px #000; text-transform: uppercase; }
+.ht-feed-live { color: var(--ht-good); } .ht-feed-rec { color: var(--ht-red); animation: ht-blink 1s steps(1) infinite; } .ht-feed-tag { color: var(--ht-gold); }
+.ht-feed-dead { height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  font: 700 12px Consolas, monospace; color: var(--ht-muted); background: repeating-linear-gradient(0deg, #0b141c 0 2px, #101c26 2px 4px); }
+.ht-cam-gm { justify-content: flex-end; margin: 0 0 12px; }
+.ht-screen .ht-rec-btn.on { color: var(--ht-red); border-color: var(--ht-red); }
+.ht-screen .ht-rec-btn:not(.on) i { color: var(--ht-red); }
+.ht-subhead { font: 700 12px var(--ht-font-display); color: var(--ht-gold); text-transform: uppercase; letter-spacing: 1.5px; margin: 12px 0 6px; border: 0; }
+.ht-rec-row button { min-width: 0; }
+.ht-tape-bar { display: flex; align-items: center; gap: 6px; }
+.ht-scrub { flex: 1; accent-color: var(--ht-gold); }
+.ht-tape-time { font: 700 12px Consolas, monospace; color: #bfe6ff; white-space: nowrap; }

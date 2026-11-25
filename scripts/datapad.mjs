@@ -18,13 +18,14 @@ export const HACKS = {
 import { openEditor, ConsoleApp, blank } from "./admin.mjs";
 import { isLootable, lootSummary } from "./loot.mjs";
 import * as Crypt from "./decrypt.mjs";
+import * as Cam from "./cameras.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
 export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
-export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry") };
+export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
   bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
@@ -66,6 +67,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
       decryptCheck: DatapadApp.#decryptCheck, decryptKey: DatapadApp.#decryptKey, decryptHack: DatapadApp.#decryptHack,
+      camRecord: DatapadApp.#camRecord, camStop: DatapadApp.#camStop, recPlay: DatapadApp.#recPlay, recToggle: DatapadApp.#recToggle,
+      recSpeed: DatapadApp.#recSpeed, recClose: DatapadApp.#recClose, recShare: DatapadApp.#recShare, recDelete: DatapadApp.#recDelete,
       rotateTile: DatapadApp.#rotateTile, lockIn: DatapadApp.#lockIn, fwMove: DatapadApp.#fwMove,
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
@@ -78,12 +81,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   view = "home"; viewId = null; tab = "messages"; denied = false; booting = true; puzzle = null; bonus = 0; game = null; #timer = null;
   /** Set when a slicing game is decrypting one entry instead of unlocking the whole terminal. */
   hackTarget = null; justDecrypted = null;
+  /** Recording being watched: { id, t, playing, speed }. */
+  tape = null; #tapeTimer = null;
 
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
-      "createItem", "deleteItem", "updateItem"])
+      "createItem", "deleteItem", "updateItem", "updateDrawing", "updateTile", "createToken", "deleteToken"])
       Hooks.on(h, () => this.rendered && this.render());
   }
 
@@ -106,6 +111,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (view !== "slice") { this.puzzle = null; this.game = null; this.#stopTimer(); }
     if (view === "terminal" && this.hackTarget) this.tab = this.hackTarget.tab;
     if (view !== "slice") this.hackTarget = null;
+    this.#stopTape(true);
   }
 
   async _onFirstRender(context, options) {
@@ -120,6 +126,12 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._hackBound) {
       this._hackBound = true;
       this.element.addEventListener("input", (ev) => {
+        if (ev.target?.dataset && "scrub" in ev.target.dataset && this.tape) {
+          this.tape.t = Number(ev.target.value);
+          const rec = list("recordings").find((r) => r.id === this.tape.id);
+          if (rec) this.#paintTape(rec);
+          return;
+        }
         const key = ev.target?.dataset?.dial;
         if (!key || this.game !== "signal" || !this.puzzle) return;
         Signal.setDial(this.puzzle, key, ev.target.value);
@@ -153,7 +165,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  _onClose(options) { super._onClose(options); this.booting = true; this.#stopTimer(); }
+  _onClose(options) { super._onClose(options); this.booting = true; this.#stopTimer(); this.#stopTape(true); }
 
   #stopTimer() { if (this.#timer) clearInterval(this.#timer); this.#timer = null; }
   #startTimer() {
@@ -218,6 +230,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const t = find("terminals", this.viewId);
     if (!t) return { title: "NO SIGNAL", missing: true };
     const locked = !game.user.isGM && !!(t.password || t.slice) && !unlockedIds().has(t.id);
+    const cams = (t.controls ?? []).map((c, i) => ({ ...c, index: i })).filter((c) => c.type === "camera");
     const state = (c) => {
       const scene = game.scenes.get(c.scene) ?? canvas.scene;
       if (c.type === "door") {
@@ -240,8 +253,12 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasPassword: !!t.password, slice: t.slice, tab: this.tab,
       messages: this.#cryptEntries(t, "messages", (m) => `${m.from} ${m.subject}`),
       files: this.#cryptEntries(t, "files", (f) => f.name),
-      tabs: ["messages", "files", "controls"].map((id) => ({ id, active: id === this.tab, label: game.i18n.localize(`HT.${id}`) })),
-      controls: (t.controls ?? []).map((c, i) => ({ ...c, index: i, ...state(c) }))
+      tabs: ["messages", "files", "controls", ...(cams.length ? ["cameras"] : [])]
+        .map((id) => ({ id, active: id === this.tab, label: game.i18n.localize(`HT.${id}`) })),
+      controls: (t.controls ?? []).map((c, i) => ({ ...c, index: i })).filter((c) => c.type !== "camera").map((c) => ({ ...c, ...state(c) })),
+      cameras: cams.map((c) => ({ ...c, feed: Cam.feedData(c) })),
+      recordings: Cam.recordingsFor(cams.map(Cam.cameraKey)).map((r) => ({ id: r.id, label: r.label, shared: r.shared, length: Cam.clock(r.duration ?? 0) })),
+      tape: this.#tapeContext()
     };
   }
 
@@ -364,6 +381,56 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (HACKS[game].timed) this.#startTimer();
     this.render();
   }
+  /* ---------- cameras ---------- */
+  #camAt(el) { return find("terminals", this.viewId)?.controls?.[Number(el.dataset.index)]; }
+  static #camRecord(e, el) { const c = this.#camAt(el); if (c) { Cam.Recorder.start(c); this.render(); } }
+  static async #camStop(e, el) { const c = this.#camAt(el); if (c) { await Cam.Recorder.stop(c); this.render(); } }
+  static #recPlay(e, el) { this.tape = { id: el.dataset.id, t: 0, playing: true, speed: 1 }; this.#runTape(); this.render(); }
+  static #recToggle() {
+    if (!this.tape) return;
+    const rec = list("recordings").find((r) => r.id === this.tape.id);
+    if (!this.tape.playing && rec && this.tape.t >= (rec.duration ?? 0)) this.tape.t = 0; // replay from the start
+    this.tape.playing = !this.tape.playing;
+    if (this.tape.playing) this.#runTape(); else this.#stopTape();
+    this.render();
+  }
+  static #recSpeed() { if (this.tape) { const order = [1, 2, 4, 8]; this.tape.speed = order[(order.indexOf(this.tape.speed) + 1) % order.length]; this.render(); } }
+  static #recClose() { this.#stopTape(true); this.render(); }
+  static async #recShare(e, el) {
+    const all = list("recordings"); const r = all.find((x) => x.id === el.dataset.id);
+    if (r) { r.shared = !r.shared; await game.settings.set(MODULE_ID, "recordings", all); }
+  }
+  static async #recDelete(e, el) {
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Delete recording?" }, content: "<p>Delete this recording?</p>" });
+    if (ok) await game.settings.set(MODULE_ID, "recordings", list("recordings").filter((x) => x.id !== el.dataset.id));
+  }
+  #tapeContext() {
+    if (!this.tape) return null;
+    const rec = list("recordings").find((r) => r.id === this.tape.id);
+    if (!rec) return null;
+    return { ...this.tape, duration: rec.duration ?? 0, clock: Cam.clock(this.tape.t), total: Cam.clock(rec.duration ?? 0),
+      feed: Cam.recordingFeed(rec, this.tape.t) };
+  }
+  #stopTape(clear = false) { if (this.#tapeTimer) clearInterval(this.#tapeTimer); this.#tapeTimer = null; if (clear) this.tape = null; }
+  #runTape() {
+    this.#stopTape();
+    this.#tapeTimer = setInterval(() => {
+      const rec = this.tape && list("recordings").find((r) => r.id === this.tape.id);
+      if (!rec) return this.#stopTape(true);
+      this.tape.t = Math.min(rec.duration ?? 0, this.tape.t + 100 * this.tape.speed);
+      this.#paintTape(rec);
+      if (this.tape.t >= (rec.duration ?? 0)) { this.tape.playing = false; this.#stopTape(); this.render(); }
+    }, 100);
+  }
+  /** Updates the playing feed in place, without a full re-render. */
+  #paintTape(rec) {
+    const root = this.element?.querySelector(".ht-tape");
+    if (!root) return;
+    Cam.applyFrame(root.querySelector(".ht-feed-tokens"), Cam.frameAt(rec, this.tape.t)?.tokens ?? []);
+    const scrub = root.querySelector("[data-scrub]"); if (scrub) scrub.value = this.tape.t;
+    const time = root.querySelector(".ht-tape-time"); if (time) time.textContent = `${Cam.clock(this.tape.t)} / ${Cam.clock(rec.duration ?? 0)}`;
+  }
+
   #cryptTarget(el) {
     const t = find("terminals", this.viewId);
     const kind = el.dataset.kind, index = Number(el.dataset.index);
