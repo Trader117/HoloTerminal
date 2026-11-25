@@ -39,7 +39,7 @@ export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", bridge: "Ship Bridge", shipyard: "Shipyard", news: "HoloNet News" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "Starship", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", bridge: "Starship", shipyard: "Starship", news: "HoloNet News" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -231,7 +231,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       actorName: actor?.name, credits: actor ? getCredits(actor) : null, canBack: this.view !== "home" || this.hIndex > 0,
       bootText: ["DATAPAD OS 4.2", "Linking to local net...", `Node: ${canvas.scene?.name ?? "deep space"}`, "READY"].join("\n")
     };
-    return Object.assign(ctx, await this[`_ctx_${this.view}`]?.(ctx, actor));
+    Object.assign(ctx, await this[`_ctx_${this.view}`]?.(ctx, actor));
+    ctx.shipTabs = this.#shipTabs();
+    return ctx;
   }
 
   _ctx_home() {
@@ -247,8 +249,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" },
       { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" },
       { action: "galaxy", icon: "fa-earth-americas", label: "Galaxy Map", tone: "gold" },
-      { view: "holodock", icon: "fa-shuttle-space", label: "HoloDock", tone: "red" },
-      { view: "bridge", icon: "fa-users-gear", label: "Bridge", tone: "red" }
+      { view: "holodock", id: Dock.partyShip()?.id, icon: "fa-shuttle-space", label: "Starship", tone: "red" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
     const latest = News.published()[0];
@@ -391,7 +392,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   yardCat = "weapons"; yardQuery = "";
   async _ctx_shipyard() {
     const ship = Dock.partyShip();
-    if (!ship) return { title: "Shipyard", noShip: "No party ship. The GM can set one in the HoloDock." };
+    if (!ship) return { title: "Shipyard", noShip: "No party ship. The GM can set one from the Fleet tab." };
     const planet = await Trade.dockedPlanet();
     if (!planet) return { title: "Shipyard", noShip: `${ship.name} isn't docked at a known world. Move it on the galaxy map.` };
     const rep = Yard.repairs(ship), cat = await Yard.loadCatalog();
@@ -406,7 +407,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   bridgeStation = null;
   _ctx_bridge(ctx, actor) {
     const ship = Dock.partyShip();
-    if (!ship) return { title: "Bridge", noShip: "No party ship. The GM can set one in the HoloDock." };
+    if (!ship) return { title: "Bridge", noShip: "No party ship. The GM can set one from the Fleet tab." };
     const seats = Bridge.stationsOf(ship), mine = actor ? Bridge.stationFor(ship, actor.id) : null;
     const current = this.bridgeStation ?? mine ?? "pilot";
     const stations = Bridge.STATIONS.map((s) => ({ ...s, crewName: game.actors.get(seats[s.id])?.name, mine: s.id === mine, active: s.id === current }));
@@ -465,6 +466,20 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       canTrade: game.user.isGM || info.party || ship.isOwner };
   }
 
+  /** One Starship app: status, bridge, shipyard and the fleet list share a tab bar. */
+  #shipTabs() {
+    if (!["holodock", "bridge", "shipyard"].includes(this.view)) return null;
+    const party = Dock.partyShip()?.id ?? null;
+    const onParty = this.view === "holodock" && this.viewId && this.viewId === party;
+    const tabs = [
+      party && { view: "holodock", id: party, icon: "fa-gauge-high", label: "Status", active: onParty },
+      party && { view: "bridge", icon: "fa-users-gear", label: "Bridge", active: this.view === "bridge" },
+      party && { view: "shipyard", icon: "fa-screwdriver-wrench", label: "Shipyard", active: this.view === "shipyard" },
+      { view: "holodock", id: "", icon: "fa-list", label: "Fleet", active: this.view === "holodock" && !onParty }
+    ].filter(Boolean);
+    return tabs.length > 1 ? tabs : null;
+  }
+
   _ctx_holodock() {
     if (!this.viewId) return { title: "HoloDock", ships: Dock.shipActors().map((a) => Dock.shipInfo(a)) };
     const a = game.actors.get(this.viewId);
@@ -514,7 +529,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #home() { this.#navigate("home"); this.render(); }
   static #closePad() { this.close(); }
   static #console() { ConsoleApp.instance.render(true); }
-  static #go(e, el) { this.#navigate(el.dataset.view, el.dataset.id ?? null); this.render(); }
+  static #go(e, el) { this.#navigate(el.dataset.view, el.dataset.id || null); this.render(); }
   static #back() {
     if (this.hIndex > 0) { const h = this.history[--this.hIndex]; this.#navigate(h.view, h.id, false); }
     else this.#navigate(PARENT[this.view] ?? "home");
