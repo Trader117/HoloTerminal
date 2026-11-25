@@ -12,4 +12,4 @@ Star Wars and related names are trademarks of Lucasfilm Ltd. This is a fan proje
 
 ## Canon region layout
 
-The galaxy map's canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions) are laid out after the region map in *Star Wars: The Galactic Explorer's Guide* (Lucasfilm), as shown on Wookieepedia. The module's borders are its own, worked out from which worlds that map and Wookieepedia place in each region; no artwork from the book is included.
+`canon-regions.json` holds the outlines of the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions), traced from the region map in *Star Wars: The Galactic Explorer's Guide* (Lucasfilm) as shown on Wookieepedia, and scaled onto the galaxy grid. Star Wars and the region map are © Lucasfilm Ltd.; this is an unofficial fan module for private use.

@@ -309,34 +309,36 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     c.textAlign = "left";
   }
-  /** Region slices: each ring cell as a polygon, filled faintly in its region's colour, with borders where regions meet. */
+  /** Canon regions: each region as one path of polar cells, plus borders wherever neighbouring cells differ. */
   #sectorArt(g) {
     if (this._sectorArt) return this._sectorArt;
-    const S = g.sectors, N = S.n, K = S.rings.length;
-    const ang = (t) => (t / N) * Math.PI * 2;
-    const pt = (r, t) => [S.cx + Math.cos(ang(t)) * r, S.cy + Math.sin(ang(t)) * r];
-    // Radius of a ring edge at a cell boundary (t integer) or centre (t + 0.5), matching the band outlines.
-    const rad = (arr, t) => (Number.isInteger(t) ? (arr[(t - 1 + N) % N] + arr[t % N]) / 2 : arr[Math.floor(t) % N]);
-    const arc = (path, arr, a, move) => { const pts = [pt(rad(arr, a), a), pt(rad(arr, a + 0.5), a + 0.5), pt(rad(arr, a + 1), a + 1)]; pts.forEach(([x, y], i) => (i || !move ? path.lineTo(x, y) : path.moveTo(x, y))); };
-    const fills = new Map(), border = new Path2D();
-    for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
-      const v = S.cells[k][a], { inner, outer } = S.rings[k];
-      if (v) {
-        if (!fills.has(v)) fills.set(v, new Path2D());
-        const f = fills.get(v);
-        arc(f, outer, a, true);
-        const [ix, iy] = pt(rad(inner, a + 1), a + 1); f.lineTo(ix, iy); f.lineTo(...pt(rad(inner, a + 0.5), a + 0.5)); f.lineTo(...pt(rad(inner, a), a)); f.closePath();
+    const S = g.sectors, { na, nr, rows } = S;
+    const ang = (i) => ((i / na) * 360 + S.rot) * (Math.PI / 180);
+    const pt = (i, j) => [S.cx + Math.cos(ang(i)) * (j / nr) * S.r, S.cy + Math.sin(ang(i)) * (j / nr) * S.r];
+    const fills = S.names.map(() => new Path2D()), border = new Path2D();
+    rows.forEach((row, i) => {
+      // Runs along this half-degree: one cell polygon each.
+      let j0 = 0;
+      for (let j = 1; j <= nr; j++) {
+        if (j < nr && row[j] === row[j0]) continue;
+        const v = row[j0];
+        if (v >= 0) {
+          const f = fills[v];
+          f.moveTo(...pt(i, j0)); f.lineTo(...pt(i, j)); f.lineTo(...pt(i + 1, j)); f.lineTo(...pt(i + 1, j0)); f.closePath();
+          // Arc border at the outer end of the run (between regions, or the map's edge).
+          border.moveTo(...pt(i, j)); border.lineTo(...pt(i + 1, j));
+        }
+        j0 = j;
       }
-      // Radial border where this cell and the one before it differ.
-      const prev = S.cells[k][(a - 1 + N) % N];
-      if (v !== prev && (v || prev)) { border.moveTo(...pt(rad(inner, a), a)); border.lineTo(...pt(rad(outer, a), a)); }
-      // Arc border where this cell and the one outside it differ.
-      const out = S.cells[k + 1]?.[a] ?? null;
-      if (v !== out && (v || out)) arc(border, outer, a, true);
-      if (k === 0 && v && inner[a] > 0) arc(border, inner, a, true);
-    }
-    const color = new Map(S.names.map((n) => [n.name, n.color]));
-    return (this._sectorArt = { fills: [...fills].map(([name, path]) => ({ name, path, color: color.get(name) })), border, names: S.names });
+      // Radial border against the previous half-degree where the regions differ.
+      const prev = rows[(i - 1 + na) % na];
+      for (let j = 0; j < nr; j++) {
+        if (row[j] === prev[j] || (row[j] < 0 && prev[j] < 0)) continue;
+        let k = j; while (k + 1 < nr && row[k + 1] !== prev[k + 1] && !(row[k + 1] < 0 && prev[k + 1] < 0)) k++;
+        border.moveTo(...pt(i, j)); border.lineTo(...pt(i, k + 1)); j = k;
+      }
+    });
+    return (this._sectorArt = { fills: fills.map((path, v) => ({ path, color: S.names[v].color })), border, names: S.names });
   }
   #drawSectors(c, g, z) {
     if (!g.sectors || !game.settings.get(MODULE_ID, "galaxyCanonRegions")) return;
@@ -344,7 +346,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     c.save(); c.translate(ox, oy); c.scale(z, z);
     // Coloured regions with light borders; fainter when the main region bands are drawn on top.
     const a = this.show.regions ? 0.13 : 0.3;
-    for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path); }
+    for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, a); c.fill(f.path, "nonzero"); }
     c.lineWidth = 2 / z; c.lineJoin = "round"; c.strokeStyle = "rgba(240,244,248,.7)"; c.stroke(art.border);
     c.restore();
     if (!this.show.regionLabels) return;

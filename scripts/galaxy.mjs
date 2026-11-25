@@ -25,7 +25,7 @@ export function registerGalaxySettings() {
   game.settings.register(MODULE_ID, "galaxyClass", { name: "Galaxy map: default hyperdrive class", hint: "Used for route estimates until a ship is chosen.",
     scope: "world", config: true, type: Number, default: 2 });
   game.settings.register(MODULE_ID, "galaxyCanonRegions", { name: "Galaxy map: canon regions",
-    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region layout after the map in Star Wars: The Galactic Explorer's Guide (Lucasfilm), as shown on Wookieepedia; planet and hyperlane data from Wookieepedia (CC BY-SA 3.0).",
+    hint: "Shows the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions). Credits: region outlines traced from the map in Star Wars: The Galactic Explorer's Guide (© Lucasfilm), as shown on Wookieepedia; planet and hyperlane data from Wookieepedia (CC BY-SA 3.0).",
     scope: "world", config: true, type: Boolean, default: true, onChange: () => Hooks.callAll(GALAXY_HOOK) });
 }
 
@@ -47,14 +47,17 @@ export const gridLabel = (x, y) => `${String.fromCharCode(65 + Math.floor(x / SQ
 let cache = null;
 export async function loadGalaxy() {
   if (cache) return cache;
-  const rows = await fetch(`modules/${MODULE_ID}/data/planets.json`).then((r) => r.json()).catch(() => []);
-  cache = buildGalaxy(rows);
+  const [rows, canon] = await Promise.all([
+    fetch(`modules/${MODULE_ID}/data/planets.json`).then((r) => r.json()).catch(() => []),
+    fetch(`modules/${MODULE_ID}/data/canon-regions.json`).then((r) => r.json()).catch(() => null)
+  ]);
+  cache = buildGalaxy(rows, canon);
   return cache;
 }
 export function resetGalaxyCache() { cache = null; }
 
 /** Merges canon and Legends pages, places planets, and builds lanes and region rings. */
-export function buildGalaxy(rows) {
+export function buildGalaxy(rows, canon = null) {
   const byKey = new Map();
   for (const r of rows) {
     const [title, grid, region, sector, system, legendsOnly, weight, cls, climate, terrain, routes, subs] = r;
@@ -88,7 +91,7 @@ export function buildGalaxy(rows) {
   sorted.forEach((p, i) => { p.rank = i; });
   const cols = Math.max(21, ...planets.map((p) => p.g.col + 1)), rows_ = Math.max(21, ...planets.map((p) => p.g.row + 1));
   const rings = buildRings(planets);
-  const bands = buildBands(planets, rings), sectors = buildSectors(planets, bands);
+  const bands = buildBands(planets, rings), sectors = canon ? buildSectors(canon) : null;
   const wedgeNames = new Set(CANON_REGIONS);
   return { sectors, subregions: buildSubregions(planets, cols, rows_, { skip: wedgeNames }), planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands, zones: buildZones(planets, cols, rows_, rings) };
 }
@@ -243,118 +246,36 @@ export function buildBands(planets, ringInfo) {
 const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
 
 /**
- * The six canon regions, laid out on the ring cells (5-degree slices of each main band). The layout follows the region
- * map in Star Wars: The Galactic Explorer's Guide (as shown on Wookieepedia): the Interior fills the middle, the Slice
- * cuts in from the east between the Perlemian Trade Route and the Corellian Run, and the outer rings run, clockwise from
- * the Slice, through the Trailing Sectors, Western Reaches, Interior (where it reaches out), Unknown Regions and New
- * Territories. Each ring is split in that order where it best agrees with: the worlds that map places in each region
- * (strong anchors), each world's listed region on Wookieepedia, and the two lanes that bound the Slice.
- * Returns { n, cx, cy, rings: [{ inner, outer }], cells: (string|null)[][], names: [{name, color, label}] }.
+ * The six canon regions, from data/canon-regions.json: the region map in Star Wars: The Galactic Explorer's Guide,
+ * stored as a polar raster (one row of [radius step, region] runs per half-degree) and placed on this map's grid by a
+ * best fit of the worlds it shows. Returns { cx, cy, r, rot, na, nr, rows: Int8Array[] (region per radius step, -1 =
+ * outside), names: [{ name, color, label }] }.
  */
 export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
 export const CANON_COLOR = { "The Interior": "#e8b04a", "New Territories": "#d94a6a", "The Slice": "#4fa58f", "Trailing Sectors": "#9b6cc4", "Western Reaches": "#e3784a", "Unknown Regions": "#4f9fcf" };
-const RING_ORDER = ["The Slice", "Trailing Sectors", "Western Reaches", "The Interior", "Unknown Regions", "New Territories"];
-/** Worlds the Galactic Explorer's Guide map places in each region. */
-const CANON_ANCHORS = {
-  "New Territories": ["Dantooine", "Cantonica", "Yavin 4", "Dathomir", "Ithor", "Ord Mantell", "Mandalore"],
-  "The Slice": ["Felucia", "Mon Cala", "Lothal", "Kashyyyk", "Kessel", "Toydaria", "Nal Hutta", "Bothawui", "Scarif", "Rodia", "Tatooine", "Geonosis"],
-  "The Interior": ["Coruscant", "Alderaan", "Corellia", "Hosnian Prime", "Jakku", "Takodana"],
-  "Trailing Sectors": ["Naboo", "Crait", "D'Qar"],
-  "Western Reaches": ["Bespin", "Hoth", "Mustafar", "Sullust", "Dagobah", "Utapau"],
-  "Unknown Regions": ["Ilum", "Csilla", "Jedha", "Ahch-To", "Batuu", "Endor"]
-};
 
-export function buildSectors(planets, B) {
-  const N = B.n, K = B.bands.length, { cx, cy } = B, TAU = Math.PI * 2;
-  const rings = B.bands.map((b, k) => ({ outer: b.r, inner: k ? B.bands[k - 1].r : new Array(N).fill(0) }));
-  const place = (p) => {
-    const ang = (Math.atan2(p.y - cy, p.x - cx) + TAU) % TAU, a = Math.floor((ang / TAU) * N) % N;
-    const d = Math.hypot(p.x - cx, p.y - cy), k = rings.findIndex((r) => d <= r.outer[a]);
-    return { ang, a, k: k < 0 ? K - 1 : k };
-  };
-  // Lane angle per ring: the circular median of the lane's worlds in that ring, filled in from neighbouring rings.
-  const laneAngles = (route) => {
-    const per = Array.from({ length: K }, () => []);
-    for (const p of planets) if (p.routes?.includes(route)) { const { ang, k } = place(p); per[k].push(ang); }
-    const out = per.map((angs) => {
-      if (angs.length < 2) return null;
-      const mean = Math.atan2(angs.reduce((t, a) => t + Math.sin(a), 0), angs.reduce((t, a) => t + Math.cos(a), 0));
-      const rel = angs.map((a) => ((a - mean + Math.PI * 3) % TAU) - Math.PI).sort((x, y) => x - y);
-      return (mean + rel[Math.floor(rel.length / 2)] + TAU) % TAU;
-    });
-    for (let k = 0; k < K; k++) if (out[k] === null) out[k] = out.slice(k + 1).find((v) => v !== null) ?? out.slice(0, k).reverse().find((v) => v !== null) ?? null;
-    return out;
-  };
-  const perl = laneAngles("Perlemian Trade Route"), corr = laneAngles("Corellian Run");
-  const votes = Array.from({ length: K }, () => Array.from({ length: N }, () => new Map()));
-  const add = (k, a, n, w) => { if (k < 0 || k >= K) return; const m = votes[k][(a + N) % N]; m.set(n, (m.get(n) ?? 0) + w); };
-  // Each world's listed region.
-  for (const p of planets) {
-    const names = (p.subregions ?? []).filter((n) => CANON_REGIONS.includes(n));
-    if (p.region === "Unknown Regions" && !names.includes("Unknown Regions")) names.push("Unknown Regions");
-    if (!names.length) continue;
-    const { a, k } = place(p);
-    for (const n of names) { add(k, a, n, 1); add(k, a - 1, n, 0.4); add(k, a + 1, n, 0.4); }
-  }
-  // The map's own worlds: strong anchors that also pull on the neighbouring rings.
-  const byName = new Map(planets.map((p) => [p.name, p]));
-  for (const [n, list] of Object.entries(CANON_ANCHORS)) for (const w of list) {
-    const p = byName.get(w); if (!p) continue;
-    const { a, k } = place(p);
-    for (let da = -2; da <= 2; da++) { add(k, a + da, n, da ? 3 : 30); add(k - 1, a + da, n, da ? 1.5 : 6); add(k + 1, a + da, n, da ? 1.5 : 6); }
-  }
-  // The Slice between its two lanes, from the Colonies outward.
-  for (let k = 2; k < K; k++) {
-    if (perl[k] === null || corr[k] === null) continue;
-    const s0 = Math.round((perl[k] / TAU) * N), s1 = Math.round((corr[k] / TAU) * N), width = (s1 - s0 + N) % N;
-    if (width < 2 || width > N / 2) continue;
-    for (let i = 0; i < width; i++) add(k, s0 + i, "The Slice", k <= 3 ? 1 : 1.5);
-  }
-  // The Interior fills the middle.
-  [40, 30, 2.2, 1.6, 0.4, 0, 0].forEach((w, k) => { if (w && k < K) for (let a = 0; a < N; a++) add(k, a, "The Interior", w); });
-  const cells = [];
-  const L = RING_ORDER.length;
-  for (let k = 0; k < K; k++) {
-    // Split the ring in canon order (Slice first, New Territories last): each cell's label index never goes back.
-    // Dynamic programming finds the split that agrees with the most votes, trying every starting cell.
-    const score = (a, l) => votes[k][a].get(RING_ORDER[l]) ?? 0;
-    let bestRow = null, bestScore = -Infinity;
-    for (let start = 0; start < N; start++) {
-      const arc = Array.from({ length: N }, (_, i) => (start + i) % N);
-      const dp = arc.map(() => new Array(L).fill(-Infinity)), from = arc.map(() => new Array(L).fill(0));
-      for (let l = 0; l < L; l++) dp[0][l] = score(arc[0], l);
-      for (let i = 1; i < N; i++) for (let l = 0; l < L; l++) {
-        let best = -Infinity, bl = 0;
-        for (let q = 0; q <= l; q++) { const v = dp[i - 1][q] - (q === l ? 0 : 0.5); if (v > best) { best = v; bl = q; } }
-        dp[i][l] = best + score(arc[i], l); from[i][l] = bl;
-      }
-      const top = Math.max(...dp.at(-1));
-      if (top <= bestScore + 1e-9) continue;
-      bestScore = top;
-      const row = new Array(N).fill(null);
-      let l = dp.at(-1).indexOf(top);
-      for (let i = N - 1; i >= 0; i--) { row[arc[i]] = RING_ORDER[l]; l = from[i][l]; }
-      bestRow = row;
-    }
-    const row = bestRow;
-    cells.push(row);
-  }
-  // Labels: in the cell with the most same-region neighbours, preferring thick bands.
-  const count = new Map();
-  for (const row of cells) for (const v of row) if (v) count.set(v, (count.get(v) ?? 0) + 1);
-  const names = [...count.keys()].map((name) => {
-    let best = null, bs = -1;
-    for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
-      if (cells[k][a] !== name) continue;
-      let sc = 0;
-      for (let dk = -1; dk <= 1; dk++) for (let da = -2; da <= 2; da++) if (cells[k + dk]?.[(a + da + N) % N] === name) sc++;
-      sc += (rings[k].outer[a] - rings[k].inner[a]) / SQ;
-      if (sc > bs) { bs = sc; best = [k, a]; }
-    }
-    const [k, a] = best, ang = ((a + 0.5) / N) * TAU, r = (rings[k].inner[a] + rings[k].outer[a]) / 2;
-    return { name, color: CANON_COLOR[name], cells: count.get(name), label: { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r } };
+export function buildSectors(canon) {
+  const { na, nr, cx, cy, r, rot = 0 } = canon;
+  const rows = canon.runs.map((runs) => {
+    const row = new Int8Array(nr).fill(-1);
+    runs.forEach(([j, v], k) => { const end = runs[k + 1]?.[0] ?? nr; row.fill(v, j, end); });
+    return row;
   });
-  return { n: N, cx, cy, rings, cells, names };
+  const ang = (i) => ((i / na) * 360 + rot) * (Math.PI / 180);
+  // Label: each region's centre of mass in polar cells, moved to its nearest own cell if it falls outside.
+  const names = canon.names.map((name, v) => {
+    let sx = 0, sy = 0, n = 0;
+    rows.forEach((row, i) => row.forEach((x, j) => { if (x !== v) return; const w = j + 0.5; sx += Math.cos(ang(i + 0.5)) * w * w; sy += Math.sin(ang(i + 0.5)) * w * w; n += w; }));
+    let lx = cx + (sx / n / nr) * r, ly = cy + (sy / n / nr) * r;
+    const at = (x, y) => { const t = ((Math.atan2(y - cy, x - cx) * 180) / Math.PI - rot + 720) % 360, i = Math.floor((t / 360) * na) % na, j = Math.floor((Math.hypot(x - cx, y - cy) / r) * nr); return j < nr ? rows[i][j] : -1; };
+    if (at(lx, ly) !== v) {
+      let best = null, bd = Infinity;
+      rows.forEach((row, i) => row.forEach((x, j) => { if (x !== v) return; const px = cx + Math.cos(ang(i + 0.5)) * ((j + 0.5) / nr) * r, py = cy + Math.sin(ang(i + 0.5)) * ((j + 0.5) / nr) * r, d = Math.hypot(px - lx, py - ly); if (d < bd) { bd = d; best = [px, py]; } }));
+      [lx, ly] = best;
+    }
+    return { name, color: CANON_COLOR[name], label: { x: lx, y: ly } };
+  });
+  return { cx, cy, r, rot, na, nr, rows, names };
 }
 
 /**
