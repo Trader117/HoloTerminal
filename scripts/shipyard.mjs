@@ -42,7 +42,7 @@ export function priceFor(row, ship, cat) {
   const mult = Number(game.settings.get(MODULE_ID, "yardMarkup")) || 1;
   let base = row.list;
   if (!base && cat === "modifications") {
-    const sizeMult = Number(sizeOf(ship)?.system?.modCostMult) || 1;
+    const sizeMult = Number(sizeOf(ship)?.system?.modCostMult) || Number(ship?.getFlag(MODULE_ID, "ship")?.sw5e?.modCostMult) || 1;
     base = Math.max(1, row.grade) * (Number(game.settings.get(MODULE_ID, "yardModCost")) || 0) * sizeMult;
   }
   return Math.round(base * mult);

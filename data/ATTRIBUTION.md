@@ -17,3 +17,10 @@ Star Wars and related names are trademarks of Lucasfilm Ltd. This is a fan proje
 ## Canon region layout
 
 `canon-regions.json` holds the outlines of the six canon regions (the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions), traced from the "Regions (new)" layer of Henry Bernberg's Star Wars galaxy map on ArcGIS (https://henrybernberg.maps.arcgis.com/apps/instant/basic/index.html?appid=f8953229bb0e47fcbfbd080640bb57b0). Star Wars is © Lucasfilm Ltd.; this is an unofficial fan module for private use.
+
+## Starships
+
+`starships.json` holds the 87 Drake's Shipyard starships, with their weapons, equipment, starship actions, features and
+modifications, copied from the SW5e Database's `data/Starships/drakesShipyard.json` (mod categories and grades from
+`starshipModification.json`) by `tools/build-starships.py`. The rules text is SW5e content (Starships of the Galaxy and
+Drake's Shipyard, sw5e.com). The SW5e Database itself is not changed.

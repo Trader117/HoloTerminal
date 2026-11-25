@@ -89,8 +89,9 @@
     <div class="ht-row ht-dock-addship">
       <select name="ship-actor">{{#each candidates}}<option value="{{id}}">{{name}}</option>{{else}}<option value="">No other actors</option>{{/each}}</select>
       <button type="button" data-action="shipAdd" title="Use a vehicle or NPC actor as a ship"><i class="fas fa-plus"></i> Add as ship</button>
+      <button type="button" data-action="shipImport" title="Build a working SW5e starship from Drake's Shipyard or an SW5e Database file"><i class="fas fa-file-import"></i> Import ship</button>
     </div>
-    <p class="ht-dim ht-sc-help">SW5e starship actors are listed on their own. Players see the party ship plus any ship they have Limited rights on (Observer to read its systems, Owner to buy fuel and load cargo). The party ship sets the galaxy map's ship marker and route speed.</p>
+    <p class="ht-dim ht-sc-help"><b>Import ship</b> builds any of the 87 Drake's Shipyard starships (or one from an SW5e Database file) as a working dnd5e space vehicle with its AC, hull, shields, weapons, actions and mods. SW5e starship actors are listed on their own. Players see the party ship plus any ship they have Limited rights on (Observer to read its systems, Owner to buy fuel and load cargo). The party ship sets the galaxy map's ship marker and route speed.</p>
     <ul>
       {{#each ships}}
       <li class="ht-entry">

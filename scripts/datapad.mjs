@@ -27,6 +27,7 @@ import { pingPoint } from "./scan-fx.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { rollSkill } from "./roll.mjs";
 import * as Dock from "./holodock.mjs";
+import * as StarshipImport from "./starship-import.mjs";
 import * as Comms from "./comms.mjs";
 import * as Trade from "./trade.mjs";
 import * as Bank from "./bank.mjs";
@@ -75,7 +76,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       galaxy: () => GalaxyMapApp.instance.render(true),
       scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge,
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
-      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
+      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet, dockSkill: DatapadApp.#dockSkill,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
       newsPost: DatapadApp.#newsPost, newsApprove: DatapadApp.#newsApprove, newsDelete: DatapadApp.#newsDelete,
       yardRepair: DatapadApp.#yardRepair, yardBuy: DatapadApp.#yardBuy, yardTab: DatapadApp.#yardTab,
@@ -683,6 +684,16 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #dockCargoRemove(e, el) { await requestGM("dockCargo", { shipId: this.viewId, op: "remove", cargoId: el.dataset.id }); }
   static async #dockParty(e, el) { if (game.user.isGM) await Dock.setPartyShip(el.dataset.id); }
   static #dockSheet() { game.actors.get(this.viewId)?.sheet?.render(true); }
+  /** Starship skill check: d20 + the ship's ability modifier + the proficiency bonus of the character rolling, if they hold a bridge station. */
+  static async #dockSkill() {
+    const ship = game.actors.get(this.viewId), key = this.element.querySelector("[name=dock-skill]")?.value;
+    const sk = StarshipImport.SKILLS[key]; if (!ship || !sk) return;
+    const who = activeActor(), crew = who && Bridge.stationFor(ship, who.id);
+    const prof = crew ? Number(who.system?.attributes?.prof) || 0 : 0;
+    const roll = await new Roll("1d20 + @mod + @prof", { mod: ship.system?.abilities?.[sk.ability]?.mod ?? 0, prof }).evaluate();
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: ship }),
+      flavor: `${sk.label} (${CONFIG.DND5E?.abilities?.[sk.ability]?.label ?? sk.ability}) check${crew ? `, ${who.name} at the helm` : ""}` });
+  }
   static async #scanRecharge(e, el) { if (await Scan.recharge(activeActor(), el.dataset.id)) this.render(); }
   static #scanMark(e, el) {
     const h = lastPulse?.found?.[Number(el.dataset.index)];
