@@ -12,12 +12,10 @@
 {{else}}
   <nav class="ht-tabs">{{#each tabs}}<button type="button" data-action="tab" data-tab="{{id}}" class="{{#if active}}active{{/if}}">{{label}}</button>{{/each}}</nav>
   {{#if (eq tab "messages")}}
-    {{#each terminal.messages}}<details class="ht-item"><summary><b>{{from}}</b> &mdash; {{subject}}</summary><div class="ht-text">{{{body}}}</div></details>
-    {{else}}<p class="ht-dim">-- inbox empty --</p>{{/each}}
+    {{#each messages}}{{> cryptEntry title=titleText}}{{else}}<p class="ht-dim">-- inbox empty --</p>{{/each}}
   {{/if}}
   {{#if (eq tab "files")}}
-    {{#each terminal.files}}<details class="ht-item"><summary>&#128190; {{name}}</summary><div class="ht-text">{{{body}}}</div></details>
-    {{else}}<p class="ht-dim">-- no files --</p>{{/each}}
+    {{#each files}}{{> cryptEntry}}{{else}}<p class="ht-dim">-- no files --</p>{{/each}}
   {{/if}}
   {{#if (eq tab "controls")}}
     {{#each controls}}<div class="ht-control"><span>{{label}}</span><button type="button" data-action="control" data-index="{{index}}">{{state}}</button></div>

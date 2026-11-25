@@ -257,3 +257,11 @@
 .ht-fw-sentinel { background: var(--ht-red); box-shadow: 0 0 10px var(--ht-red); border-radius: 50%; }
 .ht-fw-pad { display: grid; grid-template-areas: ". up ." "left down right"; grid-template-columns: repeat(3, 44px); gap: 4px; justify-content: center; margin-top: 8px; }
 .ht-fw-pad button { height: 36px; }
+
+/* ---------- encrypted entries ---------- */
+.ht-encrypted { border-left-color: var(--ht-gold); }
+.ht-decrypted { border-left-color: var(--ht-good); }
+.ht-crypt-icon { color: var(--ht-gold); margin-right: 4px; } .ht-decrypted .ht-crypt-icon { color: var(--ht-good); }
+.ht-scrambled { font: 13px/1.5 Consolas, "Courier New", monospace; color: #7aa7c4; letter-spacing: 1px; word-break: break-all; opacity: .8; }
+.ht-crypt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.ht-crypt-label { font: 700 10px var(--ht-font-display); color: var(--ht-gold); text-transform: uppercase; letter-spacing: 1.5px; margin-right: auto; }

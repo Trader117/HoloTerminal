@@ -17,11 +17,14 @@ export const HACKS = {
 };
 import { openEditor, ConsoleApp, blank } from "./admin.mjs";
 import { isLootable, lootSummary } from "./loot.mjs";
+import * as Crypt from "./decrypt.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
 export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage"];
 export const PARTIAL_PATHS = VIEWS.map(T);
+/** Shared partials, registered under a short name. */
+export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
   bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
@@ -62,6 +65,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       login: DatapadApp.#login, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
+      decryptCheck: DatapadApp.#decryptCheck, decryptKey: DatapadApp.#decryptKey, decryptHack: DatapadApp.#decryptHack,
       rotateTile: DatapadApp.#rotateTile, lockIn: DatapadApp.#lockIn, fwMove: DatapadApp.#fwMove,
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
@@ -72,6 +76,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   history = [{ view: "home", id: null }]; hIndex = 0;
   view = "home"; viewId = null; tab = "messages"; denied = false; booting = true; puzzle = null; bonus = 0; game = null; #timer = null;
+  /** Set when a slicing game is decrypting one entry instead of unlocking the whole terminal. */
+  hackTarget = null; justDecrypted = null;
 
   constructor(options) {
     super(options);
@@ -98,6 +104,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.view = view; this.viewId = id; this.denied = false;
     if (view === "terminal") this.tab = "messages";
     if (view !== "slice") { this.puzzle = null; this.game = null; this.#stopTimer(); }
+    if (view === "terminal" && this.hackTarget) this.tab = this.hackTarget.tab;
+    if (view !== "slice") this.hackTarget = null;
   }
 
   async _onFirstRender(context, options) {
@@ -125,6 +133,11 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ev.preventDefault();
         this.#firewallStep(dir);
       });
+    }
+    if (this.justDecrypted && this.view === "terminal") {
+      const target = this.element.querySelector(`[data-crypt="${this.justDecrypted}"] .ht-text`);
+      if (target) { target.closest("details")?.setAttribute("open", ""); Crypt.resolveAnimation(target); }
+      this.justDecrypted = null;
     }
     if (this.game === "firewall" && this.puzzle?.state === "playing") this.element.querySelector(".ht-fw-grid")?.focus();
     const handle = this.element.querySelector(".ht-bezel-top");
@@ -158,8 +171,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async #finishHack() {
     this.#stopTimer();
     const success = this.puzzle?.state === "won";
-    requestGM("sliceResult", { terminalId: this.viewId, success, actorName: activeActor()?.name, game: HACKS[this.game]?.name });
-    if (success) await unlock(this.viewId);
+    const target = this.hackTarget;
+    if (target) {
+      requestGM("decryptResult", { terminalId: this.viewId, label: target.label, success, how: HACKS[this.game]?.name, actorName: activeActor()?.name });
+      if (success) { await Crypt.markDecrypted(target.key); this.justDecrypted = target.key; this.tab = target.tab; }
+    } else {
+      requestGM("sliceResult", { terminalId: this.viewId, success, actorName: activeActor()?.name, game: HACKS[this.game]?.name });
+      if (success) await unlock(this.viewId);
+    }
     this.bonus = 0;
     this.render();
   }
@@ -208,20 +227,36 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       title: t.name, terminal: t, theme: t.theme ?? "cyan", locked, denied: this.denied,
       hasPassword: !!t.password, slice: t.slice, tab: this.tab,
+      messages: this.#cryptEntries(t, "messages", (m) => `${m.from} ${m.subject}`),
+      files: this.#cryptEntries(t, "files", (f) => f.name),
       tabs: ["messages", "files", "controls"].map((id) => ({ id, active: id === this.tab, label: game.i18n.localize(`HT.${id}`) })),
       controls: (t.controls ?? []).map((c, i) => ({ ...c, index: i, state: state(c) }))
     };
   }
 
+  /** Messages or files with their encryption state for this user. */
+  #cryptEntries(t, kind, titleOf) {
+    const actor = activeActor();
+    return (t[kind] ?? []).map((e, index) => {
+      const key = Crypt.entryKey(t.id, kind, index);
+      const enc = e.encrypted ? (typeof e.encrypted === "object" ? e.encrypted : {}) : null;
+      const open = !enc || Crypt.isDecrypted(key);
+      return { ...e, index, key, kind, encrypted: !!enc, open, resolving: this.justDecrypted === key,
+        scrambled: open ? null : Crypt.scramble(Crypt.plainText(e.body), index + 3),
+        dc: enc?.dc ?? 15, keyName: enc?.key, hasKey: Crypt.hasKey(actor, enc?.key),
+        checkUsed: enc && Crypt.checkFailed(key), canHack: enc?.game !== "none", titleText: titleOf(e) };
+    });
+  }
+
   _ctx_slice() {
     const t = find("terminals", this.viewId);
-    const cfg = t?.slice ?? {};
+    const cfg = this.hackTarget?.cfg ?? t?.slice ?? {};
     const p = this.puzzle;
     const chosen = cfg.game && cfg.game !== "random" ? cfg.game : null;
     const game = this.game ?? chosen;
     const info = HACKS[game];
     const ctx = {
-      title: t?.name ?? "?", theme: "green", difficulty: cfg.difficulty ?? "normal", dc: cfg.dc ?? 15,
+      title: this.hackTarget ? `Decrypt: ${this.hackTarget.label}` : t?.name ?? "?", theme: "green", decrypting: !!this.hackTarget, difficulty: cfg.difficulty ?? "normal", dc: cfg.dc ?? 15,
       game, gameName: info?.name ?? "Unknown system", rules: info?.rules ?? "The security system is shifting. You won't know which countermeasure you face until you're in.",
       boostText: info?.boost ?? "an edge", timed: !!info?.timed, bonus: this.bonus, puzzle: p, ready: !p,
       playing: p?.state === "playing", won: p?.state === "won", lost: p?.state === "lost", time: p?.time, timeLow: p?.time <= 10,
@@ -303,14 +338,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #sliceBoost() {
-    const t = find("terminals", this.viewId);
+    const cfg = this.hackTarget?.cfg ?? find("terminals", this.viewId)?.slice ?? {};
     const total = await rollSkill(activeActor(), game.settings.get(MODULE_ID, "sliceSkill"));
     if (total === null) return;
-    this.bonus = bonusFromRoll(total, t?.slice?.dc ?? 15);
+    this.bonus = bonusFromRoll(total, cfg.dc ?? 15);
     DatapadApp.#sliceBegin.call(this);
   }
   static #sliceBegin() {
-    const cfg = find("terminals", this.viewId)?.slice ?? {};
+    const cfg = this.hackTarget?.cfg ?? find("terminals", this.viewId)?.slice ?? {};
     let game = cfg.game && HACKS[cfg.game] ? cfg.game : "cipher";
     if (cfg.game === "random") { const keys = Object.keys(HACKS); game = keys[Math.floor(Math.random() * keys.length)]; }
     this.game = game;
@@ -318,6 +353,43 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (HACKS[game].timed) this.#startTimer();
     this.render();
   }
+  #cryptTarget(el) {
+    const t = find("terminals", this.viewId);
+    const kind = el.dataset.kind, index = Number(el.dataset.index);
+    const entry = t?.[kind]?.[index];
+    if (!entry?.encrypted) return null;
+    const enc = typeof entry.encrypted === "object" ? entry.encrypted : {};
+    return { t, entry, enc, kind, index, key: Crypt.entryKey(t.id, kind, index), label: kind === "files" ? entry.name : entry.subject ?? "message" };
+  }
+  static async #decryptCheck(e, el) {
+    const c = this.#cryptTarget(el);
+    if (!c || Crypt.checkFailed(c.key)) return;
+    const total = await rollSkill(activeActor(), game.settings.get(MODULE_ID, "sliceSkill"));
+    if (total === null) return;
+    const success = total >= (c.enc.dc ?? 15);
+    requestGM("decryptResult", { terminalId: c.t.id, label: c.label, success, how: `check ${total} vs DC ${c.enc.dc ?? 15}`, actorName: activeActor()?.name });
+    if (success) { await Crypt.markDecrypted(c.key); this.justDecrypted = c.key; }
+    else { await Crypt.markCheckFailed(c.key); ui.notifications.warn("Decryption failed. You'll need the key or a slice to crack this one."); }
+    this.render();
+  }
+  static async #decryptKey(e, el) {
+    const c = this.#cryptTarget(el);
+    if (!c || !Crypt.hasKey(activeActor(), c.enc.key)) return;
+    requestGM("decryptResult", { terminalId: c.t.id, label: c.label, success: true, how: c.enc.key, actorName: activeActor()?.name });
+    await Crypt.markDecrypted(c.key);
+    this.justDecrypted = c.key;
+    this.render();
+  }
+  static #decryptHack(e, el) {
+    const c = this.#cryptTarget(el);
+    if (!c) return;
+    const base = c.t.slice ?? {};
+    this.hackTarget = { key: c.key, label: c.label, tab: c.kind,
+      cfg: { game: c.enc.game ?? base.game ?? "random", difficulty: c.enc.difficulty ?? base.difficulty ?? "normal", dc: c.enc.dc ?? base.dc ?? 15 } };
+    this.#navigate("slice", this.viewId);
+    this.render();
+  }
+
   static #rotateTile(e, el) {
     if (this.game !== "circuit") return;
     Circuit.rotateTile(this.puzzle, Number(el.dataset.i));

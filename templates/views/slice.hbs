@@ -76,8 +76,8 @@
   {{/if}}
 
   {{#if won}}
-    <div class="ht-login"><p class="ht-big ht-granted">ACCESS GRANTED</p>
-      <button type="button" class="ht-primary" data-action="go" data-view="terminal" data-id="{{viewId}}">Enter</button></div>
+    <div class="ht-login"><p class="ht-big ht-granted">{{#if decrypting}}DECRYPTED{{else}}ACCESS GRANTED{{/if}}</p>
+      <button type="button" class="ht-primary" data-action="go" data-view="terminal" data-id="{{viewId}}">{{#if decrypting}}Read it{{else}}Enter{{/if}}</button></div>
   {{/if}}
   {{#if lost}}
     <div class="ht-login"><p class="ht-big ht-denied">LOCKOUT &middot; INTRUSION LOGGED</p>

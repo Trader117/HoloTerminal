@@ -12,7 +12,11 @@ export function blank(kind) {
     case "terminals": return {
       id, name: "Security Node", theme: "cyan", hidden: false, scenes: [], password: "",
       slice: { game: "random", difficulty: "normal", dc: 15 }, // game: cipher, circuit, signal, firewall or random
-      messages: [{ from: "Duty Officer", subject: "Shift change", body: "Patrol rotates at 0300. Dock 7 unmonitored for ten minutes." }],
+      messages: [
+        { from: "Duty Officer", subject: "Shift change", body: "Patrol rotates at 0300. Dock 7 unmonitored for ten minutes." },
+        { from: "Unknown", subject: "Priority burst", body: "The shipment is a decoy. The real cargo moves through bay 12 at dawn.",
+          encrypted: { dc: 15, key: "Code Cylinder", game: "signal" } } // remove "encrypted" for plain text
+      ],
       files: [{ name: "manifest.dat", body: "12 crates logged. 1 crate unlisted." }],
       controls: [] // { "label": "Blast door", "type": "door", "id": "<wall id>" } or type "light" with an ambient light id
     };

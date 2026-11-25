@@ -43,6 +43,19 @@ A locked terminal can be sliced instead of using its access code. Set the termin
 
 Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and number of sentinels. Before starting, a player can roll the slicing skill against the terminal's DC. Success gives +1, plus 1 more for every 5 over the DC (up to +3), and a failure gives -1. Each point is an attempt (Cipher), 15 seconds (Circuit), 10 seconds (Signal) or 3 moves (Firewall). The GM gets a whisper naming the game for every success and failure.
 
+## Encrypted messages and files
+Any message or file on a terminal can be encrypted:
+```json
+{ "from": "Unknown", "subject": "Priority burst", "body": "The real cargo moves through bay 12.",
+  "encrypted": { "dc": 15, "key": "Code Cylinder", "game": "signal", "difficulty": "normal" } }
+```
+Players see scrambled text and up to three ways in:
+- **Decrypt (DC)**: one slicing-skill check per player. If it fails, they need another way in.
+- **Use key**: shown when the active character carries an item with that exact name.
+- **Slice it**: plays a slicing game. It uses `game` and `difficulty` if set, otherwise the terminal's own settings. Set `"game": "none"` to turn this off.
+
+Once decrypted, the text resolves letter by letter. Each player keeps what they've decrypted. The GM always sees the plain text, with an open padlock, and gets a whisper for every attempt.
+
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.
 - **Slicing skill**: default `inv` (Investigation) on dnd5e, `tec` (Technology) on the SW5e system. Any skill key the system knows works.

@@ -1,6 +1,6 @@
 import { MODULE_ID, registerSettings, initSocket, find, findByName, list } from "./store.mjs";
 import { registerActions } from "./actions.mjs";
-import { DatapadApp, PARTIAL_PATHS } from "./datapad.mjs";
+import { DatapadApp, PARTIAL_PATHS, NAMED_PARTIALS } from "./datapad.mjs";
 import { ConsoleApp } from "./admin.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -12,7 +12,8 @@ Hooks.once("init", () => {
   registerSettings();
   registerLootSetting();
   registerLootHud();
-  loadTpl(PARTIAL_PATHS);
+  loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
+  loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
   game.keybindings.register(MODULE_ID, "datapad", {
     name: "Open datapad", editable: [{ key: "KeyP", modifiers: ["Shift"] }],
     onDown: () => { datapad(); return true; }

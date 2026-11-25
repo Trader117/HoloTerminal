@@ -32,6 +32,11 @@ export function registerActions() {
     gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}${game ? ` (${game})` : ""}.`);
   });
 
+  registerHandler("decryptResult", async ({ terminalId, label, success, how, actorName }, user) => {
+    const t = find("terminals", terminalId);
+    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "decrypted" : "<b>failed</b> to decrypt"} <i>${label}</i> on ${t?.name ?? "a terminal"}${how ? ` (${how})` : ""}.`);
+  });
+
   registerHandler("claimBounty", async ({ bountyId, actorName }, user) => {
     const b = find("bounties", bountyId);
     if (!b || b.status === "completed") return;
