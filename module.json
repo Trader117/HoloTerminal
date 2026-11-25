@@ -57,7 +57,8 @@
   },
   "documentTypes": {
     "RegionBehavior": {
-      "openDatapad": {}
+      "openDatapad": {},
+      "scanSignature": {}
     }
   }
 }

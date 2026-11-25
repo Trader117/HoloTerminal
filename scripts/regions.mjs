@@ -8,7 +8,7 @@ export const BEHAVIOR_TYPE = `${MODULE_ID}.openDatapad`;
 
 /** Every place the behaviour can open, built when the config sheet renders so new terminals/markets show up. */
 function targetChoices() {
-  const c = { home: "Datapad home screen", bounties: "Bounty board", salvage: "Salvage (loot nearby)" };
+  const c = { home: "Datapad home screen", bounties: "Bounty board", salvage: "Salvage (loot nearby)", scanner: "Pulse Scanner" };
   for (const t of list("terminals")) c[`terminal:${t.id}`] = `Terminal: ${t.name}`;
   for (const s of list("shops")) c[`shop:${s.id}`] = `Market: ${s.name}`;
   return c;

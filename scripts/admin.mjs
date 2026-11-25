@@ -1,6 +1,9 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, upsert, remove, itemPrice } from "./store.mjs";
 import { DatapadApp } from "./datapad.mjs";
 import { ShopEditorApp, importMejShops } from "./shop-editor.mjs";
+import * as Scan from "./scanner.mjs";
+import { runScan } from "./scan-wheel.mjs";
+import { playPulse } from "./scan-fx.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -136,7 +139,10 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 540, height: 560 },
     actions: {
       tab: ConsoleApp.#tab, create: ConsoleApp.#create, open: ConsoleApp.#open, show: ConsoleApp.#show,
-      edit: ConsoleApp.#edit, remove: ConsoleApp.#remove, toggle: ConsoleApp.#toggle, importMej: ConsoleApp.#importMej
+      edit: ConsoleApp.#edit, remove: ConsoleApp.#remove, toggle: ConsoleApp.#toggle, importMej: ConsoleApp.#importMej,
+      scGive: ConsoleApp.#scGive, scPreviewForm: ConsoleApp.#scPreviewForm, scPreview: ConsoleApp.#scPreview, scEdit: ConsoleApp.#scEdit,
+      scRecharge: ConsoleApp.#scRecharge, scDelete: ConsoleApp.#scDelete, tgToggle: ConsoleApp.#tgToggle, tgPreview: ConsoleApp.#tgPreview,
+      tgEdit: ConsoleApp.#tgEdit
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/console.hbs`, scrollable: [".ht-body"] } };
@@ -144,12 +150,19 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #instance;
   static get instance() { return (this.#instance ??= new ConsoleApp()); }
 
-  constructor(o) { super(o); Hooks.on(CHANGED_HOOK, () => this.rendered && this.render()); }
+  constructor(o) {
+    super(o);
+    Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
+    for (const h of ["updateActor", "createRegionBehavior", "updateRegionBehavior", "deleteRegionBehavior", "updateRegion", "canvasReady"])
+      Hooks.on(h, () => this.rendered && this.tab === "scanners" && this.render());
+  }
 
   async _prepareContext() {
+    const tabs = [...Object.entries(KIND_LABEL), ["scanners", "Scanners"]].map(([id, label]) => ({ id, label, active: id === this.tab }));
+    if (this.tab === "scanners") return { tab: this.tab, tabs, isScanners: true, ...this.#scannerContext() };
     return {
       tab: this.tab, isShops: this.tab === "shops",
-      tabs: Object.entries(KIND_LABEL).map(([id, label]) => ({ id, label, active: id === this.tab })),
+      tabs,
       entries: list(this.tab).map((x) => ({
         id: x.id, name: x.name ?? x.title, hidden: x.hidden,
         detail: this.tab === "bounties" ? `${x.status ?? "open"} · ${x.reward} cr`
@@ -159,6 +172,79 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static #tab(e, el) { this.tab = el.dataset.tab; this.render(); }
+
+  /* ---------- scanners tab ---------- */
+  #scannerContext() {
+    const units = canvas.scene?.grid?.units ?? "";
+    const actors = Scan.scannerActors();
+    const sigOpts = Object.entries(Scan.SIGNALS).map(([value, s]) => ({ value, label: s.label }));
+    const styleOpts = Object.entries(Scan.STYLES).map(([value, label]) => ({ value, label }));
+    const owners = actors.filter((a) => Scan.scannersOf(a).length).map((a) => ({ id: a.id, name: a.name, img: a.img,
+      scanners: Scan.scannersOf(a).map((s) => ({ ...s, sig: Scan.SIGNALS[s.signal], styleLabel: Scan.STYLES[s.style]?.split(" (")[0],
+        canRecharge: s.limited && s.charges < s.max })) }));
+    const used = new Set(owners.flatMap((o) => o.scanners.map((s) => s.signal)));
+    const targets = Scan.targets(canvas.scene, { includeResolved: true }).map((t) => ({ uuid: t.uuid, name: t.name, regionName: t.region.name,
+      signal: Scan.SIGNALS[t.signal]?.label, color: t.color, resolved: t.resolved, areas: (t.region.shapes ?? []).filter((x) => !x.hole).length,
+      unmatched: !used.has(t.signal) }));
+    return { units, actors: actors.map((a) => ({ id: a.id, name: a.name })), sigOpts, styleOpts, owners, targets, sceneName: canvas.scene?.name };
+  }
+  #formScanner() {
+    const q = (n) => this.element.querySelector(`[name="sc-${n}"]`);
+    return { actor: game.actors.get(q("actor")?.value), data: Scan.newScanner({ name: q("name")?.value?.trim(), signal: q("signal")?.value,
+      range: q("range")?.value, limited: q("limited")?.checked, max: q("max")?.value, style: q("style")?.value }) };
+  }
+  static async #scGive() {
+    const { actor, data } = this.#formScanner();
+    if (!actor) return ui.notifications.warn("Pick a character first.");
+    await Scan.saveScanners(actor, [...Scan.scannersOf(actor), data]);
+    ui.notifications.info(`Gave ${actor.name} a ${data.name}.`);
+  }
+  static #scPreviewForm() { const { actor, data } = this.#formScanner(); runScan(actor, null, { preview: true, scanner: data }); }
+  #scAt(el) { const actor = game.actors.get(el.closest("[data-actor]")?.dataset.actor); return { actor, id: el.closest("[data-scanner]")?.dataset.scanner }; }
+  static #scPreview(e, el) { const { actor, id } = this.#scAt(el); runScan(actor, id, { preview: true }); }
+  static async #scRecharge(e, el) { const { actor, id } = this.#scAt(el); await Scan.recharge(actor, id); }
+  static async #scDelete(e, el) {
+    const { actor, id } = this.#scAt(el);
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Remove scanner?" }, content: "<p>Take this scanner away?</p>" });
+    if (ok) await Scan.saveScanners(actor, Scan.scannersOf(actor).filter((s) => s.id !== id));
+  }
+  static async #scEdit(e, el) {
+    const { actor, id } = this.#scAt(el);
+    const list = Scan.scannersOf(actor), sc = list.find((s) => s.id === id);
+    if (!sc) return;
+    const opt = (obj, cur) => Object.entries(obj).map(([v, l]) => `<option value="${v}" ${v === cur ? "selected" : ""}>${typeof l === "string" ? l : l.label}</option>`).join("");
+    const esc = (v) => String(v ?? "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const content = `<div class="ht-sc-dialog">
+      <label>Name <input name="name" type="text" value="${esc(sc.name)}"></label>
+      <label>Signal <select name="signal">${opt(Scan.SIGNALS, sc.signal)}</select></label>
+      <label>Range (${canvas.scene?.grid?.units ?? "units"}) <input name="range" type="number" min="1" value="${sc.range}"></label>
+      <label>Pulse <select name="style">${opt(Scan.STYLES, sc.style)}</select></label>
+      <label class="ht-check"><input name="limited" type="checkbox" ${sc.limited ? "checked" : ""}> Limited charges</label>
+      <label>Capacity <input name="max" type="number" min="1" value="${sc.max}"></label>
+      <label>Charges now <input name="charges" type="number" min="0" value="${sc.charges}"></label></div>`;
+    const data = await foundry.applications.api.DialogV2.prompt({ window: { title: `Edit ${sc.name}` }, content,
+      ok: { label: "Save", callback: (ev, btn) => Object.fromEntries(new FormData(btn.form)) } }).catch(() => null);
+    if (!data) return;
+    Object.assign(sc, { name: data.name || sc.name, signal: Scan.SIGNALS[data.signal] ? data.signal : sc.signal, range: Math.max(1, Number(data.range) || sc.range),
+      style: Scan.STYLES[data.style] ? data.style : sc.style, limited: data.limited === "on", max: Math.max(1, Number(data.max) || sc.max) });
+    sc.charges = Math.min(sc.max, Math.max(0, Number(data.charges) || 0));
+    await Scan.saveScanners(actor, list);
+  }
+  static async #tgToggle(e, el) { const b = await fromUuid(el.dataset.uuid); await b?.update({ disabled: !b.disabled }); }
+  static async #tgEdit(e, el) { (await fromUuid(el.dataset.uuid))?.sheet?.render(true); }
+  /** Shows a target's areas on the GM's map, as a player would see them, ignoring range. */
+  static async #tgPreview(e, el) {
+    const t = Scan.targets(canvas.scene, { includeResolved: true }).find((x) => x.uuid === el.dataset.uuid);
+    if (!t) return;
+    const areas = (t.region.shapes ?? []).filter((x) => !x.hole).map(Scan.shapePolygon).filter(Boolean).map((points) => {
+      let cx = 0, cy = 0; for (let i = 0; i < points.length; i += 2) { cx += points[i]; cy += points[i + 1]; }
+      return { points, center: { x: cx / (points.length / 2), y: cy / (points.length / 2) }, dist: 0, color: t.color, marker: t.marker,
+        resolved: true, label: t.name, notes: t.showNotes ? t.notes : "" };
+    });
+    const c = areas[0]?.center ?? { x: 0, y: 0 };
+    playPulse({ sceneId: canvas.scene.id, origin: c, rangePx: 1, color: t.color, style: "ripple", areas, tokens: [] },
+      { highlightSeconds: game.settings.get(MODULE_ID, "scanHighlight") });
+  }
   static async #create() { const d = blank(this.tab); await upsert(this.tab, d); openEditor(this.tab, d.id); }
   static #open(e, el) { DatapadApp.instance.show(OPEN_VIEW[this.tab], el.dataset.id); }
   static #show(e, el) {

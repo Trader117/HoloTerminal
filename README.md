@@ -52,8 +52,30 @@ Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and nu
 
 **Recording:** on the Cameras tab, the GM can press *Record* under a feed. Every token movement inside that area is captured until *Stop recording*. Recording runs on the GM's client, so keep it open while recording. Saved recordings appear under *Recordings*. They're hidden from players until the GM presses the eye icon to share one. Playback has play/pause, a scrub bar, and 1×/2×/4×/8× speed.
 
+## Pulse Scanner
+Players send pulses from their token, and matching targets light up on the map.
+
+**Giving scanners (GM):** open the GM Console, go to the **Scanners** tab, and use *Give scanner*. Pick a character, a signal, a range in scene units, and a pulse style (Ripple, Radar sweep, Hex lattice or Interference). You can also give it limited charges. A character can carry several scanners. Select a token and press the eye button to preview a scanner locally, without using a charge.
+
+**Signals:** Tech, Force, Structural, Thermal, Bio-sign and Trace. A scanner finds only targets with the same signal. The console warns you when a target's signal isn't used by any scanner.
+
+**Targets:** draw a Region over the thing to find, and add the **Scan Signature** behaviour to it (Region config, Behaviors, +). Set the signal, a name, notes (and whether players see them), a marker (outline, reticle or both), an optional colour, and an optional DC. One Region can hold several shapes. Each shape is checked against the range on its own and lights up separately. Disable the behaviour, or press the tick in the console, to mark a target resolved so it stops showing up.
+
+**Scanning (players):** select your token and press the satellite-dish button in the Token controls (or bind *Open Pulse Scanner* in Configure Controls). The scanner wheel opens around your token. Click a scanner or press its number to scan. Arrow keys and Enter also work, and Esc or right-click closes the wheel. When a scanner is out of charges, *Recharge* is in the middle of the wheel. The datapad's **Pulse Scanner** app lists your scanners too, with a radar and a list of the last pulse's results.
+
+**What players see:** the pulse rolls out from the token and lights up each target area as the wave reaches it, with a label and notes. Other tokens in range get corner brackets. Tech pulses label droids, Force pulses label creatures with Force powers, Bio-sign pulses label life signs, and Thermal pulses label heat. Highlights fade after a few seconds.
+
+**Settings:**
+- Who sees a pulse: the scanning player and the GM, or everyone.
+- Token contacts: tokens the player can see, through walls, or off.
+- How long highlights last, and a pulse sound.
+- Roll to resolve (off by default): each pulse rolls a skill (Tech, Force or other), and targets with a higher DC show only as "Unresolved signal".
+- Recharge item: for example `Power Cell`. Recharging then uses one up from the character's inventory.
+
+API: `game.modules.get("holo-terminal").api.openScanner()` opens the wheel, and `.scan(actor, scannerId)` scans directly.
+
 ## Region triggers
-Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage or the home screen. Locked terminals still ask for their code.
+Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
 - **Only once per player**: each player gets it the first time only. Turn it off and on again to reset.
 

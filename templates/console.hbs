@@ -1,5 +1,57 @@
 <div class="ht-console">
   <nav class="ht-tabs">{{#each tabs}}<button type="button" data-action="tab" data-tab="{{id}}" class="{{#if active}}active{{/if}}">{{label}}</button>{{/each}}</nav>
+  {{#if isScanners}}
+  <section class="ht-body ht-sc">
+    <details class="ht-sc-give" open>
+      <summary><i class="fas fa-plus"></i> Give scanner</summary>
+      <div class="ht-sc-grid">
+        <label>Character <select name="sc-actor">{{#each actors}}<option value="{{id}}">{{name}}</option>{{else}}<option value="">No player characters</option>{{/each}}</select></label>
+        <label>Signal <select name="sc-signal">{{#each sigOpts}}<option value="{{value}}">{{label}}</option>{{/each}}</select></label>
+        <label>Range ({{units}}) <input name="sc-range" type="number" min="1" value="30"></label>
+        <label>Pulse <select name="sc-style">{{#each styleOpts}}<option value="{{value}}">{{label}}</option>{{/each}}</select></label>
+        <label>Name <input name="sc-name" type="text" placeholder="e.g. Field Scanner"></label>
+        <label class="ht-sc-charges"><span class="ht-check"><input name="sc-limited" type="checkbox"> Limited charges</span><input name="sc-max" type="number" min="1" value="5" title="Capacity"></label>
+      </div>
+      <div class="ht-row">
+        <button type="button" data-action="scGive" class="ht-primary"><i class="fas fa-satellite-dish"></i> Give scanner</button>
+        <button type="button" data-action="scPreviewForm" title="Select a token on the map first. Local only, uses no charge."><i class="fas fa-eye"></i> Preview</button>
+      </div>
+    </details>
+
+    <h3 class="ht-sc-h">Assigned scanners</h3>
+    {{#each owners}}
+    <div class="ht-sc-owner" data-actor="{{id}}">
+      <div class="ht-sc-owner-name">{{#if img}}<img src="{{img}}" alt="">{{/if}}{{name}}</div>
+      <ul>
+        {{#each scanners}}
+        <li class="ht-entry" data-scanner="{{id}}">
+          <span class="ht-sc-sig" style="--sig:{{sig.color}}"><i class="fas {{sig.icon}}"></i></span>
+          <span class="ht-entry-name">{{name}}<small>{{sig.label}} · {{range}} {{../../units}} · {{styleLabel}} · {{#if limited}}{{charges}}/{{max}} charges{{else}}unlimited{{/if}}</small></span>
+          <button type="button" data-action="scPreview" title="Preview from the selected token"><i class="fas fa-eye"></i></button>
+          {{#if canRecharge}}<button type="button" data-action="scRecharge" title="Recharge"><i class="fas fa-battery-half"></i></button>{{/if}}
+          <button type="button" data-action="scEdit" title="Edit"><i class="fas fa-pen"></i></button>
+          <button type="button" data-action="scDelete" title="Remove"><i class="fas fa-trash"></i></button>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+    {{else}}<p class="ht-dim">No one has a scanner yet.</p>{{/each}}
+
+    <h3 class="ht-sc-h">Targets on {{sceneName}}</h3>
+    <p class="ht-dim ht-sc-help">Draw a Region over the target, then add the <b>Scan Signature</b> behaviour to it (Region config, Behaviors, +). One Region can hold several shapes, and each one lights up on its own.</p>
+    <ul>
+      {{#each targets}}
+      <li class="ht-entry{{#if resolved}} ht-resolved{{/if}}">
+        <span class="ht-sc-sig" style="--sig:{{color}}"><i class="fas fa-crosshairs"></i></span>
+        <span class="ht-entry-name">{{name}}<small>{{signal}} · {{regionName}} · {{areas}} area{{#unless (eq areas 1)}}s{{/unless}}{{#if resolved}} · resolved{{/if}}{{#if unmatched}} · <span class="ht-warn">no scanner uses this signal</span>{{/if}}</small></span>
+        <button type="button" data-action="tgPreview" data-uuid="{{uuid}}" title="Preview on map"><i class="fas fa-eye"></i></button>
+        <button type="button" data-action="tgToggle" data-uuid="{{uuid}}" title="{{#if resolved}}Enable scanning again{{else}}Mark resolved{{/if}}"><i class="fas {{#if resolved}}fa-rotate-left{{else}}fa-check{{/if}}"></i></button>
+        <button type="button" data-action="tgEdit" data-uuid="{{uuid}}" title="Edit"><i class="fas fa-pen"></i></button>
+      </li>
+      {{else}}<li class="ht-dim">No scan targets on this scene.</li>{{/each}}
+    </ul>
+  </section>
+  {{else}}
   <section class="ht-body">
     <ul>
     {{#each entries}}
@@ -18,4 +70,5 @@
     <button type="button" data-action="create"><i class="fas fa-plus"></i> New</button>
     {{#if isShops}}<button type="button" data-action="importMej" title="Copy every Monk's Enhanced Journal shop into Holo-Terminal"><i class="fas fa-file-import"></i> Import Monk's shops</button>{{/if}}
   </div>
+  {{/if}}
 </div>
