@@ -68,10 +68,14 @@ export function registerActions() {
     const credits = getCredits(actor);
     if (credits < price) throw new Error(`${actor.name} needs ${price} credits but has ${credits}.`);
 
-    const source = entry.uuid ? await fromUuid(entry.uuid) : null;
-    if (!source) throw new Error(`Item source for ${entry.name} is missing. Ask the GM to re-add it.`);
-    const data = source.toObject();
+    let data = entry.data ? foundry.utils.deepClone(entry.data) : null; // imported shops carry the item inline
+    if (!data) {
+      const source = entry.uuid ? await fromUuid(entry.uuid) : null;
+      if (!source) throw new Error(`Item source for ${entry.name} is missing. Ask the GM to re-add it.`);
+      data = source.toObject();
+    }
     delete data._id;
+    if (data.system && "quantity" in data.system) data.system.quantity = 1;
     await actor.createEmbeddedDocuments("Item", [data]);
     await setCredits(actor, credits - price);
     if (entry.stock > 0) { entry.stock -= 1; await upsert("shops", shop); }

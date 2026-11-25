@@ -1,0 +1,47 @@
+<div class="ht-editor ht-shop-editor">
+  <div class="ht-form-grid">
+    <label>Name</label><input type="text" name="name" value="{{doc.name}}">
+    <label>Description</label><textarea name="description" rows="2">{{doc.description}}</textarea>
+    <label>Image</label>
+    <div class="ht-inline"><input type="text" name="img" value="{{doc.img}}" placeholder="Optional shop picture">
+      <button type="button" data-action="pickImage" title="Browse"><i class="fas fa-file-image"></i></button></div>
+    <label>Price level</label>
+    <div class="ht-inline"><input type="number" name="markup" min="0" step="5" value="{{markupPct}}" class="ht-num"> <span class="ht-dim">% of list price (100 = normal, 120 = 20% dearer)</span></div>
+    <label>Players</label>
+    <label class="ht-check"><input type="checkbox" name="hidden" {{#if doc.hidden}}checked{{/if}}> Hidden from players</label>
+    <label>Open on</label>
+    <div>
+      <label class="ht-check"><input type="radio" name="scope" id="scope-all" {{#if everywhere}}checked{{/if}}> Every scene</label>
+      <label class="ht-check"><input type="radio" name="scope" id="scope-some" {{#unless everywhere}}checked{{/unless}}> Only these scenes</label>
+      <button type="button" data-action="thisScene">Only this scene</button>
+      <div class="ht-scene-list">
+        {{#each scenes}}<label class="ht-check"><input type="checkbox" name="scene" value="{{id}}" {{#if checked}}checked{{/if}}> {{name}}{{#if current}} <em>(current)</em>{{/if}}</label>{{/each}}
+      </div>
+    </div>
+  </div>
+
+  <div class="ht-drop">Drag Items or a folder of Items here from the sidebar or a compendium to stock the shelves.</div>
+
+  <div class="ht-shop-items">
+    <table class="ht-shop">
+      <thead><tr><th></th><th>Item</th><th>List price</th><th>Sells for</th><th>Stock</th><th></th></tr></thead>
+      <tbody>
+      {{#each items}}
+        <tr data-index="{{index}}">
+          <td>{{#if img}}<img src="{{img}}" alt="" width="26" height="26">{{/if}}</td>
+          <td>{{name}}{{#if missing}} <i class="fas fa-triangle-exclamation" title="Source item missing"></i>{{/if}}</td>
+          <td><input type="number" name="price" min="0" value="{{price}}" class="ht-num"></td>
+          <td>{{sell}} cr</td>
+          <td><input type="text" name="stock" value="{{#unless unlimited}}{{stock}}{{/unless}}" placeholder="&infin;" class="ht-num" title="Leave blank for unlimited"></td>
+          <td><button type="button" data-action="removeItem" data-index="{{index}}" title="Remove"><i class="fas fa-trash"></i></button></td>
+        </tr>
+      {{else}}<tr><td colspan="6" class="ht-dim">No stock yet.</td></tr>{{/each}}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ht-row">
+    <button type="button" data-action="cancel">Cancel</button>
+    <button type="button" class="ht-primary" data-action="save"><i class="fas fa-save"></i> Save market</button>
+  </div>
+</div>

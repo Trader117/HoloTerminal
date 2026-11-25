@@ -1,5 +1,6 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, upsert, remove, itemPrice } from "./store.mjs";
 import { DatapadApp } from "./datapad.mjs";
+import { ShopEditorApp, importMejShops } from "./shop-editor.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -25,6 +26,11 @@ export function blank(kind) {
       status: "open", claimants: []
     };
   }
+}
+
+/** Opens the right editor for an entry: the visual one for markets, JSON for the rest. */
+export function openEditor(kind, id) {
+  return kind === "shops" ? new ShopEditorApp(id).render(true) : new EditorApp(kind, id).render(true);
 }
 
 const KIND_LABEL = { terminals: "Terminals", shops: "Markets", bounties: "Bounties" };
@@ -98,7 +104,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 540, height: 560 },
     actions: {
       tab: ConsoleApp.#tab, create: ConsoleApp.#create, open: ConsoleApp.#open, show: ConsoleApp.#show,
-      edit: ConsoleApp.#edit, remove: ConsoleApp.#remove, toggle: ConsoleApp.#toggle
+      edit: ConsoleApp.#edit, remove: ConsoleApp.#remove, toggle: ConsoleApp.#toggle, importMej: ConsoleApp.#importMej
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/console.hbs`, scrollable: [".ht-body"] } };
@@ -110,7 +116,7 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext() {
     return {
-      tab: this.tab,
+      tab: this.tab, isShops: this.tab === "shops",
       tabs: Object.entries(KIND_LABEL).map(([id, label]) => ({ id, label, active: id === this.tab })),
       entries: list(this.tab).map((x) => ({
         id: x.id, name: x.name ?? x.title, hidden: x.hidden,
@@ -121,14 +127,15 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static #tab(e, el) { this.tab = el.dataset.tab; this.render(); }
-  static async #create() { const d = blank(this.tab); await upsert(this.tab, d); new EditorApp(this.tab, d.id).render(true); }
+  static async #create() { const d = blank(this.tab); await upsert(this.tab, d); openEditor(this.tab, d.id); }
   static #open(e, el) { DatapadApp.instance.show(OPEN_VIEW[this.tab], el.dataset.id); }
   static #show(e, el) {
     const view = OPEN_VIEW[this.tab], id = el.dataset.id;
     game.socket.emit(`module.${MODULE_ID}`, { type: "open", view, id });
     DatapadApp.instance.show(view, id);
   }
-  static #edit(e, el) { new EditorApp(this.tab, el.dataset.id).render(true); }
+  static #edit(e, el) { openEditor(this.tab, el.dataset.id); }
+  static async #importMej() { await importMejShops(); }
   static async #toggle(e, el) { const d = find(this.tab, el.dataset.id); d.hidden = !d.hidden; await upsert(this.tab, d); }
   static async #remove(e, el) {
     const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Delete?" }, content: "<p>Delete this entry?</p>" });

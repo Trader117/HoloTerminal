@@ -17,6 +17,8 @@ Open it from the **tablet icon** in Token controls, or press **Shift+P**. It use
 - **Bounties**: open contracts. Press *Take contract* to sign on.
 - **Markets**: shops on this scene. *Buy* takes credits, adds the item to the character and lowers the stock.
 
+- **Salvage**: bodies on this scene. Any NPC token at 0 HP can be looted, and the GM can open or lock a body with the sack icon on its token HUD. Players take items one at a time and pocket the credits. By default their token has to be within 2 squares (setting: *Salvage range*).
+
 ## GM: the console
 Open it from the **terminal icon** in Token controls. It has tabs for Terminals, Markets and Bounties. On each entry you can:
 - toggle whether players can see it (eye),
@@ -24,7 +26,11 @@ Open it from the **terminal icon** in Token controls. It has tabs for Terminals,
 - push it to every player's datapad (people icon),
 - edit it, or delete it.
 
-The editor is JSON for now. For shops, drag Items from the sidebar or a compendium onto the drop zone to stock them. Prices come from the item. Set `stock` to -1 for unlimited and `markup` to change prices (1.2 = +20%). Use *Limit to current scene* to tie a terminal or shop to the map you're on. An empty `scenes` list means it shows up everywhere.
+**Markets** have their own editor. You can set the name, description, picture and price level (120% = 20% dearer), and hide the market from players. You can also pick which scenes it opens on. To stock it, drag Items, or a whole folder of Items, from the sidebar or a compendium onto the drop zone. Then set each item's price and stock (leave stock blank for unlimited).
+
+**Moving from Monk's Enhanced Journal:** in the console's Markets tab, press *Import Monk's shops*. Every Monk's shop is copied in with its items, prices and quantities, and starts hidden so you can check it first. Importing again refreshes the copies.
+
+Terminals and bounties still use the JSON editor. Use *Limit to current scene* to tie one to the map you're on. An empty `scenes` list means it shows up everywhere.
 
 Bounties: *Complete & pay* splits `reward` between the hunters who took the contract and adds it to their credits. It matches hunters to actors by name.
 

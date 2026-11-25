@@ -2,26 +2,70 @@
    Colours come from styles/theme.css (SW5e Database scheme). */
 .ht-app .window-content { padding: 0; background: var(--ht-bg); color: var(--ht-text); }
 
-/* ---------- device + screen ---------- */
-.ht-device { height: 100%; padding: 6px; background: var(--ht-panel); }
+/* ---------- device: frameless handheld, graphite bezel around a blue screen ---------- */
+#ht-datapad.application { background: none; border: 0; box-shadow: none; padding: 0; overflow: visible;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .7)); }
+#ht-datapad .window-content { background: none; padding: 0; overflow: visible; }
+.ht-device {
+  position: relative; height: 100%; display: flex; flex-direction: column;
+  padding: 0 22px 16px; border-radius: 26px;
+  background: linear-gradient(180deg, #2a2e33 0%, #1a1d21 6%, #15181b 50%, #1a1d21 94%, #24282c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px #050607, inset 0 -2px 6px rgba(0, 0, 0, .6);
+}
+.ht-bezel-top { height: 24px; flex: none; cursor: grab; }
+.ht-bezel-top:active { cursor: grabbing; }
+.ht-rail { position: absolute; top: 28%; height: 28%; width: 3px; border-radius: 2px;
+  background: linear-gradient(180deg, #5d6f80, #2f3a44); box-shadow: 0 0 3px rgba(120, 170, 210, .35); }
+.ht-rail-l { left: 7px; } .ht-rail-r { right: 7px; }
+
 .ht-screen {
   --ht-accent: var(--ht-blue);
-  height: 100%; display: flex; flex-direction: column; overflow: hidden;
-  font: 14px/1.5 var(--ht-font-body); color: var(--ht-text); background: var(--ht-bg);
-  border: 1px solid var(--ht-line); border-radius: var(--ht-radius);
+  /* blue-tinted surfaces so panels sit in the screen glow instead of on top of it */
+  --ht-panel: rgba(4, 22, 36, .7); --ht-panel-2: rgba(18, 58, 86, .55);
+  --ht-band-1: rgba(10, 44, 68, .45); --ht-band-2: rgba(18, 60, 90, .45); --ht-line: rgba(110, 175, 220, .25);
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  font: 14px/1.5 var(--ht-font-body); color: var(--ht-text);
+  border-radius: 14px; border: 2px solid #07090b;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .06) 0 1px, transparent 1px 3px),
+    radial-gradient(140% 70% at 50% 0%, #0b3a58 0%, #062337 45%, #021320 100%);
+  box-shadow: inset 0 0 0 1px rgba(42, 163, 223, .18), inset 0 6px 18px rgba(0, 0, 0, .55), 0 0 0 3px #0d0f12;
 }
+
+.ht-controls { flex: none; display: flex; align-items: center; gap: 8px; padding-top: 12px; }
+.ht-keys { flex: none; display: flex; gap: 3px; padding: 3px; border-radius: 7px; background: #0b0d0f;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 255, 255, .06); }
+.ht-device .ht-key { flex: none; width: 52px; height: 42px; padding: 3px 0 2px; margin: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: #c9d3dc; border: 0; border-radius: 5px;
+  background: linear-gradient(180deg, #4a5057 0%, #2d3237 45%, #23272b 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -1px 0 rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .6); }
+.ht-key i { font-size: 14px; }
+.ht-key span { font: 600 9px var(--ht-font-display); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+.ht-device .ht-key:hover:not([disabled]) { color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 0 8px rgba(42, 163, 223, .55); }
+.ht-device .ht-key.active { color: var(--ht-blue); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -2px 0 var(--ht-blue); }
+.ht-device .ht-key:active:not([disabled]) { background: linear-gradient(180deg, #23272b, #2d3237); }
+.ht-device .ht-key[disabled] { opacity: .4; cursor: default; }
+.ht-device .ht-power { flex: none; width: 52px; }
+.ht-device .ht-power:hover { color: var(--ht-red); }
+.ht-readout { flex: 1; min-width: 64px; height: 42px; padding: 0 12px; display: flex; align-items: center; justify-content: center; gap: 3px;
+  border-radius: 5px; background: linear-gradient(180deg, #3b4148, #24292e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 1px 2px rgba(0, 0, 0, .6);
+  font: 700 15px Consolas, "Courier New", monospace; letter-spacing: 1px; color: #bfe6ff; text-shadow: 0 0 6px rgba(42, 163, 223, .9); }
+.ht-readout small { font-size: 10px; color: var(--ht-muted); text-shadow: none; }
+
 /* per-terminal accent (the "theme" field): blue is the default */
 .ht-theme-amber { --ht-accent: var(--ht-gold); }
 .ht-theme-red   { --ht-accent: var(--ht-red); }
 .ht-theme-green { --ht-accent: var(--ht-good); }
 
-.ht-header {
-  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
-  background: var(--ht-panel); border-bottom: 2px solid var(--ht-accent);
-}
-.ht-title { flex: 1; font: 700 18px var(--ht-font-display); color: var(--ht-red); text-transform: uppercase; letter-spacing: .5px; }
-.ht-meta { font: 600 12px var(--ht-font-display); color: var(--ht-muted); text-transform: uppercase; letter-spacing: 1.5px; }
-.ht-body { flex: 1; overflow-y: auto; padding: 10px 12px; }
+.ht-header { padding: 12px 14px 0; }
+.ht-kicker { display: flex; justify-content: space-between; font: 700 11px var(--ht-font-display); color: var(--ht-gold); text-transform: uppercase; letter-spacing: 1.5px; }
+.ht-clock { color: #8fb9d3; font-weight: 600; }
+.ht-title { display: inline-block; font: 700 22px/1.2 var(--ht-font-display); color: var(--ht-red); text-transform: uppercase; letter-spacing: .5px;
+  padding-bottom: 4px; border-bottom: 2px solid var(--ht-accent); }
+.ht-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
 
 /* ---------- controls ---------- */
 .ht-screen button, .ht-screen input, .ht-console button, .ht-editor button {
@@ -42,11 +86,20 @@
   animation: ht-type 1.2s steps(30) 1; }
 @keyframes ht-type { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 
-/* ---------- home ---------- */
-.ht-apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 10px 0; }
-.ht-screen .ht-app-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 8px;
-  font: 700 12px var(--ht-font-display); text-transform: uppercase; letter-spacing: 1px; }
-.ht-app-tile i { font-size: 26px; color: var(--ht-red); }
+/* ---------- home: app tiles with coloured badges ---------- */
+.ht-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ht-screen .ht-app-tile {
+  display: flex; align-items: center; gap: 10px; padding: 14px 12px; text-align: left;
+  background: linear-gradient(180deg, var(--ht-panel-2), var(--ht-panel)); border: 1px solid var(--ht-line); border-radius: 8px;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--tone) 55%, transparent);
+  font: 700 14px var(--ht-font-display); color: var(--ht-strong); }
+.ht-screen .ht-app-tile:hover { border-color: var(--tone); box-shadow: inset 0 -2px 0 var(--tone), 0 0 12px color-mix(in srgb, var(--tone) 35%, transparent); }
+.ht-badge { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; font-size: 16px;
+  color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tone) 60%, transparent); }
+.ht-app-tile, .ht-tone-blue { --tone: var(--ht-blue); }
+.ht-app-tile.ht-tone-red { --tone: var(--ht-red); }
+.ht-app-tile.ht-tone-gold { --tone: var(--ht-gold); }
+.ht-app-tile.ht-tone-green { --tone: var(--ht-good); }
 
 /* ---------- lists ---------- */
 .ht-screen .ht-list-row { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; margin: 0;
@@ -133,3 +186,31 @@
 .ht-editor textarea:focus { border-color: var(--ht-blue); box-shadow: 0 0 0 3px var(--ht-blue-soft); outline: none; }
 .ht-drop { border: 2px dashed var(--ht-blue); padding: 12px; text-align: center; border-radius: var(--ht-radius); color: var(--ht-muted); }
 .ht-editor .ht-row { justify-content: flex-end; }
+
+/* ---------- salvage ---------- */
+.ht-loot { margin: 0 0 12px; border: 1px solid var(--ht-line); border-radius: var(--ht-radius); background: var(--ht-panel); }
+.ht-loot header { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 2px solid var(--ht-good); }
+.ht-loot header img { width: 32px; height: 32px; border: 0; border-radius: 4px; object-fit: cover; }
+.ht-loot-name { flex: 1; font: 700 15px var(--ht-font-display); color: var(--ht-strong); text-transform: uppercase; letter-spacing: .5px; }
+.ht-loot ul { list-style: none; margin: 0; padding: 0; }
+.ht-loot li { display: flex; align-items: center; gap: 8px; padding: 4px 10px; }
+.ht-loot li:nth-child(odd) { background: var(--ht-band-1); } .ht-loot li:nth-child(even) { background: var(--ht-band-2); }
+.ht-loot li img { border: 0; } .ht-loot li span { flex: 1; }
+.ht-far { opacity: .6; }
+
+/* ---------- shop editor ---------- */
+.ht-shop-editor { overflow: hidden; }
+.ht-form-grid { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; align-items: center; }
+.ht-form-grid > label:not(.ht-check) { font: 700 11px var(--ht-font-display); color: var(--ht-muted); text-transform: uppercase; letter-spacing: 1px; }
+.ht-editor input[type=text], .ht-editor input[type=number], .ht-editor textarea[name=description] {
+  background: var(--ht-panel); color: var(--ht-text); border: 1px solid var(--ht-line); border-radius: var(--ht-radius); padding: 4px 8px; }
+.ht-editor textarea[name=description] { min-height: 0; font: 13px var(--ht-font-body); flex: none; }
+.ht-inline { display: flex; gap: 6px; align-items: center; } .ht-inline input[type=text] { flex: 1; }
+.ht-editor .ht-num { width: 76px; }
+.ht-check { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; color: var(--ht-text); }
+.ht-scene-list { display: flex; flex-wrap: wrap; gap: 2px 0; margin-top: 4px; max-height: 70px; overflow-y: auto; }
+.ht-drop.over { background: var(--ht-blue-soft); color: var(--ht-strong); }
+.ht-shop-items { flex: 1; min-height: 120px; overflow-y: auto; }
+.ht-shop-editor .ht-shop td { vertical-align: middle; }
+.ht-shop-editor .ht-shop td button { width: 2.2em; padding: 4px 0; }
+.ht-console .ht-row { justify-content: flex-start; margin-top: 0; }
