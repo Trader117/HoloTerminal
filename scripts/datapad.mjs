@@ -1,5 +1,6 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
+import { aurebesh } from "./aurebesh.mjs";
 import { EditorApp, ConsoleApp, blank } from "./admin.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -39,9 +40,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "ht-datapad", classes: ["ht-app"],
     window: { title: "Datapad", frame: false, positioned: true },
-    position: { width: 460, height: 720 },
+    position: { width: 470, height: 720 },
     actions: {
-      home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console,
+      home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
       go: DatapadApp.#go, back: DatapadApp.#back, tab: DatapadApp.#tab,
       login: DatapadApp.#login, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
@@ -52,6 +53,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
 
+  history = [{ view: "home", id: null }]; hIndex = 0;
   view = "home"; viewId = null; tab = "messages"; denied = false; booting = true; puzzle = null; bonus = 0;
 
   constructor(options) {
@@ -68,7 +70,13 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this.render({ force: true });
   }
 
-  #navigate(view, id = this.viewId) {
+  #navigate(view, id = this.viewId, record = true) {
+    if (record && (view !== this.view || id !== this.viewId)) {
+      this.history = this.history.slice(0, this.hIndex + 1);
+      this.history.push({ view, id });
+      if (this.history.length > 30) this.history.shift();
+      this.hIndex = this.history.length - 1;
+    }
     this.view = view; this.viewId = id; this.denied = false;
     if (view === "terminal") this.tab = "messages";
     if (view !== "slice") this.puzzle = null;
@@ -83,7 +91,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
     super._onRender?.(context, options);
-    const handle = this.element.querySelector(".ht-status");
+    const handle = this.element.querySelector(".ht-bezel-top");
     if (!handle || handle.dataset.drag) return;
     handle.dataset.drag = "1";
     handle.addEventListener("pointerdown", (ev) => {
@@ -102,8 +110,18 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = activeActor();
     const ctx = {
       view: this.view, viewId: this.viewId, partial: T(this.view), kicker: KICKER[this.view],
-      clock: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), booting: this.booting, isGM: game.user.isGM, theme: "cyan",
-      actorName: actor?.name, credits: actor ? getCredits(actor) : null, canBack: this.view !== "home",
+      clock: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      canForward: this.hIndex < this.history.length - 1,
+      glyphLine: aurebesh(`holo terminal ${KICKER[this.view] ?? ""} ${actor?.name ?? ""}`, { height: 12 }),
+      keys: [
+        { action: "home", letter: "h", label: "Home" },
+        { action: "go", view: "network", letter: "n", label: "Local Net" },
+        { action: "go", view: "bounties", letter: "b", label: "Bounty Board" },
+        { action: "go", view: "shops", letter: "m", label: "Markets" },
+        ...(game.user.isGM ? [{ action: "console", letter: "g", label: "GM Console" }] : []),
+        { action: "close", letter: "x", label: "Power off" }
+      ].map((k) => ({ ...k, glyph: aurebesh(k.letter, { height: 16 }) })), booting: this.booting, isGM: game.user.isGM, theme: "cyan",
+      actorName: actor?.name, credits: actor ? getCredits(actor) : null, canBack: this.view !== "home" || this.hIndex > 0,
       bootText: ["DATAPAD OS 4.2", "Linking to local net...", `Node: ${canvas.scene?.name ?? "deep space"}`, "READY"].join("\n")
     };
     return Object.assign(ctx, await this[`_ctx_${this.view}`]?.(ctx, actor));
@@ -185,7 +203,15 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #closePad() { this.close(); }
   static #console() { ConsoleApp.instance.render(true); }
   static #go(e, el) { this.#navigate(el.dataset.view, el.dataset.id ?? null); this.render(); }
-  static #back() { this.#navigate(PARENT[this.view] ?? "home"); this.render(); }
+  static #back() {
+    if (this.hIndex > 0) { const h = this.history[--this.hIndex]; this.#navigate(h.view, h.id, false); }
+    else this.#navigate(PARENT[this.view] ?? "home");
+    this.render();
+  }
+  static #forward() {
+    if (this.hIndex >= this.history.length - 1) return;
+    const h = this.history[++this.hIndex]; this.#navigate(h.view, h.id, false); this.render();
+  }
   static #tab(e, el) { this.tab = el.dataset.tab; this.render(); }
 
   static async #login() {

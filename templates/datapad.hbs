@@ -1,23 +1,26 @@
 <div class="ht-device">
-  <div class="ht-frame">
-    <div class="ht-sensor" aria-hidden="true"><span></span><i></i><i></i></div>
-    <div class="ht-status" title="Drag to move">
-      <span class="ht-brand"><i class="fas fa-satellite-dish"></i> Holo-Terminal</span>
-      <span class="ht-status-id">{{#if actorName}}{{actorName}}{{#if (ne credits null)}} <b>{{credits}} cr</b>{{/if}}{{else}}No ID linked{{/if}}</span>
-      <span class="ht-clock">{{clock}}</span>
-    </div>
-    <div class="ht-screen ht-theme-{{theme}}">
-      <header class="ht-header">
-        <div class="ht-kicker">{{kicker}}</div>
-        <div class="ht-title">{{title}}</div>
-      </header>
-      {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
-      {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
-    </div>
-    <nav class="ht-dock">
-      <button type="button" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><i class="fas fa-chevron-left"></i></button>
-      <button type="button" class="ht-home" data-action="home" title="Home"><i class="fas fa-circle-dot"></i></button>
-      <button type="button" data-action="close" title="Power off"><i class="fas fa-power-off"></i></button>
-    </nav>
+  <div class="ht-bezel-top" title="Drag to move"></div>
+  <span class="ht-rail ht-rail-l" aria-hidden="true"></span><span class="ht-rail ht-rail-r" aria-hidden="true"></span>
+  <div class="ht-screen ht-theme-{{theme}}">
+    <div class="ht-glyphline">{{{glyphLine}}}</div>
+    <header class="ht-header">
+      <div class="ht-kicker"><span>{{kicker}}</span><span class="ht-clock">{{#if actorName}}{{actorName}} &middot; {{/if}}{{clock}}</span></div>
+      <div class="ht-title">{{title}}</div>
+    </header>
+    {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
+    {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
   </div>
+  <nav class="ht-controls">
+    <div class="ht-keys">
+      {{#each keys}}
+      <button type="button" class="ht-key" data-action="{{action}}" {{#if view}}data-view="{{view}}"{{/if}} title="{{label}}">{{{glyph}}}</button>
+      {{/each}}
+    </div>
+    <div class="ht-grille" aria-hidden="true"></div>
+    <div class="ht-keys">
+      <button type="button" class="ht-key ht-arrow" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><span class="ht-tri ht-tri-l"></span></button>
+      <button type="button" class="ht-key ht-arrow" data-action="forward" title="Forward" {{#unless canForward}}disabled{{/unless}}><span class="ht-tri ht-tri-r"></span></button>
+      <div class="ht-readout" title="Credits">{{#if (ne credits null)}}{{credits}}<small>cr</small>{{else}}-----{{/if}}</div>
+    </div>
+  </nav>
 </div>

@@ -2,57 +2,71 @@
    Colours come from styles/theme.css (SW5e Database scheme). */
 .ht-app .window-content { padding: 0; background: var(--ht-bg); color: var(--ht-text); }
 
-/* ---------- device: frameless handheld with chamfered bezel ---------- */
+/* ---------- device: frameless handheld, graphite bezel around a blue screen ---------- */
 #ht-datapad.application { background: none; border: 0; box-shadow: none; padding: 0; overflow: visible;
-  filter: drop-shadow(0 0 10px rgba(42, 163, 223, .45)) drop-shadow(0 6px 18px rgba(0, 0, 0, .6)); }
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .7)); }
 #ht-datapad .window-content { background: none; padding: 0; overflow: visible; }
 .ht-device {
-  --ht-cut: 26px;
-  height: 100%; padding: 2px;
-  background: linear-gradient(160deg, var(--ht-blue), #12506f 40%, var(--ht-blue) 100%);
-  clip-path: polygon(var(--ht-cut) 0, calc(100% - var(--ht-cut)) 0, 100% var(--ht-cut), 100% calc(100% - var(--ht-cut)),
-    calc(100% - var(--ht-cut)) 100%, var(--ht-cut) 100%, 0 calc(100% - var(--ht-cut)), 0 var(--ht-cut));
+  position: relative; height: 100%; display: flex; flex-direction: column;
+  padding: 0 22px 16px; border-radius: 26px;
+  background: linear-gradient(180deg, #2a2e33 0%, #1a1d21 6%, #15181b 50%, #1a1d21 94%, #24282c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px #050607, inset 0 -2px 6px rgba(0, 0, 0, .6);
 }
-.ht-frame {
-  height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 8px 18px 24px;
-  background: linear-gradient(180deg, #111820, #090c10 60%, #0c1117);
-  clip-path: inherit;
-}
-.ht-sensor { display: flex; justify-content: center; align-items: center; gap: 5px; height: 10px; }
-.ht-sensor span { width: 70px; height: 4px; border-radius: 2px; background: var(--ht-blue); box-shadow: 0 0 8px var(--ht-blue); }
-.ht-sensor i { width: 4px; height: 4px; border-radius: 50%; background: var(--ht-muted); }
-.ht-status { display: flex; align-items: center; gap: 10px; padding: 0 6px; cursor: grab; user-select: none;
-  font: 600 11px var(--ht-font-display); color: var(--ht-muted); text-transform: uppercase; letter-spacing: 1px; }
-.ht-status:active { cursor: grabbing; }
-.ht-brand { color: var(--ht-blue); } .ht-brand i { margin-right: 3px; }
-.ht-status-id { flex: 1; text-align: right; } .ht-status-id b { color: var(--ht-gold); margin-left: 4px; }
-.ht-clock { color: var(--ht-text); }
+.ht-bezel-top { height: 24px; flex: none; cursor: grab; }
+.ht-bezel-top:active { cursor: grabbing; }
+.ht-rail { position: absolute; top: 28%; height: 28%; width: 3px; border-radius: 2px;
+  background: linear-gradient(180deg, #5d6f80, #2f3a44); box-shadow: 0 0 3px rgba(120, 170, 210, .35); }
+.ht-rail-l { left: 7px; } .ht-rail-r { right: 7px; }
 
 .ht-screen {
   --ht-accent: var(--ht-blue);
+  /* blue-tinted surfaces so panels sit in the screen glow instead of on top of it */
+  --ht-panel: rgba(4, 22, 36, .7); --ht-panel-2: rgba(18, 58, 86, .55);
+  --ht-band-1: rgba(10, 44, 68, .45); --ht-band-2: rgba(18, 60, 90, .45); --ht-line: rgba(110, 175, 220, .25);
   flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
   font: 14px/1.5 var(--ht-font-body); color: var(--ht-text);
-  background: radial-gradient(120% 60% at 50% 0%, #142130 0%, var(--ht-bg) 60%);
-  border: 1px solid var(--ht-line); border-radius: 8px;
-  box-shadow: inset 0 0 0 1px rgba(42, 163, 223, .12), inset 0 0 30px rgba(0, 0, 0, .5);
+  border-radius: 14px; border: 2px solid #07090b;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .06) 0 1px, transparent 1px 3px),
+    radial-gradient(140% 70% at 50% 0%, #0b3a58 0%, #062337 45%, #021320 100%);
+  box-shadow: inset 0 0 0 1px rgba(42, 163, 223, .18), inset 0 6px 18px rgba(0, 0, 0, .55), 0 0 0 3px #0d0f12;
 }
+.ht-glyphline { padding: 10px 14px 0; height: 24px; overflow: hidden; white-space: nowrap; color: #7cc6ef;
+  filter: drop-shadow(0 0 3px rgba(42, 163, 223, .8)); opacity: .9; }
+.ht-aurebesh { display: inline-block; vertical-align: middle; }
+
+.ht-controls { flex: none; display: flex; align-items: center; gap: 10px; padding-top: 12px; }
+.ht-keys { flex: none; display: flex; gap: 3px; padding: 3px; border-radius: 7px; background: #0b0d0f; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 255, 255, .06); }
+.ht-device .ht-key { width: 30px; height: 32px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  color: #c9d3dc; border: 0; border-radius: 5px;
+  background: linear-gradient(180deg, #4a5057 0%, #2d3237 45%, #23272b 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -1px 0 rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .6); }
+.ht-device .ht-key:hover:not([disabled]) { color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 0 8px rgba(42, 163, 223, .55); }
+.ht-device .ht-key:active:not([disabled]) { background: linear-gradient(180deg, #23272b, #2d3237); }
+.ht-device .ht-key[disabled] { opacity: .45; cursor: default; }
+.ht-device .ht-arrow { width: 36px; }
+.ht-tri { width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+.ht-tri-l { border-right: 14px solid currentColor; } .ht-tri-r { border-left: 14px solid currentColor; }
+.ht-grille { flex: 1 1 0; min-width: 16px; height: 28px; border-radius: 5px; background:
+  repeating-linear-gradient(0deg, #050607 0 2px, #1e2226 2px 4px); box-shadow: inset 0 1px 3px #000, 0 1px 0 rgba(255, 255, 255, .06); }
+.ht-readout { min-width: 70px; height: 32px; padding: 0 10px; display: flex; align-items: center; justify-content: flex-end; gap: 3px;
+  border-radius: 5px; background: linear-gradient(180deg, #3b4148, #24292e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 1px 2px rgba(0, 0, 0, .6);
+  font: 700 15px Consolas, "Courier New", monospace; letter-spacing: 1px; color: #bfe6ff; text-shadow: 0 0 6px rgba(42, 163, 223, .9); }
+.ht-readout small { font-size: 10px; color: var(--ht-muted); text-shadow: none; }
+
 /* per-terminal accent (the "theme" field): blue is the default */
 .ht-theme-amber { --ht-accent: var(--ht-gold); }
 .ht-theme-red   { --ht-accent: var(--ht-red); }
 .ht-theme-green { --ht-accent: var(--ht-good); }
 
-.ht-header { padding: 12px 14px 0; }
-.ht-kicker { font: 700 11px var(--ht-font-display); color: var(--ht-gold); text-transform: uppercase; letter-spacing: 1.5px; }
+.ht-header { padding: 4px 14px 0; }
+.ht-kicker { display: flex; justify-content: space-between; font: 700 11px var(--ht-font-display); color: var(--ht-gold); text-transform: uppercase; letter-spacing: 1.5px; }
+.ht-clock { color: #8fb9d3; font-weight: 600; }
 .ht-title { display: inline-block; font: 700 22px/1.2 var(--ht-font-display); color: var(--ht-red); text-transform: uppercase; letter-spacing: .5px;
   padding-bottom: 4px; border-bottom: 2px solid var(--ht-accent); }
 .ht-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
-
-.ht-dock { display: flex; justify-content: center; align-items: center; gap: 28px; padding-top: 2px; }
-.ht-dock button { width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center;
-  color: var(--ht-muted); background: var(--ht-panel-2); border: 1px solid var(--ht-line); cursor: pointer; font-size: 13px; }
-.ht-dock button.ht-home { width: 40px; height: 40px; color: var(--ht-blue); border-color: var(--ht-blue); box-shadow: 0 0 10px rgba(42, 163, 223, .35); }
-.ht-dock button:hover:not([disabled]) { color: var(--ht-strong); border-color: var(--ht-blue); }
-.ht-dock button[disabled] { opacity: .35; cursor: default; }
 
 /* ---------- controls ---------- */
 .ht-screen button, .ht-screen input, .ht-console button, .ht-editor button {
