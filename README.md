@@ -161,6 +161,16 @@ Open it from the party ship's HoloDock screen (*Shipyard*) or with `api.openShip
 - **Upgrades:** browse and search the SW5e starship weapons, equipment and modifications compendiums. Buying one installs a copy on the party ship. Weapons and equipment use their list price; modifications (which have none in SW5e) cost a set amount per grade times the ship size's modification multiplier. A price multiplier setting adjusts everything.
 - The active character pays; every purchase goes to the ledger and is whispered to the GM.
 
+## HoloNet news
+
+The datapad has a **HoloNet** app: an in-world news feed with a scrolling ticker on the home screen.
+
+- The GM writes stories from the app (headline, tag, source, body) and can delete any story.
+- Big moments can write their own stories: a large or restricted trade sale, a ship arriving after a jump, a hyperspace event shown to players, a mission marked done, or a Nova at the cantina.
+- The **Auto news** setting decides what happens to those: *queue* (default, the GM approves or spikes each one), *publish* straight away, or *off*.
+- Unread stories show as a count on the home tile and are marked read when the player opens the feed.
+- Macro api: `game.modules.get("holo-terminal").api.openNews()` and `api.postNews({headline, body, source, tag})`.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.

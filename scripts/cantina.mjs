@@ -1,5 +1,6 @@
 import { MODULE_ID, registerHandler, notifyUser, getCredits, setCredits } from "./store.mjs";
 import { record } from "./bank.mjs";
+import * as News from "./news.mjs";
 
 /* Nova: an original cantina card game against the house.
    Four suits of 1-11; Voids count negative. Three rounds to get your total closest to 23.
@@ -117,6 +118,7 @@ export function registerCantinaHandlers() {
       await setCredits(a, getCredits(a) + bet.stake * mult);
       await record({ from: "Cantina table", to: a, amount: bet.stake * mult, memo: outcome === "nova" ? "Nova!" : "Nova winnings" });
     }
+    if (outcome === "nova") News.auto("nova", { amount: bet.stake * (mult - 1) });
     const verb = { nova: "hit a Nova and won", win: "won", lose: "lost" }[outcome] ?? "played for";
     const n = outcome === "lose" ? bet.stake : bet.stake * (mult - 1);
     ChatMessage.create({ content: `<p><i class="fas fa-dice"></i> <b>${Handlebars.escapeExpression(a?.name ?? "Someone")}</b> ${verb} ${n} cr at Nova.</p>` });

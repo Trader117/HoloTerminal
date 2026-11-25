@@ -31,15 +31,16 @@ import * as Bank from "./bank.mjs";
 import * as Nova from "./cantina.mjs";
 import * as Bridge from "./bridge.mjs";
 import * as Yard from "./shipyard.mjs";
+import * as News from "./news.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina", "bridge", "shipyard"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina", "bridge", "shipyard", "news"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina", bridge: "Ship Bridge", shipyard: "Shipyard" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina", bridge: "Ship Bridge", shipyard: "Shipyard", news: "HoloNet News" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -75,6 +76,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      newsPost: DatapadApp.#newsPost, newsApprove: DatapadApp.#newsApprove, newsDelete: DatapadApp.#newsDelete,
       yardRepair: DatapadApp.#yardRepair, yardBuy: DatapadApp.#yardBuy, yardTab: DatapadApp.#yardTab,
       bridgeView: DatapadApp.#bridgeView, bridgeClaim: DatapadApp.#bridgeClaim, bridgeUse: DatapadApp.#bridgeUse, bridgeRoute: DatapadApp.#bridgeRoute,
       bridgeClear: DatapadApp.#bridgeClear,
@@ -97,6 +99,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
+    Hooks.on(News.NEWS_HOOK, () => this.rendered && ["news", "home"].includes(this.view) && this.render());
     Hooks.on(Bank.BANK_HOOK, () => this.rendered && this.view === "bank" && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
     Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade", "bridge", "shipyard"].includes(this.view) && this.render());
@@ -237,6 +240,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _ctx_home() {
     const apps = [
       { view: "comms", icon: "fa-tower-broadcast", label: "Comms", tone: "green", count: Comms.unreadCount(activeActor()?.id) },
+      { view: "news", icon: "fa-newspaper", label: "HoloNet News", tone: "blue", count: News.unread() },
       { view: "missions", icon: "fa-list-check", label: "Missions", tone: "gold" },
       { view: "contacts", icon: "fa-address-book", label: "Contacts", tone: "blue" },
       { view: "bank", icon: "fa-wallet", label: "Credits", tone: "green" },
@@ -251,7 +255,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "bridge", icon: "fa-users-gear", label: "Bridge", tone: "red" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
-    return { title: "Apps", apps };
+    const latest = News.published()[0];
+    return { title: "Apps", apps, ticker: latest ? `${latest.source.toUpperCase()}: ${latest.headline}` : null };
   }
 
   _ctx_network() {
@@ -377,6 +382,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const a of [...Comms.playerCharacters(), ...npcContacts, ...all.map((t) => game.actors.get(t.key)).filter(Boolean)])
       if (!seen.has(a.id)) { seen.add(a.id); contacts.push({ id: a.id, name: a.name }); }
     return { title: "Comms", threads: all, contacts };
+  }
+
+  _ctx_news() {
+    const read = Number(game.user.getFlag(MODULE_ID, "newsRead")) || 0;
+    const fmt = (ts) => new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    const items = News.published().slice(0, 60).map((s) => ({ ...s, time: fmt(s.ts), fresh: s.ts > read, tagClass: s.tag.toLowerCase() }));
+    if (items.some((i) => i.fresh)) News.markRead();
+    return { title: "HoloNet", items, isGM: game.user.isGM, queue: game.user.isGM ? News.pending() : [], tags: News.TAGS };
   }
 
   yardCat = "weapons"; yardQuery = "";
@@ -570,6 +583,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
 
+  static async #newsPost() {
+    const q = (n) => this.element.querySelector(`[name="news-${n}"]`);
+    if (!q("headline")?.value.trim()) return ui.notifications.warn("Write a headline first.");
+    await News.post({ headline: q("headline").value, body: q("body")?.value, source: q("source")?.value.trim(), tag: q("tag")?.value });
+  }
+  static async #newsApprove(e, el) { await News.approve(el.dataset.id); }
+  static async #newsDelete(e, el) { await News.remove(el.dataset.id); }
+
   static async #yardRepair(e, el) { await requestGM("yardRepair", { kind: el.dataset.kind, points: Number(el.dataset.points) || 0, payerId: activeActor()?.id }); }
   static async #yardBuy(e, el) {
     const row = el.closest("li"), name = row?.querySelector("span")?.firstChild?.textContent?.trim() ?? "this", price = row?.querySelector(".ht-yard-price")?.textContent ?? "";
@@ -618,7 +639,12 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const m = find("missions", el.dataset.id); const o = m?.objectives?.[Number(el.dataset.index)]; if (!o) return;
     o.done = !o.done; await upsert("missions", m);
   }
-  static async #missionStatus(e, el) { if (!game.user.isGM) return; const m = find("missions", el.dataset.id); if (m) { m.status = el.dataset.status; await upsert("missions", m); } }
+  static async #missionStatus(e, el) {
+    if (!game.user.isGM) return;
+    const m = find("missions", el.dataset.id); if (!m) return;
+    m.status = el.dataset.status; await upsert("missions", m);
+    if (m.status === "done") News.auto("mission", { title: m.title, giver: m.giver });
+  }
   static async #contactStanding(e, el) {
     if (!game.user.isGM) return;
     const c = find("contacts", el.dataset.id); if (!c) return;

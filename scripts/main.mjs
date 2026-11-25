@@ -15,6 +15,7 @@ import { registerBankSettings, registerBankHandlers } from "./bank.mjs";
 import { registerCantinaSettings, registerCantinaHandlers } from "./cantina.mjs";
 import { registerBridgeHandlers } from "./bridge.mjs";
 import { registerYardSettings, registerYardHandlers } from "./shipyard.mjs";
+import { registerNewsSettings, post as postNews } from "./news.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -36,6 +37,7 @@ Hooks.once("init", () => {
   registerBankSettings();
   registerCantinaSettings();
   registerYardSettings();
+  registerNewsSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -79,6 +81,9 @@ Hooks.once("ready", () => {
     openCantina: () => datapad("cantina"),
     openBridge: () => datapad("bridge"),
     openShipyard: () => datapad("shipyard"),
+    openNews: () => datapad("news"),
+    /** GM: publish a HoloNet story { headline, body, source, tag }. */
+    postNews: (story) => postNews(story),
     /** GM: roll on the hyperspace event table now. */
     jumpEvent: () => maybeEvent({ force: true }),
     /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */

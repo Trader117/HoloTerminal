@@ -1,0 +1,33 @@
+{{#if isGM}}
+<details class="ht-news-write"{{#if editing}} open{{/if}}>
+  <summary><i class="fas fa-pen-nib"></i> Write a story</summary>
+  <input name="news-headline" type="text" maxlength="140" placeholder="Headline">
+  <div class="ht-news-meta-row">
+    <select name="news-tag">{{#each tags}}<option value="{{this}}">{{this}}</option>{{/each}}</select>
+    <input name="news-source" type="text" placeholder="Source (blank for random)">
+  </div>
+  <textarea name="news-body" rows="3" placeholder="Story (optional)"></textarea>
+  <div class="ht-row"><button type="button" class="ht-primary" data-action="newsPost"><i class="fas fa-satellite"></i> Publish</button></div>
+</details>
+{{#if queue.length}}
+<h3 class="ht-dock-h">Waiting for approval</h3>
+{{#each queue}}
+<article class="ht-news-item pending">
+  <div class="ht-news-tag">{{tag}} &middot; {{source}}</div>
+  <div class="ht-news-headline">{{headline}}</div>
+  {{#if body}}<p>{{body}}</p>{{/if}}
+  <div class="ht-row"><button type="button" class="ht-primary" data-action="newsApprove" data-id="{{id}}">Publish</button><button type="button" data-action="newsDelete" data-id="{{id}}">Spike it</button></div>
+</article>
+{{/each}}
+{{/if}}
+{{/if}}
+<div class="ht-news-feed">
+{{#each items}}
+<article class="ht-news-item{{#if fresh}} fresh{{/if}}">
+  <div class="ht-news-tag"><span class="ht-news-chip ht-news-{{tagClass}}">{{tag}}</span> {{source}} &middot; {{time}}</div>
+  <div class="ht-news-headline">{{headline}}</div>
+  {{#if body}}<p>{{body}}</p>{{/if}}
+  {{#if ../isGM}}<div class="ht-row"><button type="button" data-action="newsDelete" data-id="{{id}}" title="Remove"><i class="fas fa-trash"></i></button></div>{{/if}}
+</article>
+{{else}}<p class="ht-dim">-- no transmissions on the HoloNet --</p>{{/each}}
+</div>

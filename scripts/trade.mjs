@@ -2,6 +2,7 @@ import { MODULE_ID, registerHandler, notifyUser, getCredits, setCredits } from "
 import * as G from "./galaxy.mjs";
 import * as Dock from "./holodock.mjs";
 import { record } from "./bank.mjs";
+import * as News from "./news.mjs";
 
 /* Trade runs: every world prices a common list of cargo from what it is (terrain, climate, class) and where it is
    (Core to Rim). Prices drift when the GM shifts the markets. Buying and selling goes through the party ship's hold. */
@@ -98,6 +99,7 @@ export function registerTradeHandlers() {
     if (!user.isGM && !payer?.testUserPermission(user, "OWNER")) return notifyUser(user.id, "warn", "Pick your character first.");
     if (payer) { await setCredits(payer, getCredits(payer) + earn); await record({ from: `${planet.name} exchange`, to: payer, amount: earn, memo: `${n} t ${g.name}` }); }
     await Dock.editCargo(ship, (list) => list.map((c) => (c.good === goodId ? { ...c, qty: c.qty - n } : c)).filter((c) => c.qty > 0));
+    if (g.restricted || earn >= 1500) News.auto(g.restricted ? "restricted" : "sale", { good: g.name, tons: n, planet: planet.name });
     const profit = earn - n * (cargo.paid ?? g.sell);
     notifyUser(user.id, "info", `Sold ${n} t of ${g.name} for ${earn} cr (${profit >= 0 ? "+" : ""}${profit} cr).`);
     const esc = Handlebars.escapeExpression;
