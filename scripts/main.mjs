@@ -6,6 +6,7 @@ import { registerRegionBehavior } from "./regions.mjs";
 import { registerScannerSettings, registerSignatureBehavior } from "./scanner.mjs";
 import { initScanSocket, openScanner, runScan } from "./scan-wheel.mjs";
 import { registerGalaxySettings } from "./galaxy.mjs";
+import { registerDockSettings, registerDockHandlers } from "./holodock.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -20,6 +21,7 @@ Hooks.once("init", () => {
   registerRegionBehavior((view, id) => datapad(view, id));
   registerScannerSettings();
   registerGalaxySettings();
+  registerDockSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -36,6 +38,7 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   registerActions();
   registerLootHandlers();
+  registerDockHandlers();
   initSocket(datapad);
   initScanSocket();
   game.modules.get(MODULE_ID).api = {
@@ -46,6 +49,7 @@ Hooks.once("ready", () => {
     openBounties: () => datapad("bounties"),
     openSalvage: () => datapad("salvage"),
     openScanner: () => openScanner({ ConsoleApp }),
+    openHoloDock: (actorId = null) => datapad("holodock", actorId),
     galaxy: () => GalaxyMapApp.instance.render(true),
     scan: (actor, scannerId, opts) => runScan(actor, scannerId, opts),
     /** GM: push a view to every player's datapad. */

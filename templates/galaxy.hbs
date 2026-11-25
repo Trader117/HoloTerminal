@@ -61,8 +61,10 @@
       <div class="ht-gx-kicker">Nav computer</div>
       <div class="ht-gx-eta">{{route.time}}</div>
       <div class="ht-gx-sub">{{route.squares}} grid squares · hyperdrive class <input name="gx-class" type="number" min="0.5" step="0.5" value="{{hyper}}"></div>
+      {{#if dock}}<div class="ht-gx-sub ht-gx-dock{{#if dock.short}} short{{/if}}"><i class="fas fa-shuttle-space"></i> {{dock.name}} · needs {{dock.need}} fuel, has {{dock.fuel}}{{#if dock.fuelMax}}/{{dock.fuelMax}}{{/if}}{{#if dock.noDrive}} · no hyperdrive on record{{/if}}</div>{{/if}}
       <ol>{{#each route.legs}}<li><span class="ht-gx-leg">{{#if lane}}{{lane}}{{else}}Open jump{{/if}}</span>{{from}} <i class="fas fa-arrow-right"></i> {{to}}{{#if (ne stops 1)}} <small>({{stops}} hops)</small>{{/if}}</li>{{/each}}</ol>
       <div class="ht-gx-actions">
+        {{#if isGM}}<button type="button" data-action="jump" title="Move the party ship to the destination and burn the fuel"><i class="fas fa-forward-fast"></i> Make the jump</button>{{/if}}
         {{#if isGM}}<button type="button" data-action="shareRoute"><i class="fas fa-users"></i> Show players</button>{{/if}}
         <button type="button" data-action="clearRoute"><i class="fas fa-xmark"></i> Clear</button>
       </div>

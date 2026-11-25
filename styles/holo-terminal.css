@@ -469,3 +469,48 @@
 .ht-gx-credit a { color: var(--ht-muted); text-decoration: underline; }
 .ht-gx-dialog .ht-wide { grid-column: 1 / -1; }
 .ht-gx-dialog textarea { width: 100%; }
+
+/* ---------- HoloDock ---------- */
+.ht-dock-ships { display: flex; flex-direction: column; gap: 6px; }
+.ht-screen .ht-dock-card { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; text-align: left; background: var(--ht-panel-2);
+  border: 1px solid var(--ht-line); border-radius: 4px; cursor: pointer; }
+.ht-screen .ht-dock-card:hover { border-color: var(--ht-blue); }
+.ht-dock-card.ht-dock-party { border-left: 3px solid var(--ht-gold); }
+.ht-dock-card img, .ht-dock-head img { flex: 0 0 46px; width: 46px; height: 46px; object-fit: cover; border: 1px solid var(--ht-line); border-radius: 4px; background: var(--ht-band-1); }
+.ht-dock-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ht-dock-name { font-family: var(--ht-font-display); font-weight: 700; color: var(--ht-strong); font-size: 14px; }
+.ht-dock-meta { font-size: 11px; color: var(--ht-muted); text-transform: uppercase; letter-spacing: .04em; }
+.ht-dock-tag { font: 700 9px var(--ht-font-display); color: #10161c; background: var(--ht-gold); padding: 1px 5px; border-radius: 2px; letter-spacing: .08em; text-transform: uppercase; vertical-align: middle; }
+.ht-dock-mini { display: block; height: 3px; background: var(--ht-band-1); border-radius: 2px; overflow: hidden; }
+.ht-dock-mini i { display: block; height: 100%; background: var(--tone); }
+.ht-tone-hull { --tone: #7fd18b; } .ht-tone-shields { --tone: #5cc8ff; } .ht-tone-fuel { --tone: #e8b04a; }
+.ht-dock-mini.low, .ht-dock-bar.low { --tone: var(--ht-red); }
+.ht-dock-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ht-dock-head img { flex-basis: 56px; width: 56px; height: 56px; }
+.ht-dock-bars { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; background: var(--ht-panel); border: 1px solid var(--ht-line); border-radius: 4px; }
+.ht-dock-bar { display: grid; grid-template-columns: 62px 1fr 64px; align-items: center; gap: 8px; --sig: var(--tone); }
+.ht-dock-bar > span { font: 700 11px var(--ht-font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--ht-muted); }
+.ht-dock-bar .ht-charge { height: 8px; margin: 0; }
+.ht-dock-bar b { text-align: right; color: var(--ht-strong); font-variant-numeric: tabular-nums; }
+.ht-dock-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
+.ht-dock-stats > div { padding: 6px 8px; background: var(--ht-panel-2); border: 1px solid var(--ht-line); border-radius: 4px; display: flex; flex-direction: column; gap: 2px; }
+.ht-dock-stats small { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--ht-muted); }
+.ht-dock-stats b { color: var(--ht-strong); }
+.ht-dock-stats select { width: 100%; }
+.ht-dock-head > div { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.ht-dock-actions { flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.ht-dock-h { font: 700 12px var(--ht-font-display); text-transform: uppercase; letter-spacing: .1em; color: var(--ht-gold); margin: 10px 0 4px; border-bottom: 1px solid var(--ht-line); }
+.ht-dock-list { list-style: none; margin: 0; padding: 0; }
+.ht-dock-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--ht-line); }
+.ht-dock-list li small { color: var(--ht-muted); }
+.ht-dock-list li .ht-icon-btn { margin-left: auto; }
+.ht-dock-role, .ht-dock-qty { min-width: 64px; font: 700 10px var(--ht-font-display); text-transform: uppercase; letter-spacing: .06em; color: var(--ht-blue); }
+.ht-dock-qty { min-width: 28px; }
+.ht-dock-add { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px auto; gap: 4px; margin-top: 6px; }
+.ht-dock-add input { min-width: 0; width: 100%; }
+.ht-dock-loc { font-size: 12px; color: var(--ht-strong); } .ht-dock-loc i { color: var(--ht-red); }
+.ht-screen .ht-dock-stats select { background: var(--ht-band-1); color: var(--ht-strong); border: 1px solid var(--ht-line); border-radius: 3px; height: 24px; }
+.ht-dock-notes { white-space: pre-wrap; color: var(--ht-text); }
+.ht-dock-star { color: var(--ht-muted); } .ht-dock-star.on { color: var(--ht-gold); }
+.ht-dock-addship { gap: 6px; } .ht-dock-addship select { flex: 1; }
+.ht-gx-dock { color: #9fe3a9; } .ht-gx-dock.short { color: #ff8a80; }

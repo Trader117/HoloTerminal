@@ -1,5 +1,6 @@
 import { MODULE_ID, SOCKET } from "./store.mjs";
 import * as G from "./galaxy.mjs";
+import * as Dock from "./holodock.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const WOOKIEE = "https://starwars.fandom.com/wiki/";
@@ -19,7 +20,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pick: GalaxyMapApp.#pick, closeCard: GalaxyMapApp.#closeCard, routeFrom: GalaxyMapApp.#routeFrom, routeTo: GalaxyMapApp.#routeTo,
       clearRoute: GalaxyMapApp.#clearRoute, shareRoute: GalaxyMapApp.#shareRoute, shipHere: GalaxyMapApp.#shipHere, findShip: GalaxyMapApp.#findShip,
       editPlanet: GalaxyMapApp.#editPlanet, hidePlanet: GalaxyMapApp.#hidePlanet, movePlanet: GalaxyMapApp.#movePlanet,
-      openLink: GalaxyMapApp.#openLink, wiki: GalaxyMapApp.#wiki, menu: GalaxyMapApp.#menu, delPin: GalaxyMapApp.#delPin, ext: GalaxyMapApp.#ext
+      openLink: GalaxyMapApp.#openLink, jump: GalaxyMapApp.#jump, wiki: GalaxyMapApp.#wiki, menu: GalaxyMapApp.#menu, delPin: GalaxyMapApp.#delPin, ext: GalaxyMapApp.#ext
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/galaxy.hbs` } };
@@ -44,6 +45,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(o) {
     super(o);
     Hooks.on(G.GALAXY_HOOK, () => this.rendered && this.#refresh());
+    Hooks.on("updateActor", (a) => this.rendered && a === Dock.partyShip() && this.render());
     game.socket.on(SOCKET, (m) => {
       if (m?.type !== "galaxyRoute" || m.userId === game.user.id) return;
       this.route = m.route; this.routeFrom = null;
@@ -86,7 +88,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       isGM: game.user.isGM, show: this.show, layersOpen: this.layersOpen,
       layers: GalaxyMapApp.LAYERS.map(([key, label, hint]) => ({ key, label, hint, on: this.show[key] })), query: this.query, results, count: this.planets.length,
-      hyper: this.hyper ?? game.settings.get(MODULE_ID, "galaxyClass"),
+      hyper: this.#hyper(), dock: this.#dockInfo(route),
       ship: this.state.ship ? { ...this.state.ship, grid: G.gridLabel(this.state.ship.x, this.state.ship.y) } : null,
       routeFrom: this.routeFrom ? (this.routeFrom.name ?? G.gridLabel(this.routeFrom.x, this.routeFrom.y)) : null,
       moving: this.moving ? this.pmap.get(this.moving)?.name : null,
@@ -459,7 +461,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     c.strokeStyle = "rgba(255,81,70,.6)"; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 12 + Math.sin(t) * 2, 0, Math.PI * 2); c.stroke();
     c.fillStyle = "#ff5146"; c.beginPath(); c.moveTo(x, y - 9); c.lineTo(x + 7, y + 7); c.lineTo(x, y + 3); c.lineTo(x - 7, y + 7); c.closePath(); c.fill();
     c.font = "700 11px Bahnschrift, 'Segoe UI', sans-serif"; c.textAlign = "center"; c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.9)";
-    const label = (s.name || "Party ship").toUpperCase(); c.strokeText(label, x, y + 22); c.fillStyle = "#ff8a80"; c.fillText(label, x, y + 22); c.textAlign = "left";
+    const label = (Dock.partyShip()?.name || s.name || "Party ship").toUpperCase(); c.strokeText(label, x, y + 22); c.fillStyle = "#ff8a80"; c.fillText(label, x, y + 22); c.textAlign = "left";
   }
   #drawRoute(c, z) {
     const pts = this.route.path;
@@ -486,7 +488,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #routeFrom(e, el) { this.routeFrom = this.#point(el); this.menuAt = null; this.route = null; this.render(); }
   static #routeTo(e, el) {
     const to = this.#point(el); this.menuAt = null;
-    const from = this.routeFrom ?? (this.state.ship && { x: this.state.ship.x, y: this.state.ship.y, key: this.state.ship.key, name: this.state.ship.name || "Party ship" });
+    const from = this.routeFrom ?? (this.state.ship && { x: this.state.ship.x, y: this.state.ship.y, key: this.state.ship.key, name: Dock.partyShip()?.name || this.state.ship.name || "Party ship" });
     if (!to || !from) { ui.notifications.warn("Set a start point first (or the GM can place the party ship)."); return this.render(); }
     this.routeEnds = { from, to };
     this.#replot();
@@ -494,9 +496,35 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #replot() {
     const { from, to } = this.routeEnds ?? {};
     if (!from || !to) return;
-    this.route = G.plotRoute(this.galaxy, this.planets, from, to, this.hyper ?? game.settings.get(MODULE_ID, "galaxyClass"));
+    this.route = G.plotRoute(this.galaxy, this.planets, from, to, this.#hyper());
     this.route.path[0].name ??= from.name; this.route.path.at(-1).name ??= to.name;
     this.render();
+  }
+  /** Route speed: what the user typed, else the party ship's hyperdrive, else the world default. */
+  #hyper() { const a = Dock.partyShip(); return this.hyper ?? (a && Dock.hyperClass(a)) ?? game.settings.get(MODULE_ID, "galaxyClass"); }
+  #dockInfo(route) {
+    const a = Dock.partyShip(); if (!a || !route) return null;
+    const info = Dock.shipInfo(a), need = Dock.fuelForHours(this.route.hours);
+    return { name: a.name, fuel: info.fuel.value, fuelMax: info.fuel.max, need, short: need > info.fuel.value, noDrive: !info.hyper };
+  }
+  /** GM: fly the party ship along the plotted route: move the marker, burn fuel, log the location. */
+  static async #jump() {
+    if (!game.user.isGM || !this.route) return;
+    const a = Dock.partyShip(), end = this.route.path.at(-1), need = a ? Dock.fuelForHours(this.route.hours) : 0;
+    if (a && need > Dock.shipInfo(a).fuel.value) {
+      const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Not enough fuel" },
+        content: `<p>${esc(a.name)} needs ${need} fuel for this trip and has ${Dock.shipInfo(a).fuel.value}. Jump anyway and empty the tanks?</p>` });
+      if (!ok) return;
+    }
+    const name = end.name ?? G.gridLabel(end.x, end.y);
+    const s = G.state(); s.ship = { ...(s.ship ?? {}), x: end.x, y: end.y, key: end.key ?? null, name: a?.name ?? s.ship?.name ?? "Party ship" };
+    await G.saveState(s);
+    if (a) {
+      await Dock.burnFuel(a, need);
+      await Dock.saveFlag(a, { ...(a.getFlag(MODULE_ID, "ship") ?? {}), location: name });
+    }
+    ChatMessage.create({ content: `<p><b>${esc(a?.name ?? "The party ship")}</b> jumps to hyperspace and arrives at <b>${esc(name)}</b> after ${G.formatHours(this.route.hours)}${need ? ` (${need} fuel used)` : ""}.</p>` });
+    this.route = null; this.routeFrom = null; this.routeEnds = null; this.render();
   }
   static #clearRoute() { this.route = null; this.routeFrom = null; this.routeEnds = null; this.render(); }
   static #shareRoute() { if (this.route) { game.socket.emit(SOCKET, { type: "galaxyRoute", userId: game.user.id, route: this.route }); ui.notifications.info("Route shown to everyone with the galaxy map open."); } }

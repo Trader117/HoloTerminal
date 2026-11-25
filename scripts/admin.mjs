@@ -4,6 +4,7 @@ import { ShopEditorApp, importMejShops } from "./shop-editor.mjs";
 import * as Scan from "./scanner.mjs";
 import { runScan } from "./scan-wheel.mjs";
 import { playPulse } from "./scan-fx.mjs";
+import * as Dock from "./holodock.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -142,7 +143,9 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
       edit: ConsoleApp.#edit, remove: ConsoleApp.#remove, toggle: ConsoleApp.#toggle, importMej: ConsoleApp.#importMej,
       scGive: ConsoleApp.#scGive, scPreviewForm: ConsoleApp.#scPreviewForm, scPreview: ConsoleApp.#scPreview, scEdit: ConsoleApp.#scEdit,
       scRecharge: ConsoleApp.#scRecharge, scDelete: ConsoleApp.#scDelete, tgToggle: ConsoleApp.#tgToggle, tgPreview: ConsoleApp.#tgPreview,
-      tgEdit: ConsoleApp.#tgEdit
+      tgEdit: ConsoleApp.#tgEdit,
+      shipAdd: ConsoleApp.#shipAdd, shipParty: ConsoleApp.#shipParty, shipOpen: ConsoleApp.#shipOpen, shipShow: ConsoleApp.#shipShow,
+      shipEdit: ConsoleApp.#shipEdit, shipRemove: ConsoleApp.#shipRemove
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/console.hbs`, scrollable: [".ht-body"] } };
@@ -155,11 +158,15 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     for (const h of ["updateActor", "createRegionBehavior", "updateRegionBehavior", "deleteRegionBehavior", "updateRegion", "canvasReady"])
       Hooks.on(h, () => this.rendered && this.tab === "scanners" && this.render());
+    for (const h of ["updateActor", "createActor", "deleteActor", Dock.DOCK_HOOK])
+      Hooks.on(h, () => this.rendered && this.tab === "ships" && this.render());
   }
 
   async _prepareContext() {
-    const tabs = [...Object.entries(KIND_LABEL), ["scanners", "Scanners"]].map(([id, label]) => ({ id, label, active: id === this.tab }));
+    const tabs = [...Object.entries(KIND_LABEL), ["scanners", "Scanners"], ["ships", "Ships"]].map(([id, label]) => ({ id, label, active: id === this.tab }));
     if (this.tab === "scanners") return { tab: this.tab, tabs, isScanners: true, ...this.#scannerContext() };
+    if (this.tab === "ships") return { tab: this.tab, tabs, isShips: true, ships: Dock.shipActors().map((a) => Dock.shipInfo(a)),
+      candidates: game.actors.filter((a) => !Dock.isShip(a)).sort((a, b) => a.name.localeCompare(b.name)).map((a) => ({ id: a.id, name: `${a.name} (${a.type})` })) };
     return {
       tab: this.tab, isShops: this.tab === "shops",
       tabs,
@@ -244,6 +251,46 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const c = areas[0]?.center ?? { x: 0, y: 0 };
     playPulse({ sceneId: canvas.scene.id, origin: c, rangePx: 1, color: t.color, style: "ripple", areas, tokens: [] },
       { highlightSeconds: game.settings.get(MODULE_ID, "scanHighlight") });
+  }
+  /* ---------- ships tab ---------- */
+  static async #shipAdd() {
+    const a = game.actors.get(this.element.querySelector("[name=ship-actor]")?.value);
+    if (a) await Dock.markShip(a, true);
+  }
+  static async #shipParty(e, el) { await Dock.setPartyShip(Dock.partyShip()?.id === el.dataset.id ? "" : el.dataset.id); }
+  static #shipOpen(e, el) { DatapadApp.instance.show("holodock", el.dataset.id); }
+  static #shipShow(e, el) {
+    game.socket.emit(`module.${MODULE_ID}`, { type: "open", view: "holodock", id: el.dataset.id });
+    DatapadApp.instance.show("holodock", el.dataset.id);
+  }
+  static async #shipRemove(e, el) {
+    const a = game.actors.get(el.dataset.id); if (!a) return;
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Remove from HoloDock?" },
+      content: `<p>Take ${a.name} off the ship registry? The actor itself is not deleted.</p>` });
+    if (!ok) return;
+    if (Dock.partyShip() === a) await Dock.setPartyShip("");
+    await Dock.markShip(a, false);
+  }
+  static async #shipEdit(e, el) {
+    const a = game.actors.get(el.dataset.id); if (!a) return;
+    const f = a.getFlag(MODULE_ID, "ship") ?? {}, info = Dock.shipInfo(a);
+    const esc = (v) => String(v ?? "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const content = `<div class="ht-sc-dialog">
+      <label>Hyperdrive class <input name="hyperdrive" type="number" min="0" step="0.25" value="${esc(f.hyperdrive)}" placeholder="${info.hyper ? `from items: ${info.hyper}` : "none"}"></label>
+      <label>Fuel now <input name="fuel" type="number" min="0" value="${info.fuel.value}"></label>
+      <label>Fuel capacity <input name="fuelMax" type="number" min="0" value="${esc(f.fuelMax)}" placeholder="${info.fuel.max ?? "unlimited"}"></label>
+      <label>Shield capacity <input name="shieldMax" type="number" min="0" value="${esc(f.shieldMax)}" placeholder="${info.shields?.max ?? "from sheet"}"></label>
+      <label>Cargo capacity (t) <input name="cargoCap" type="number" min="0" value="${esc(f.cargoCap)}" placeholder="${info.cargoCap ?? "none"}"></label>
+      <label>Location <input name="location" type="text" value="${esc(f.location)}" placeholder="e.g. Docking bay 94, Mos Eisley"></label>
+      <label>Log <textarea name="notes" rows="3">${esc(f.notes)}</textarea></label>
+      <p class="ht-dim">Leave a box empty to use the value from the SW5e sheet.</p></div>`;
+    const data = await foundry.applications.api.DialogV2.prompt({ window: { title: `HoloDock: ${a.name}` }, content,
+      ok: { label: "Save", callback: (ev, btn) => Object.fromEntries(new FormData(btn.form)) } }).catch(() => null);
+    if (!data) return;
+    const opt = (v) => (v === "" || v === undefined ? null : Math.max(0, Number(v) || 0));
+    await Dock.saveFlag(a, { ...f, hyperdrive: opt(data.hyperdrive), fuelMax: opt(data.fuelMax), shieldMax: opt(data.shieldMax),
+      cargoCap: opt(data.cargoCap), location: data.location?.trim() ?? "", notes: data.notes ?? "" });
+    if (Number(data.fuel) !== info.fuel.value) await Dock.setFuel(a, Number(data.fuel) || 0);
   }
   static async #create() { const d = blank(this.tab); await upsert(this.tab, d); openEditor(this.tab, d.id); }
   static #open(e, el) { DatapadApp.instance.show(OPEN_VIEW[this.tab], el.dataset.id); }

@@ -51,6 +51,26 @@
       {{else}}<li class="ht-dim">No scan targets on this scene.</li>{{/each}}
     </ul>
   </section>
+  {{else if isShips}}
+  <section class="ht-body ht-sc">
+    <div class="ht-row ht-dock-addship">
+      <select name="ship-actor">{{#each candidates}}<option value="{{id}}">{{name}}</option>{{else}}<option value="">No other actors</option>{{/each}}</select>
+      <button type="button" data-action="shipAdd" title="Use a vehicle or NPC actor as a ship"><i class="fas fa-plus"></i> Add as ship</button>
+    </div>
+    <p class="ht-dim ht-sc-help">SW5e starship actors are listed on their own. Players see the party ship plus any ship they have Limited rights on (Observer to read its systems, Owner to buy fuel and load cargo). The party ship sets the galaxy map's ship marker and route speed.</p>
+    <ul>
+      {{#each ships}}
+      <li class="ht-entry">
+        <button type="button" data-action="shipParty" data-id="{{id}}" title="{{#if party}}Party ship (click to clear){{else}}Set as party ship{{/if}}" class="ht-dock-star{{#if party}} on{{/if}}"><i class="{{#if party}}fas{{else}}far{{/if}} fa-star"></i></button>
+        <span class="ht-entry-name">{{name}}<small>{{#if size}}{{size}} · {{/if}}{{#if hyper}}class {{hyper}}{{else}}no hyperdrive{{/if}} · hull {{hull.value}}{{#if hull.max}}/{{hull.max}}{{/if}}{{#if shields}} · shields {{shields.value}}{{/if}} · fuel {{fuel.value}}{{#if fuel.max}}/{{fuel.max}}{{/if}}{{#if location}} · {{location}}{{/if}}</small></span>
+        <button type="button" data-action="shipOpen" data-id="{{id}}" title="Open"><i class="fas fa-up-right-from-square"></i></button>
+        <button type="button" data-action="shipShow" data-id="{{id}}" title="Show to players"><i class="fas fa-users"></i></button>
+        <button type="button" data-action="shipEdit" data-id="{{id}}" title="HoloDock settings"><i class="fas fa-pen"></i></button>
+        {{#unless native}}<button type="button" data-action="shipRemove" data-id="{{id}}" title="Remove from HoloDock"><i class="fas fa-trash"></i></button>{{/unless}}
+      </li>
+      {{else}}<li class="ht-dim">No ships yet.</li>{{/each}}
+    </ul>
+  </section>
   {{else}}
   <section class="ht-body">
     <ul>
