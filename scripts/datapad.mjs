@@ -28,15 +28,16 @@ import * as Dock from "./holodock.mjs";
 import * as Comms from "./comms.mjs";
 import * as Trade from "./trade.mjs";
 import * as Bank from "./bank.mjs";
+import * as Nova from "./cantina.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -72,6 +73,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      novaDeal: DatapadApp.#novaDeal, novaMove: DatapadApp.#novaMove, novaPickSwap: DatapadApp.#novaPickSwap, novaSwap: DatapadApp.#novaSwap,
+      novaCancel: DatapadApp.#novaCancel, novaAgain: DatapadApp.#novaAgain,
       bankSend: DatapadApp.#bankSend, bankGrant: DatapadApp.#bankGrant,
       missionObj: DatapadApp.#missionObj, missionStatus: DatapadApp.#missionStatus, contactStanding: DatapadApp.#contactStanding,
       tradeBuy: DatapadApp.#tradeBuy, tradeSell: DatapadApp.#tradeSell, tradeShift: DatapadApp.#tradeShift
@@ -235,6 +238,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" },
       { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" },
       { action: "galaxy", icon: "fa-earth-americas", label: "Galaxy Map", tone: "gold" },
+      { view: "cantina", icon: "fa-dice", label: "Cantina", tone: "gold" },
       { view: "holodock", icon: "fa-shuttle-space", label: "HoloDock", tone: "red" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
@@ -364,6 +368,21 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const a of [...Comms.playerCharacters(), ...npcContacts, ...all.map((t) => game.actors.get(t.key)).filter(Boolean)])
       if (!seen.has(a.id)) { seen.add(a.id); contacts.push({ id: a.id, name: a.name }); }
     return { title: "Comms", threads: all, contacts };
+  }
+
+  /** Nova hand in progress: { game, betId, swapping }. */
+  nova = null;
+  _ctx_cantina(ctx, actor) {
+    if (!actor) return { title: "Cantina", noActor: true };
+    const limit = game.settings.get(MODULE_ID, "cantinaMaxBet");
+    const g = this.nova?.game;
+    if (!g) return { title: "Cantina", phase: "bet", limit, stakes: [10, 50, 100, 250, 500].filter((n) => n <= limit) };
+    const p = Nova.total(g.player), done = g.phase === "done";
+    const RESULT = { nova: `NOVA! You win ${g.stake * 2} cr.`, win: `You beat the house and win ${g.stake} cr.`, push: "A tie. Your stake comes back.", lose: g.result?.tie ? `A tie, and ties go to the house. You lose ${g.stake} cr.` : `The house takes your ${g.stake} cr.` };
+    return { title: "Nova", phase: g.phase, round: g.round, stake: g.stake, flux: g.flux, done, swapping: this.nova.swapping,
+      player: g.player.map(Nova.cardView), house: g.house.map(Nova.cardView), top: g.discard.length ? Nova.cardView(g.discard.at(-1)) : null,
+      playerTotal: p, away: Math.abs(Nova.TARGET - p), houseTotal: Nova.total(g.house), full: g.player.length >= 5,
+      log: g.log.slice(-4).reverse(), result: g.result, resultText: g.result ? RESULT[g.result.outcome] : "" };
   }
 
   _ctx_bank(ctx, actor) {
@@ -515,6 +534,22 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await Comms.send({ fromId: activeActor()?.id, to: el.dataset.to, text });
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
+
+  static async #novaDeal(e, el) {
+    const actor = activeActor(), stake = Number(el.dataset.stake);
+    if (!actor) return;
+    if (getCredits(actor) < stake) return ui.notifications.warn(`${actor.name} doesn't have ${stake} cr.`);
+    const betId = foundry.utils.randomID();
+    await requestGM("cantinaBet", { actorId: actor.id, stake, betId });
+    this.nova = { game: Nova.newGame(stake), betId, swapping: false };
+    this.render();
+  }
+  #novaSettle() { const g = this.nova?.game; if (g?.phase === "done") requestGM("cantinaSettle", { betId: this.nova.betId, outcome: g.result.outcome }); }
+  static #novaMove(e, el) { if (!this.nova) return; Nova.play(this.nova.game, el.dataset.move); this.#novaSettle(); this.render(); }
+  static #novaPickSwap() { if (this.nova) { this.nova.swapping = true; this.render(); } }
+  static #novaCancel() { if (this.nova) { this.nova.swapping = false; this.render(); } }
+  static #novaSwap(e, el) { if (!this.nova) return; this.nova.swapping = false; Nova.play(this.nova.game, "swap", Number(el.dataset.index)); this.#novaSettle(); this.render(); }
+  static #novaAgain() { this.nova = null; this.render(); }
 
   static async #bankSend() {
     const q = (n) => this.element.querySelector(`[name="bank-${n}"]`);
