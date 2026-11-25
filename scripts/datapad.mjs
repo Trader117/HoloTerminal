@@ -59,7 +59,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 430, height: 660 },
     actions: {
       home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
-      go: DatapadApp.#go, back: DatapadApp.#back, tab: DatapadApp.#tab,
+      go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab,
       login: DatapadApp.#login, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
