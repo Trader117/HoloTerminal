@@ -2,7 +2,6 @@
   <div class="ht-bezel-top" title="Drag to move"></div>
   <span class="ht-rail ht-rail-l" aria-hidden="true"></span><span class="ht-rail ht-rail-r" aria-hidden="true"></span>
   <div class="ht-screen ht-theme-{{theme}}">
-    <div class="ht-glyphline">{{{glyphLine}}}</div>
     <header class="ht-header">
       <div class="ht-kicker"><span>{{kicker}}</span><span class="ht-clock">{{#if actorName}}{{actorName}} &middot; {{/if}}{{clock}}</span></div>
       <div class="ht-title">{{title}}</div>
@@ -12,15 +11,12 @@
   </div>
   <nav class="ht-controls">
     <div class="ht-keys">
+      <button type="button" class="ht-key" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><i class="fas fa-arrow-left"></i><span>Back</span></button>
       {{#each keys}}
-      <button type="button" class="ht-key" data-action="{{action}}" {{#if view}}data-view="{{view}}"{{/if}} title="{{label}}">{{{glyph}}}</button>
+      <button type="button" class="ht-key{{#if active}} active{{/if}}" data-action="{{action}}" {{#if view}}data-view="{{view}}"{{/if}} title="{{#if title}}{{title}}{{else}}{{label}}{{/if}}"><i class="fas {{icon}}"></i><span>{{label}}</span></button>
       {{/each}}
     </div>
-    <div class="ht-grille" aria-hidden="true"></div>
-    <div class="ht-keys">
-      <button type="button" class="ht-key ht-arrow" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><span class="ht-tri ht-tri-l"></span></button>
-      <button type="button" class="ht-key ht-arrow" data-action="forward" title="Forward" {{#unless canForward}}disabled{{/unless}}><span class="ht-tri ht-tri-r"></span></button>
-      <div class="ht-readout" title="Credits">{{#if (ne credits null)}}{{credits}}<small>cr</small>{{else}}-----{{/if}}</div>
-    </div>
+    <div class="ht-readout" title="Credits">{{#if (ne credits null)}}{{credits}}<small>cr</small>{{else}}<small>no ID</small>{{/if}}</div>
+    <button type="button" class="ht-key ht-power" data-action="close" title="Close datapad"><i class="fas fa-power-off"></i><span>Close</span></button>
   </nav>
 </div>

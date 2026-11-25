@@ -1,6 +1,5 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
-import { aurebesh } from "./aurebesh.mjs";
 import { EditorApp, ConsoleApp, blank } from "./admin.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -112,15 +111,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       view: this.view, viewId: this.viewId, partial: T(this.view), kicker: KICKER[this.view],
       clock: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       canForward: this.hIndex < this.history.length - 1,
-      glyphLine: aurebesh(`holo terminal ${KICKER[this.view] ?? ""} ${actor?.name ?? ""}`, { height: 12 }),
       keys: [
-        { action: "home", letter: "h", label: "Home" },
-        { action: "go", view: "network", letter: "n", label: "Local Net" },
-        { action: "go", view: "bounties", letter: "b", label: "Bounty Board" },
-        { action: "go", view: "shops", letter: "m", label: "Markets" },
-        ...(game.user.isGM ? [{ action: "console", letter: "g", label: "GM Console" }] : []),
-        { action: "close", letter: "x", label: "Power off" }
-      ].map((k) => ({ ...k, glyph: aurebesh(k.letter, { height: 16 }) })), booting: this.booting, isGM: game.user.isGM, theme: "cyan",
+        { action: "home", icon: "fa-house", label: "Home", active: this.view === "home" },
+        { action: "go", view: "network", icon: "fa-network-wired", label: "Net", title: "Local Net",
+          active: ["network", "terminal", "slice"].includes(this.view) },
+        { action: "go", view: "bounties", icon: "fa-crosshairs", label: "Bounties", active: this.view === "bounties" },
+        { action: "go", view: "shops", icon: "fa-store", label: "Shops", title: "Markets", active: ["shops", "shop"].includes(this.view) },
+        ...(game.user.isGM ? [{ action: "console", icon: "fa-terminal", label: "GM", title: "GM Console" }] : [])
+      ], booting: this.booting, isGM: game.user.isGM, theme: "cyan",
       actorName: actor?.name, credits: actor ? getCredits(actor) : null, canBack: this.view !== "home" || this.hIndex > 0,
       bootText: ["DATAPAD OS 4.2", "Linking to local net...", `Node: ${canvas.scene?.name ?? "deep space"}`, "READY"].join("\n")
     };
