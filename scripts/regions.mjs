@@ -8,7 +8,11 @@ export const BEHAVIOR_TYPE = `${MODULE_ID}.openDatapad`;
 
 /** Every place the behaviour can open, built when the config sheet renders so new terminals/markets show up. */
 function targetChoices() {
-  const c = { home: "Datapad home screen", bounties: "Bounty board", salvage: "Salvage (loot nearby)", scanner: "Pulse Scanner" };
+  const c = {
+    home: "Datapad home screen", network: "Local Net (terminals on this scene)", comms: "Comms", news: "HoloNet News",
+    missions: "Missions", contacts: "Contacts", bank: "Credits", bounties: "Bounty board", shops: "Markets (all on this scene)",
+    salvage: "Salvage (loot nearby)", scanner: "Pulse Scanner", galaxy: "Galaxy Map", holodock: "Starship (party ship)"
+  };
   for (const t of list("terminals")) c[`terminal:${t.id}`] = `Terminal: ${t.name}`;
   for (const s of list("shops")) c[`shop:${s.id}`] = `Market: ${s.name}`;
   return c;
@@ -45,6 +49,9 @@ export function registerRegionBehavior(openDatapad) {
         await user.setFlag(MODULE_ID, "regionsSeen", [...mine, this.parent.uuid]);
       }
       const [view, id] = this.target.split(":");
+      // a single terminal or market that has since been deleted falls back to its list
+      if (view === "terminal" && !list("terminals").some((t) => t.id === id)) return openDatapad("network", null);
+      if (view === "shop" && !list("shops").some((s) => s.id === id)) return openDatapad("shops", null);
       openDatapad(view, id ?? null);
     }
 
