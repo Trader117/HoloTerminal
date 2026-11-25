@@ -35,6 +35,19 @@ A hidden glyph code. Each guess reports **LOCK** (right glyph, right slot) and *
 
 Difficulties are `easy` (3 slots, 5 glyphs), `normal` (4, 6), `hard` (5, 7) and `elite` (5, 8). The GM gets a whisper for every success, failure and terminal control used.
 
+## Combat HUD
+An action bar along the bottom of the screen for the selected token (or your assigned character), built to be easy for new players:
+
+- **Character card**: portrait (click to open the sheet), HP bar with temp HP, AC, power DC and speed, plus **Checks & Saves**, **Short Rest** and **Long Rest** buttons. In combat it shows **YOUR TURN**, **Roll Initiative**, **End Turn** and, at 0 HP, **Death Save**.
+- **Action / Bonus Action / Reaction / Free & Other** boxes. Each one lists weapons, powers, features and items that take that kind of action, under labeled headings. Equipped weapons and prepared powers only.
+- **Anyone can**: Dash, Disengage, Dodge, Help, Hide, Search, Grapple/Shove, Ready and Opportunity Attack. Each posts a chat note with the rule; Hide, Search and Grapple roll the skill, and Dodge applies the Dodging status if your system has it.
+- **Ready / ✓ Used** light on each box. Using something marks it used; it resets when your turn starts. Click it to flip it yourself.
+- **Hover** anything for a plain-language tooltip (range, to hit, damage, uses left, description). **Right-click** opens the full item. The **?** button shows a short how-to.
+- **Macros**: drag macros onto the box to keep them per character; right-click to remove.
+- Drag the grip on the left to move the bar. **Alt+H** shows or hides it.
+
+Settings (per player): when to show it (always, only in combat, never), colour theme, size, and whether to show the common actions.
+
 ## Settings
 - **Credits field**: actor data path for credits. Default `system.currency.gp` on dnd5e, `system.currency.gc` on the SW5e system. If your SW5e content tracks credits elsewhere, point this at that field.
 - **Slicing skill**: default `inv` (Investigation) on dnd5e, `tec` (Technology) on the SW5e system. Any skill key the system knows works.

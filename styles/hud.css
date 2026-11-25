@@ -1,0 +1,110 @@
+/* Holo-Terminal Combat HUD. Original design; palette matches the module's datapad themes. */
+#htc-hud { position: fixed; z-index: 70; left: 120px; bottom: 80px; pointer-events: none;
+  --htc-fg: #5ef2ff; --htc-bg: rgba(4, 18, 26, .94); --htc-panel: rgba(94, 242, 255, .07); --htc-dim: rgba(94, 242, 255, .55);
+  --htc-hp: #5effa0; --htc-hurt: #ffd166; --htc-crit: #ff5a6e; --htc-scale: 1;
+  font-family: "Courier New", monospace; color: var(--htc-fg); font-size: calc(13px * var(--htc-scale));
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+#htc-hud.htc-theme-amber { --htc-fg: #ffb347; --htc-bg: rgba(20, 11, 2, .94); --htc-panel: rgba(255, 179, 71, .08); --htc-dim: rgba(255, 179, 71, .55); }
+#htc-hud.htc-theme-red   { --htc-fg: #ff5a5a; --htc-bg: rgba(22, 3, 3, .94);  --htc-panel: rgba(255, 90, 90, .08);  --htc-dim: rgba(255, 90, 90, .55); }
+#htc-hud.htc-theme-green { --htc-fg: #6dff7a; --htc-bg: rgba(3, 20, 5, .94);  --htc-panel: rgba(109, 255, 122, .08); --htc-dim: rgba(109, 255, 122, .55); }
+#htc-hud > * { pointer-events: auto; }
+#htc-hud button { font-family: inherit; font-size: .85em; color: var(--htc-fg); background: transparent; border: 1px solid var(--htc-dim);
+  border-radius: 2px; padding: 2px 6px; line-height: 1.5; width: auto; height: auto; margin: 0; cursor: pointer; white-space: nowrap; }
+#htc-hud button:hover, #htc-hud button.htc-on { background: var(--htc-fg); color: #000; border-color: var(--htc-fg); }
+#htc-hud a { color: inherit; text-decoration: none; cursor: pointer; }
+.htc-dim { color: var(--htc-dim); }
+
+.htc-bar { display: flex; align-items: flex-end; gap: 6px; }
+.htc-bar > div { background: var(--htc-bg); border: 1px solid var(--htc-dim); border-radius: 3px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, .6), inset 0 0 12px var(--htc-panel);
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px); }
+.htc-grip { align-self: stretch; display: flex; align-items: center; padding: 0 3px; cursor: grab; color: var(--htc-dim); }
+.htc-grip:hover { color: var(--htc-fg); }
+
+/* character card */
+.htc-card { display: grid; align-content: start; grid-template-columns: calc(96px * var(--htc-scale)) minmax(150px, 190px); grid-template-rows: auto auto; gap: 6px; padding: 6px; }
+.htc-card.htc-turn { border-color: var(--htc-fg); box-shadow: 0 0 14px var(--htc-fg); }
+.htc-portrait { position: relative; width: calc(96px * var(--htc-scale)); height: calc(96px * var(--htc-scale));
+  border: 1px solid var(--htc-dim); cursor: pointer; filter: saturate(.85); overflow: hidden; }
+.htc-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; border: none; }
+.htc-portrait:hover { border-color: var(--htc-fg); }
+.htc-turn-flag { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-weight: bold; letter-spacing: .1em; font-size: .8em;
+  background: var(--htc-fg); color: #000; animation: htc-pulse 1.4s ease-in-out infinite; }
+@keyframes htc-pulse { 50% { opacity: .55; } }
+.htc-ident { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.htc-name { font-size: 1.15em; font-weight: bold; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 0 6px var(--htc-fg); }
+.htc-sub { font-size: .8em; color: var(--htc-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.htc-hp { --bar: var(--htc-hp); }
+.htc-hp-hurt { --bar: var(--htc-hurt); } .htc-hp-crit { --bar: var(--htc-crit); }
+.htc-hp-bar { height: 7px; background: rgba(255, 255, 255, .08); border: 1px solid var(--htc-dim); }
+.htc-hp-bar span { display: block; height: 100%; background: var(--bar); box-shadow: 0 0 6px var(--bar); transition: width .3s; }
+.htc-hp-text { font-weight: bold; color: var(--bar); } .htc-hp-text em { color: var(--htc-fg); font-weight: normal; font-size: .85em; }
+.htc-stats { display: flex; gap: 4px; }
+.htc-stat { flex: 1; border: 1px solid var(--htc-dim); background: var(--htc-panel); text-align: center; padding: 1px 2px; display: flex; flex-direction: column; }
+.htc-stat label { font-size: .68em; letter-spacing: .1em; color: var(--htc-dim); } .htc-stat b { font-size: 1.05em; }
+.htc-card-buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+.htc-card-buttons > button { flex: 1 1 100%; }
+.htc-rests { display: flex; gap: 4px; flex: 1; } .htc-rests button { flex: 1; }
+.htc-mini { display: flex; gap: 4px; }
+#htc-hud .htc-danger { border-color: var(--htc-crit); color: var(--htc-crit); }
+#htc-hud .htc-attn { border-color: var(--htc-fg); animation: htc-pulse 1.4s ease-in-out infinite; }
+
+/* help */
+.htc-help { padding: 6px 10px; max-width: 300px; font-size: .9em; }
+.htc-help h4 { margin: 0 0 4px; border-bottom: 1px solid var(--htc-dim); text-transform: uppercase; letter-spacing: .1em; font-family: inherit; }
+.htc-help ul { margin: 0; padding-left: 1.1em; } .htc-help li { margin: 2px 0; }
+
+/* action groups */
+.htc-group { --cols: 2; display: flex; flex-direction: column; flex: 0 0 auto; min-width: 150px;
+  width: calc(var(--cols) * 68px * var(--htc-scale) + 18px); }
+.htc-group-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; padding: 3px 6px; border-bottom: 1px solid var(--htc-dim);
+  text-transform: uppercase; letter-spacing: .06em; font-weight: bold; }
+.htc-group-label { cursor: help; white-space: nowrap; }
+#htc-hud .htc-pip { font-size: .72em; padding: 0 5px; letter-spacing: .05em; }
+.htc-used .htc-group-head { color: var(--htc-dim); }
+#htc-hud .htc-used .htc-pip { background: var(--htc-dim); color: #000; }
+.htc-used .htc-group-body { opacity: .55; }
+.htc-group-body { padding: 4px 6px 6px; overflow-y: auto; scrollbar-width: thin; max-height: calc(280px * var(--htc-scale)); }
+.htc-section + .htc-section { margin-top: 4px; }
+.htc-section-label { font-size: .7em; text-transform: uppercase; letter-spacing: .12em; color: var(--htc-dim); border-bottom: 1px dashed rgba(255, 255, 255, .1); margin-bottom: 3px; }
+.htc-tiles { display: grid; grid-template-columns: repeat(var(--cols, 2), calc(64px * var(--htc-scale))); gap: 4px; }
+.htc-tile { position: relative; width: calc(64px * var(--htc-scale)); display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 3px 2px; border: 1px solid transparent; background: var(--htc-panel); border-radius: 2px; }
+.htc-tile:hover { border-color: var(--htc-fg); box-shadow: 0 0 8px var(--htc-fg); }
+.htc-tile img { width: calc(40px * var(--htc-scale)); height: calc(40px * var(--htc-scale)); border: 1px solid var(--htc-dim); object-fit: cover; }
+.htc-tile > i { font-size: calc(22px * var(--htc-scale)); height: calc(40px * var(--htc-scale)); line-height: calc(40px * var(--htc-scale)); }
+.htc-tile-name { font-size: .72em; line-height: 1.15; text-align: center; max-height: 2.3em; overflow: hidden; word-break: break-word; }
+.htc-badge { position: absolute; top: 1px; right: 1px; font-size: .68em; background: var(--htc-fg); color: #000; padding: 0 3px; border-radius: 2px; font-weight: bold; }
+.htc-depleted { opacity: .35; filter: grayscale(1); }
+.htc-empty { font-size: .8em; color: var(--htc-dim); font-style: italic; padding: 6px 2px; }
+.htc-dropzone { grid-column: 1 / -1; border: 1px dashed var(--htc-dim); text-align: center; font-style: normal; }
+.htc-macros { --cols: 2; }
+.htc-tiles-basic { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(128px * var(--htc-scale)), 1fr)); gap: 3px; }
+.htc-tiles-basic .htc-tile { width: auto; flex-direction: row; gap: 5px; padding: 2px 5px; }
+.htc-tiles-basic .htc-tile > i { font-size: 1em; height: auto; line-height: 1.4; width: 1.2em; text-align: center; }
+.htc-tiles-basic .htc-tile-name { font-size: .8em; text-align: left; white-space: nowrap; }
+
+/* checks & saves drawer */
+.htc-drawer { background: var(--htc-bg); border: 1px solid var(--htc-fg); border-radius: 3px; padding: 6px; box-shadow: 0 0 12px rgba(0, 0, 0, .6);
+  max-width: calc(100vw - 420px); }
+.htc-drawer-head { display: flex; gap: 10px; align-items: center; border-bottom: 1px solid var(--htc-dim); padding-bottom: 3px; margin-bottom: 4px;
+  text-transform: uppercase; letter-spacing: .08em; }
+.htc-drawer-head > span:first-child { font-weight: bold; } .htc-drawer-head .htc-dim { flex: 1; font-size: .8em; text-transform: none; letter-spacing: 0; }
+.htc-drawer-cols { display: flex; gap: 10px; align-items: flex-start; }
+.htc-drawer-col { min-width: 140px; max-height: calc(260px * var(--htc-scale)); overflow-y: auto; }
+.htc-drawer-col h5 { margin: 0 0 3px; font-family: inherit; font-size: .8em; color: var(--htc-dim); text-transform: uppercase; letter-spacing: .12em; border: none; }
+.htc-skills { columns: 2; column-gap: 10px; min-width: 300px; } .htc-skills h5 { column-span: all; }
+.htc-roll { display: flex; justify-content: space-between; gap: 8px; padding: 1px 4px; border-left: 2px solid transparent; break-inside: avoid; }
+.htc-roll:hover { border-left-color: var(--htc-fg); background: var(--htc-panel); }
+.htc-prof { color: #fff; } .htc-prof b { color: var(--htc-fg); text-shadow: 0 0 6px var(--htc-fg); }
+
+/* tooltips (rendered by Foundry's tooltip) */
+.htc-tip { max-width: 320px; text-align: left; }
+.htc-tip h4 { margin: 0 0 2px; font-size: 1.05em; border: none; }
+.htc-tip p { margin: 2px 0; }
+.htc-tip-meta { font-weight: bold; color: #9fe9ff; }
+.htc-tip-keys { font-size: .85em; opacity: .7; font-style: italic; }
+
+/* chat cards for common actions */
+.htc-chat p { margin: 2px 0; } .htc-chat-rule { font-size: .9em; font-style: italic; opacity: .85; }

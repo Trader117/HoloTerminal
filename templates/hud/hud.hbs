@@ -1,0 +1,143 @@
+{{#if drawer}}
+<div class="htc-drawer">
+  <header class="htc-drawer-head">
+    <span><i class="fa-solid fa-dice-d20"></i> Checks &amp; Saves for {{actor.name}}</span>
+    <span class="htc-dim">Click any row to roll it</span>
+    <button type="button" data-action="drawer" data-tooltip="Close this panel"><i class="fa-solid fa-xmark"></i></button>
+  </header>
+  <div class="htc-drawer-cols">
+    <div class="htc-drawer-col">
+      <h5 data-tooltip="Roll when a power, trap or effect asks you to resist it.">Saving Throws</h5>
+      {{#each rolls.abilities}}
+      <a class="htc-roll {{#if proficient}}htc-prof{{/if}}" data-action="save" data-id="{{id}}"
+         data-tooltip="{{label}} saving throw{{#if proficient}} (proficient){{/if}}"><span>{{label}}</span><b>{{save}}</b></a>
+      {{/each}}
+    </div>
+    <div class="htc-drawer-col">
+      <h5 data-tooltip="Raw ability rolls, when no skill fits.">Ability Checks</h5>
+      {{#each rolls.abilities}}
+      <a class="htc-roll" data-action="check" data-id="{{id}}" data-tooltip="{{label}} check"><span>{{label}}</span><b>{{check}}</b></a>
+      {{/each}}
+    </div>
+    <div class="htc-drawer-col htc-skills">
+      <h5 data-tooltip="Highlighted skills are ones you are proficient in.">Skills</h5>
+      {{#each rolls.skills}}
+      <a class="htc-roll {{#if proficient}}htc-prof{{/if}}" data-action="skill" data-id="{{id}}"
+         data-tooltip="{{label}} ({{ability}}){{#if proficient}}, proficient{{/if}}"><span>{{label}}</span><b>{{total}}</b></a>
+      {{/each}}
+    </div>
+    {{#if rolls.tools.length}}
+    <div class="htc-drawer-col">
+      <h5>Tools &amp; Kits</h5>
+      {{#each rolls.tools}}
+      <a class="htc-roll" data-action="tool" data-id="{{id}}" data-tooltip="Roll a {{label}} check. Right-click for details."><span>{{label}}</span><i class="fa-solid fa-dice-d20"></i></a>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+</div>
+{{/if}}
+
+<div class="htc-bar">
+  <div class="htc-grip" data-tooltip="Drag to move the bar"><i class="fa-solid fa-grip-vertical"></i></div>
+
+  {{!-- Character card --}}
+  <div class="htc-card {{#if myTurn}}htc-turn{{/if}}">
+    <div class="htc-portrait" data-action="sheet" data-tooltip="Open the character sheet">
+      <img src="{{actor.img}}" alt="">
+      {{#if myTurn}}<div class="htc-turn-flag">YOUR TURN</div>{{/if}}
+    </div>
+    <div class="htc-ident">
+      <div class="htc-name" title="{{actor.name}}">{{actor.name}}</div>
+      <div class="htc-sub">{{actor.subtitle}}</div>
+      <div class="htc-hp htc-hp-{{hp.level}}" data-tooltip="Hit points: {{hp.value}} of {{hp.max}}{{#if hp.temp}}, plus {{hp.temp}} temporary{{/if}}">
+        <div class="htc-hp-bar"><span style="width:{{hp.pct}}%"></span></div>
+        <div class="htc-hp-text"><i class="fa-solid fa-heart"></i> {{hp.value}} / {{hp.max}} HP{{#if hp.temp}} <em>+{{hp.temp}} temp</em>{{/if}}</div>
+      </div>
+      <div class="htc-stats">
+        <div class="htc-stat" data-tooltip="Armor Class: an attack roll must meet or beat this to hit you."><label>AC</label><b>{{ac}}</b></div>
+        {{#if dc}}<div class="htc-stat" data-tooltip="Power save DC: what targets must roll to resist your powers."><label>DC</label><b>{{dc}}</b></div>{{/if}}
+        {{#if speed}}<div class="htc-stat" data-tooltip="How far you can move each turn."><label>Speed</label><b>{{speed}}</b></div>{{/if}}
+      </div>
+    </div>
+    <div class="htc-card-buttons">
+      <button type="button" data-action="drawer" class="{{#if drawer}}htc-on{{/if}}" data-tooltip="Roll saving throws, ability checks, skills and tools"><i class="fa-solid fa-dice-d20"></i> Checks &amp; Saves</button>
+      {{#if dying}}
+      <button type="button" data-action="death-save" class="htc-danger" data-tooltip="You're at 0 HP. Roll a death save at the start of your turn. Three successes and you stabilise; three failures and you die.">
+        <i class="fa-solid fa-skull"></i> Death Save ✓{{dying.success}} ✗{{dying.failure}}</button>
+      {{/if}}
+      {{#if needsInit}}<button type="button" data-action="initiative" class="htc-attn" data-tooltip="Roll to see when you act in this fight"><i class="fa-solid fa-bolt"></i> Roll Initiative</button>{{/if}}
+      {{#if canEndTurn}}<button type="button" data-action="end-turn" class="htc-attn" data-tooltip="Finish your turn and pass to the next combatant"><i class="fa-solid fa-forward"></i> End Turn</button>{{/if}}
+      <div class="htc-rests">
+        <button type="button" data-action="short-rest" data-tooltip="Short rest (1 hour): spend Hit Dice to heal and recover short-rest abilities."><i class="fa-solid fa-mug-hot"></i> Short Rest</button>
+        <button type="button" data-action="long-rest" data-tooltip="Long rest (8 hours): recover HP, points, powers and most abilities."><i class="fa-solid fa-bed"></i> Long Rest</button>
+      </div>
+      <div class="htc-mini">
+        <button type="button" data-action="help" class="{{#if help}}htc-on{{/if}}" data-tooltip="How to use this bar"><i class="fa-solid fa-circle-question"></i></button>
+        <button type="button" data-action="collapse" data-tooltip="{{#if collapsed}}Show{{else}}Hide{{/if}} the action groups"><i class="fa-solid {{#if collapsed}}fa-chevron-right{{else}}fa-chevron-left{{/if}}"></i></button>
+      </div>
+    </div>
+  </div>
+
+  {{#if help}}
+  <div class="htc-help">
+    <h4>How to use this bar</h4>
+    <ul>
+      <li><b>Left-click</b> anything to use it. <b>Right-click</b> to open its full details.</li>
+      <li><b>Hover</b> over anything to see what it does.</li>
+      <li>Each box is one part of your turn: <b>Action</b>, <b>Bonus Action</b> and <b>Reaction</b>.</li>
+      <li>The <b>✓ Used</b> light turns on when you spend it, and resets at the start of your turn. Click it to flip it yourself.</li>
+      <li>Faded tiles have no uses left. The number in the corner is uses left.</li>
+      <li><b>Checks &amp; Saves</b> rolls skills, saves and tools.</li>
+      <li>Drag macros onto the <b>Macros</b> box to keep them here. Drag the grip on the left to move the bar.</li>
+    </ul>
+  </div>
+  {{/if}}
+
+  {{#unless collapsed}}
+  {{#each groups}}
+  <div class="htc-group htc-group-{{id}} {{#if used}}htc-used{{/if}}" style="--cols:{{cols}}">
+    <header class="htc-group-head">
+      <span class="htc-group-label" data-tooltip="{{hint}}"><i class="{{icon}}"></i> {{label}}</span>
+      {{#if tracked}}
+      <button type="button" class="htc-pip" data-action="toggle-used" data-id="{{id}}"
+        data-tooltip="{{#if used}}Already used this turn. Click to mark it available again.{{else}}Available. Click to mark it used.{{/if}}">
+        {{#if used}}✓ Used{{else}}Ready{{/if}}</button>
+      {{/if}}
+    </header>
+    <div class="htc-group-body">
+      {{#each sections}}
+      <div class="htc-section">
+        <div class="htc-section-label">{{label}}</div>
+        <div class="htc-tiles {{#if basic}}htc-tiles-basic{{/if}}">
+          {{#each tiles}}
+          <a class="htc-tile {{#if depleted}}htc-depleted{{/if}}" data-action="{{action}}" data-id="{{id}}" data-tooltip="{{tooltip}}" data-tooltip-direction="UP">
+            {{#if img}}<img src="{{img}}" alt="">{{else}}<i class="{{icon}}"></i>{{/if}}
+            {{#if badge}}<span class="htc-badge">{{badge}}</span>{{/if}}
+            <span class="htc-tile-name">{{name}}</span>
+          </a>
+          {{/each}}
+        </div>
+      </div>
+      {{else}}
+      <div class="htc-empty">Nothing that uses a {{label}}.</div>
+      {{/each}}
+    </div>
+  </div>
+  {{/each}}
+
+  <div class="htc-group htc-macros">
+    <header class="htc-group-head"><span class="htc-group-label" data-tooltip="Your own shortcuts for this character. Drag a macro here to add it."><i class="fa-solid fa-code"></i> Macros</span></header>
+    <div class="htc-group-body">
+      <div class="htc-tiles">
+        {{#each macros}}
+        <a class="htc-tile" data-action="macro" data-uuid="{{uuid}}" data-tooltip="{{tooltip}}" data-tooltip-direction="UP">
+          <img src="{{img}}" alt=""><span class="htc-tile-name">{{name}}</span></a>
+        {{else}}
+        <div class="htc-empty htc-dropzone"><i class="fa-solid fa-arrow-down"></i> Drag a macro here</div>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+  {{/unless}}
+</div>

@@ -13,10 +13,12 @@
     "verified": "12.343"
   },
   "esmodules": [
-    "scripts/main.mjs"
+    "scripts/main.mjs",
+    "scripts/hud/hud.mjs"
   ],
   "styles": [
-    "styles/holo-terminal.css"
+    "styles/holo-terminal.css",
+    "styles/hud.css"
   ],
   "languages": [
     {
