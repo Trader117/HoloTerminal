@@ -423,6 +423,10 @@
 .ht-gx-toggles button, .ht-gx-zoom button { width: 30px; height: 28px; padding: 0; background: var(--ht-band-1); border: 1px solid var(--ht-line); color: var(--ht-muted); border-radius: var(--ht-radius); cursor: pointer; }
 .ht-gx-toggles button.on { color: var(--ht-blue); border-color: color-mix(in srgb, var(--ht-blue) 55%, transparent); }
 .ht-gx-toggles button:hover, .ht-gx-zoom button:hover { color: var(--ht-strong); border-color: var(--ht-blue); }
+.ht-gx-layers { position: absolute; top: 10px; right: 10px; z-index: 5; width: 250px; padding: 10px 12px; background: rgba(20,26,32,.95); border: 1px solid var(--ht-line); border-top: 3px solid var(--ht-blue); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+.ht-gx-layers label { display: grid; grid-template-columns: 18px 1fr; align-items: center; column-gap: 6px; padding: 3px 0; font-size: 13px; cursor: pointer; }
+.ht-gx-layers input { margin: 0; accent-color: var(--ht-blue); }
+.ht-gx-layers small { grid-column: 2; color: var(--ht-muted); font-size: 11px; line-height: 1.2; }
 .ht-gx-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .ht-gx-canvas { display: block; cursor: grab; }
 .ht-gx-canvas:active { cursor: grabbing; }

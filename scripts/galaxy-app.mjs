@@ -15,7 +15,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { title: "Galaxy Map", icon: "fas fa-earth-americas", resizable: true },
     position: { width: 1120, height: 780 },
     actions: {
-      zoomIn: GalaxyMapApp.#zoomIn, zoomOut: GalaxyMapApp.#zoomOut, fit: GalaxyMapApp.#fit, toggle: GalaxyMapApp.#toggle,
+      zoomIn: GalaxyMapApp.#zoomIn, zoomOut: GalaxyMapApp.#zoomOut, fit: GalaxyMapApp.#fit, toggle: GalaxyMapApp.#toggle, layers: GalaxyMapApp.#layers,
       pick: GalaxyMapApp.#pick, closeCard: GalaxyMapApp.#closeCard, routeFrom: GalaxyMapApp.#routeFrom, routeTo: GalaxyMapApp.#routeTo,
       clearRoute: GalaxyMapApp.#clearRoute, shareRoute: GalaxyMapApp.#shareRoute, shipHere: GalaxyMapApp.#shipHere, findShip: GalaxyMapApp.#findShip,
       editPlanet: GalaxyMapApp.#editPlanet, hidePlanet: GalaxyMapApp.#hidePlanet, movePlanet: GalaxyMapApp.#movePlanet,
@@ -25,8 +25,21 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/galaxy.hbs` } };
 
   galaxy = null; planets = []; view = null; selected = null; hover = null; route = null; routeFrom = null; ctx = null;
-  show = { grid: true, lanes: true, regions: true, subregions: true, labels: true };
+  show = GalaxyMapApp.loadLayers(); layersOpen = false;
   query = ""; moving = null; menuAt = null; #raf = 0; #fly = null;
+
+  /** Map layers each player can switch on or off; remembered in this browser. */
+  static LAYERS = [
+    ["regions", "Main regions", "Deep Core out to the Outer Rim"], ["sectors", "Region slices", "The Slice, Western Reaches, Trailing Sectors..."],
+    ["areas", "Local areas", "Hutt Space, Tion Cluster, Corporate Sector..."], ["regionLabels", "Region names", ""],
+    ["lanes", "Hyperlanes", ""], ["laneLabels", "Lane names", ""], ["planetLabels", "Planet names", ""],
+    ["legends", "Legends worlds", "Worlds only found in Legends"], ["grid", "Grid", ""], ["pins", "Pins", ""]
+  ];
+  static LAYER_KEY = `${MODULE_ID}.galaxyLayers`;
+  static loadLayers() {
+    const base = Object.fromEntries(GalaxyMapApp.LAYERS.map(([k]) => [k, true]));
+    try { return { ...base, ...JSON.parse(localStorage.getItem(GalaxyMapApp.LAYER_KEY) ?? "{}") }; } catch { return base; }
+  }
 
   constructor(o) {
     super(o);
@@ -44,6 +57,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.state = G.state();
     const pins = game.user.getFlag(MODULE_ID, "galaxyPins") ?? [];
     this.planets = G.visiblePlanets(this.galaxy, this.state);
+    if (!this.show.legends) this.planets = this.planets.filter((p) => p.canon || p.custom || p.edited);
     this.pmap = new Map(this.planets.map((p) => [p.key, p]));
     this.pins = [...(this.state.pins ?? []).map((p) => ({ ...p, shared: true })), ...pins.map((p) => ({ ...p, mine: true }))];
     this.#index();
@@ -70,7 +84,8 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lanesText: this.route.lanes.join(", "), legs: this.route.legs.map((l, i) => ({ ...l, n: i + 1 }))
     };
     return {
-      isGM: game.user.isGM, show: this.show, query: this.query, results, count: this.planets.length,
+      isGM: game.user.isGM, show: this.show, layersOpen: this.layersOpen,
+      layers: GalaxyMapApp.LAYERS.map(([key, label, hint]) => ({ key, label, hint, on: this.show[key] })), query: this.query, results, count: this.planets.length,
       hyper: this.hyper ?? game.settings.get(MODULE_ID, "galaxyClass"),
       ship: this.state.ship ? { ...this.state.ship, grid: G.gridLabel(this.state.ship.x, this.state.ship.y) } : null,
       routeFrom: this.routeFrom ? (this.routeFrom.name ?? G.gridLabel(this.routeFrom.x, this.routeFrom.y)) : null,
@@ -100,6 +115,11 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#bind(cv);
     const q = this.element.querySelector("input[name=gx-search]");
     q?.addEventListener("input", (ev) => { this.query = ev.target.value; this.render().then(() => { const n = this.element.querySelector("input[name=gx-search]"); n?.focus(); n?.setSelectionRange(n.value.length, n.value.length); }); });
+    this.element.querySelectorAll("input[data-layer]").forEach((box) => box.addEventListener("change", (ev) => {
+      this.show[ev.target.dataset.layer] = ev.target.checked;
+      try { localStorage.setItem(GalaxyMapApp.LAYER_KEY, JSON.stringify(this.show)); } catch { /* private mode */ }
+      if (ev.target.dataset.layer === "legends") this.render(); else this.draw();
+    }));
     this.element.querySelector("input[name=gx-class]")?.addEventListener("change", (ev) => { this.hyper = Number(ev.target.value) || 1; if (this.route) this.#replot(); });
   }
   _onClose(o) { super._onClose?.(o); this._ro?.disconnect(); cancelAnimationFrame(this.#raf); }
@@ -205,12 +225,13 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     c.fillStyle = glow; c.beginPath(); c.arc(ccx, ccy, outer * z * 1.1, 0, Math.PI * 2); c.fill();
     this._labelBoxes = [];
     if (this.show.regions) this.#drawZones(c, g, z);
-    if (this.show.subregions) this.#drawSubregions(c, g, z);
+    if (this.show.sectors) this.#drawSectors(c, g, z);
+    if (this.show.areas) this.#drawSubregions(c, g, z);
     if (this.show.grid) this.#drawGrid(c, g, z);
     if (this.show.lanes) this.#drawLanes(c, g, z);
     if (this.route) this.#drawRoute(c, z);
     this.#drawPlanets(c, z);
-    this.#drawPins(c);
+    if (this.show.pins) this.#drawPins(c);
     this.#drawShip(c);
   }
   /** Region art: banded rings from the core, plus the Unknown Regions and Wild Space where the planets put them. Built once. */
@@ -274,7 +295,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const b of art.bands) c.stroke(b.edge);
     c.setLineDash([5 / z, 4 / z]); c.strokeStyle = "rgba(240,212,96,.55)"; c.stroke(art.border); c.setLineDash([]);
     c.restore();
-    if (!this.show.labels) return;
+    if (!this.show.regionLabels) return;
     c.font = `700 ${Math.min(15, Math.max(10, 9 + z * 6))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
     const placed = [];
     for (const l of art.labels) {
@@ -285,6 +306,63 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const t = l.region.toUpperCase();
       c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.85)"; c.strokeText(t, x, y + 4);
       c.fillStyle = this.#alpha(G.REGION_COLOR[l.region], 0.95); c.fillText(t, x, y + 4);
+    }
+    c.textAlign = "left";
+  }
+  /** Region slices: each ring cell as a polygon, filled faintly in its region's colour, with borders where regions meet. */
+  #sectorArt(g) {
+    if (this._sectorArt) return this._sectorArt;
+    const S = g.sectors, N = S.n, K = S.rings.length;
+    const ang = (t) => (t / N) * Math.PI * 2;
+    const pt = (r, t) => [S.cx + Math.cos(ang(t)) * r, S.cy + Math.sin(ang(t)) * r];
+    // Radius of a ring edge at a cell boundary (t integer) or centre (t + 0.5), matching the band outlines.
+    const rad = (arr, t) => (Number.isInteger(t) ? (arr[(t - 1 + N) % N] + arr[t % N]) / 2 : arr[Math.floor(t) % N]);
+    const arc = (path, arr, a, move) => { const pts = [pt(rad(arr, a), a), pt(rad(arr, a + 0.5), a + 0.5), pt(rad(arr, a + 1), a + 1)]; pts.forEach(([x, y], i) => (i || !move ? path.lineTo(x, y) : path.moveTo(x, y))); };
+    const fills = new Map(), border = new Path2D();
+    for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
+      const v = S.cells[k][a], { inner, outer } = S.rings[k];
+      if (v) {
+        if (!fills.has(v)) fills.set(v, new Path2D());
+        const f = fills.get(v);
+        arc(f, outer, a, true);
+        const [ix, iy] = pt(rad(inner, a + 1), a + 1); f.lineTo(ix, iy); f.lineTo(...pt(rad(inner, a + 0.5), a + 0.5)); f.lineTo(...pt(rad(inner, a), a)); f.closePath();
+      }
+      // Radial border where this cell and the one before it differ.
+      const prev = S.cells[k][(a - 1 + N) % N];
+      if (v !== prev && (v || prev)) { border.moveTo(...pt(rad(inner, a), a)); border.lineTo(...pt(rad(outer, a), a)); }
+      // Arc border where this cell and the one outside it differ.
+      const out = S.cells[k + 1]?.[a] ?? null;
+      if (v !== out && (v || out)) arc(border, outer, a, true);
+      if (k === 0 && v && inner[a] > 0) arc(border, inner, a, true);
+    }
+    const color = new Map(S.names.map((n) => [n.name, n.color]));
+    return (this._sectorArt = { fills: [...fills].map(([name, path]) => ({ name, path, color: color.get(name) })), border, names: S.names });
+  }
+  #drawSectors(c, g, z) {
+    if (!g.sectors) return;
+    const art = this.#sectorArt(g), [ox, oy] = this.toScreen(0, 0);
+    c.save(); c.translate(ox, oy); c.scale(z, z);
+    for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, 0.07); c.fill(f.path); }
+    c.lineWidth = 1.2 / z; c.lineJoin = "round"; c.strokeStyle = "rgba(240,212,96,.75)"; c.stroke(art.border);
+    c.restore();
+    if (!this.show.regionLabels) return;
+    this.#placeLabels(c, art.names, z, "600");
+  }
+  /** Draws area names in their colour, nudging each off any label already placed. */
+  #placeLabels(c, list, z, weight = "italic 600") {
+    c.font = `${weight} ${Math.min(14, Math.max(10, 8 + z * 5))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
+    const placed = (this._labelBoxes ??= []);
+    for (const s of list) {
+      const [x0, y0] = this.toScreen(s.label.x, s.label.y);
+      if (x0 < -100 || y0 < -20 || x0 > this.W + 100 || y0 > this.H + 20) continue;
+      const w = c.measureText(s.name).width;
+      const clear = ([x, y]) => !placed.some(([px, py, pw]) => Math.abs(px - x) < (pw + w) / 2 + 6 && Math.abs(py - y) < 16);
+      const spot = [[0, 0], [0, 18], [0, -18], [0, 34], [0, -34]].map(([a, b]) => [x0 + a, y0 + b]).find(clear);
+      if (!spot) continue;
+      const [x, y] = spot;
+      placed.push([x, y, w]);
+      c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.85)"; c.strokeText(s.name, x, y + 4);
+      c.fillStyle = this.#alpha(s.color, 0.95); c.fillText(s.name, x, y + 4);
     }
     c.textAlign = "left";
   }
@@ -309,23 +387,8 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     c.lineWidth = 1.3 / z; c.setLineDash([7 / z, 5 / z]);
     for (const s of art) { c.strokeStyle = this.#alpha(s.color, 0.8); c.stroke(s.path); }
     c.setLineDash([]); c.restore();
-    if (!this.show.labels) return;
-    c.font = `italic 600 ${Math.min(14, Math.max(10, 8 + z * 5))}px Bahnschrift, 'Segoe UI', sans-serif`; c.textAlign = "center";
-    const placed = this._labelBoxes ?? [];
-    for (const s of art) {
-      const [x0, y0] = this.toScreen(s.label.x, s.label.y);
-      if (x0 < -100 || y0 < -20 || x0 > this.W + 100 || y0 > this.H + 20) continue;
-      const w = c.measureText(s.name).width;
-      const clear = ([x, y]) => !placed.some(([px, py, pw]) => Math.abs(px - x) < (pw + w) / 2 + 6 && Math.abs(py - y) < 16);
-      // Nudge off a clash with another label, but stay close to the area's centre.
-      const spot = [[0, 0], [0, 18], [0, -18], [0, 34], [0, -34]].map(([a, b]) => [x0 + a, y0 + b]).find(clear);
-      if (!spot) continue;
-      const [x, y] = spot;
-      placed.push([x, y, w]);
-      c.lineWidth = 3; c.strokeStyle = "rgba(4,8,12,.85)"; c.strokeText(s.name, x, y + 4);
-      c.fillStyle = this.#alpha(s.color, 0.95); c.fillText(s.name, x, y + 4);
-    }
-    c.textAlign = "left";
+    if (!this.show.regionLabels) return;
+    this.#placeLabels(c, art, z);
   }
   #alpha(hex, a) { const n = Number.parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
   #drawGrid(c, g, z) {
@@ -360,7 +423,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       c.strokeStyle = lane.tier === 1 ? "rgba(124,198,239,.55)" : lane.tier === 2 ? "rgba(124,198,239,.3)" : "rgba(124,198,239,.16)";
       c.lineWidth = lane.tier === 1 ? 1.6 : 1; c.stroke();
-      if (lane.tier <= Math.min(2, maxTier - 0) && zr > 1.3 && this.show.labels) {
+      if (lane.tier <= Math.min(2, maxTier - 0) && zr > 1.3 && this.show.laneLabels) {
         const mid = P(lane.mid[0]), nxt = P(lane.mid[1]);
         if (!mid || !nxt) continue;
         const [mx, my] = this.toScreen(mid.x, mid.y), [nx, ny] = this.toScreen(nxt.x, nxt.y);
@@ -372,7 +435,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
   #drawPlanets(c, z) {
-    const dotN = this.#dotBudget(), labN = this.show.labels ? this.#labelBudget() : 0;
+    const dotN = this.#dotBudget(), labN = this.show.planetLabels ? this.#labelBudget() : 0;
     const vis = this.planets.filter((p) => { const [x, y] = this.toScreen(p.x, p.y); return x > -40 && y > -20 && x < this.W + 40 && y < this.H + 20; });
     vis.sort((a, b) => a.rank - b.rank);
     const boxes = [];
@@ -426,6 +489,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #zoomOut() { this.#zoomAt(1 / 1.5); }
   static #fit() { this.#fitView(); this.draw(); }
   static #toggle(e, el) { this.show[el.dataset.key] = !this.show[el.dataset.key]; this.render(); }
+  static #layers() { this.layersOpen = !this.layersOpen; this.render(); }
   static #pick(e, el) { const p = this.pmap.get(el.dataset.key); if (!p) return; this.selected = p.key; this.query = ""; this.render(); this.flyTo(p.x, p.y); }
   static #closeCard() { this.selected = null; this.render(); }
   static #findShip() { const s = this.state.ship; if (s) this.flyTo(s.x, s.y); }

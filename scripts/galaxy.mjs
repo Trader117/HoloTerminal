@@ -85,8 +85,9 @@ export function buildGalaxy(rows) {
   sorted.forEach((p, i) => { p.rank = i; });
   const cols = Math.max(21, ...planets.map((p) => p.g.col + 1)), rows_ = Math.max(21, ...planets.map((p) => p.g.row + 1));
   const rings = buildRings(planets);
-  return { planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands: buildBands(planets, rings), zones: buildZones(planets, cols, rows_, rings),
-    subregions: buildSubregions(planets, cols, rows_) };
+  const bands = buildBands(planets, rings), sectors = buildSectors(planets, bands);
+  const wedgeNames = new Set(sectors.names.map((n) => n.name));
+  return { sectors, subregions: buildSubregions(planets, cols, rows_, { skip: wedgeNames }), planets, byKey: new Map(planets.map((p) => [p.key, p])), cols, rows: rows_, lanes: buildLanes(planets), rings, bands, zones: buildZones(planets, cols, rows_, rings) };
 }
 
 /** Hyperlanes: every route named by at least 3 planets. The planets are joined by a minimum spanning tree, which
@@ -239,11 +240,99 @@ export function buildBands(planets, ringInfo) {
 const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
 
 /**
+ * Modern regions as wedges: each main ring band is cut into 5-degree cells, and every cell takes the named region
+ * (The Slice, Western Reaches, Trailing Sectors...) most of its worlds belong to. Gaps between two cells of the same
+ * region are filled, runs are smoothed, and one-cell slivers are absorbed, which gives the familiar sliced-ring map.
+ * Returns { n, cx, cy, rings: [{ inner: number[], outer: number[] }], cells: (string|null)[][], names: [{name, color, label}] }.
+ */
+export function buildSectors(planets, B, { minCells = 3 } = {}) {
+  const N = B.n, K = B.bands.length, { cx, cy } = B;
+  const rings = B.bands.map((b, k) => ({ outer: b.r, inner: k ? B.bands[k - 1].r : new Array(N).fill(0) }));
+  const votes = Array.from({ length: K }, () => Array.from({ length: N }, () => new Map()));
+  const size = new Map();
+  for (const p of planets) for (const n of p.subregions ?? []) size.set(n, (size.get(n) ?? 0) + 1);
+  for (const p of planets) {
+    if (!p.subregions?.length) continue;
+    const ang = (Math.atan2(p.y - cy, p.x - cx) + Math.PI * 2) % (Math.PI * 2), a = Math.floor((ang / (Math.PI * 2)) * N) % N;
+    const d = Math.hypot(p.x - cx, p.y - cy), k = rings.findIndex((r) => d <= r.outer[a]);
+    if (k < 0) continue;
+    for (const [da, w] of [[0, 1], [-1, 0.35], [1, 0.35]]) {
+      const m = votes[k][(a + da + N) % N];
+      for (const n of p.subregions) if (size.get(n) >= 8) m.set(n, (m.get(n) ?? 0) + w);
+    }
+  }
+  let cells = votes.map((ring) => ring.map((m) => {
+    let best = null, bv = 0, tot = 0;
+    for (const [n, v] of m) { tot += v; if (v > bv) { bv = v; best = n; } }
+    return bv >= 1 && bv >= tot * 0.3 ? best : null;
+  }));
+  const at = (ring, a) => ring[(a + N) % N];
+  cells = cells.map((ring) => {
+    // Fill short gaps between two cells of the same region.
+    const out = ring.slice();
+    for (let a = 0; a < N; a++) {
+      if (ring[a]) continue;
+      let l = null, r = null;
+      for (let d = 1; d <= 4 && !l; d++) l = at(ring, a - d);
+      for (let d = 1; d <= 4 && !r; d++) r = at(ring, a + d);
+      if (l && l === r) out[a] = l;
+    }
+    // Majority smoothing over five cells, twice.
+    let cur = out;
+    for (let pass = 0; pass < 2; pass++) {
+      const nx = cur.slice();
+      for (let a = 0; a < N; a++) {
+        const c = new Map();
+        for (let d = -2; d <= 2; d++) { const v = at(cur, a + d); if (v) c.set(v, (c.get(v) ?? 0) + (d ? 1 : 1.5)); }
+        let best = cur[a], bv = cur[a] ? c.get(cur[a]) ?? 0 : 0;
+        for (const [n, v] of c) if (v > bv + 0.5) { best = n; bv = v; }
+        nx[a] = best;
+      }
+      cur = nx;
+    }
+    // Absorb slivers: runs under three cells join the longer run beside them.
+    for (let pass = 0; pass < 40; pass++) {
+      const start = cur.findIndex((v, a) => v !== at(cur, a - 1));
+      if (start < 0) break;
+      const runs = [];
+      for (let a = start; a < start + N; a++) { const v = at(cur, a); if (!runs.length || runs.at(-1).v !== v) runs.push({ v, a, n: 0 }); runs.at(-1).n++; }
+      if (runs.length < 3) break;
+      const i = runs.findIndex((r) => r.n < 3);
+      if (i < 0) break;
+      [runs[i]].forEach((r) => {
+        const L = runs[(i - 1 + runs.length) % runs.length], R = runs[(i + 1) % runs.length];
+        const pick = (L.v && (!R.v || L.n >= R.n)) ? L.v : R.v;
+        for (let d = 0; d < r.n; d++) cur[(r.a + d) % N] = pick;
+      });
+    }
+    return cur;
+  });
+  // Names that hold enough cells to count as a wedge; the rest are cleared and drawn as local areas instead.
+  const count = new Map();
+  for (const ring of cells) for (const v of ring) if (v) count.set(v, (count.get(v) ?? 0) + 1);
+  cells = cells.map((ring) => ring.map((v) => (v && count.get(v) >= minCells ? v : null)));
+  const names = [...count.keys()].filter((n) => count.get(n) >= minCells).sort((a, b) => count.get(b) - count.get(a)).map((name, i) => {
+    // Label in the cell with the most same-region neighbours.
+    let best = null, bs = -1;
+    for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
+      if (cells[k][a] !== name) continue;
+      let sc = 0;
+      for (let dk = -1; dk <= 1; dk++) for (let da = -2; da <= 2; da++) if (cells[k + dk]?.[(a + da + N) % N] === name) sc++;
+      sc += (rings[k].outer[a] - rings[k].inner[a]) / SQ; // prefer thick bands, where the text fits
+      if (sc > bs) { bs = sc; best = [k, a]; }
+    }
+    const [k, a] = best, ang = ((a + 0.5) / N) * Math.PI * 2, r = (rings[k].inner[a] + rings[k].outer[a]) / 2;
+    return { name, color: SUB_COLORS[i % SUB_COLORS.length], cells: count.get(name), label: { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r } };
+  });
+  return { n: N, cx, cy, rings, cells, names };
+}
+
+/**
  * Named sub-regions (Hutt Space, The Slice, Western Reaches...): each one with at least 8 member worlds gets an area
  * where its members outweigh other worlds nearby (closed, specks dropped, holes filled), and a smooth outline traced
  * from that area. Returns [{ name, color, count, W, H, cell, ox, oy, mask, lines: [[x,y,...]], label: {x,y} }].
  */
-export function buildSubregions(planets, cols, rows, { min = 8 } = {}) {
+export function buildSubregions(planets, cols, rows, { min = 8, skip = new Set() } = {}) {
   const res = 6, cell = SQ / res, R = SQ * 1.3, GW = cols * res, GH = rows * res, rc = Math.ceil(R / cell);
   // Splat each world's influence onto the cells around it (only worlds that name a sub-region take part in the vote).
   const splat = (pts, into) => {
@@ -261,7 +350,7 @@ export function buildSubregions(planets, cols, rows, { min = 8 } = {}) {
   const groups = new Map();
   for (const p of labelled) for (const n of p.subregions) { if (!groups.has(n)) groups.set(n, []); groups.get(n).push(p); }
   const out = [];
-  const names = [...groups.keys()].filter((n) => groups.get(n).length >= min).sort((a, b) => groups.get(b).length - groups.get(a).length);
+  const names = [...groups.keys()].filter((n) => groups.get(n).length >= min && !skip.has(n)).sort((a, b) => groups.get(b).length - groups.get(a).length);
   names.forEach((name, idx) => {
     const mem = groups.get(name);
     const winW = splat(mem, new Float32Array(GW * GH));
