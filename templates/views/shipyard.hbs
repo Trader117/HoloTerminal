@@ -1,0 +1,25 @@
+{{#if noShip}}<p class="ht-dim">{{noShip}}</p>
+{{else}}
+<div class="ht-trade-head">
+  <div><small>Shipyard</small><b>{{planet.name}}</b><span class="ht-dock-meta">{{shipName}}</span></div>
+  <div><small>Hull &middot; shields</small><b>{{ship.hull.value}}{{#if ship.hull.max}}/{{ship.hull.max}}{{/if}}{{#if ship.shields}} &middot; {{ship.shields.value}}{{#if ship.shields.max}}/{{ship.shields.max}}{{/if}}{{/if}}</b></div>
+</div>
+<h3 class="ht-dock-h">Repairs</h3>
+<ul class="ht-bridge-list ht-yard-repairs">
+  <li><span>Hull<small>{{#if rep.hull.missing}}{{rep.hull.missing}} points damaged &middot; {{rep.hull.per}} cr each{{else}}No damage{{/if}}</small></span>
+    {{#if rep.hull.missing}}<button type="button" data-action="yardRepair" data-kind="hull" data-points="10">10 pts</button><button type="button" class="ht-primary" data-action="yardRepair" data-kind="hull" data-points="0">All ({{rep.hull.cost}} cr)</button>{{/if}}</li>
+  <li><span>Shields<small>{{#if rep.shields.missing}}{{rep.shields.missing}} points down &middot; {{rep.shields.per}} cr each{{else}}Fully charged{{/if}}</small></span>
+    {{#if rep.shields.missing}}<button type="button" class="ht-primary" data-action="yardRepair" data-kind="shields" data-points="0">Recharge ({{rep.shields.cost}} cr)</button>{{/if}}</li>
+  {{#if (ne ship.systemDamage null)}}<li><span>System damage<small>{{#if rep.systems.missing}}Level {{rep.systems.missing}} &middot; {{rep.systems.per}} cr per level{{else}}All systems nominal{{/if}}</small></span>
+    {{#if rep.systems.missing}}<button type="button" data-action="yardRepair" data-kind="systems" data-points="1">1 level</button><button type="button" class="ht-primary" data-action="yardRepair" data-kind="systems" data-points="0">All ({{rep.systems.cost}} cr)</button>{{/if}}</li>{{/if}}
+</ul>
+<h3 class="ht-dock-h">Upgrades</h3>
+<nav class="ht-tabs ht-yard-tabs">{{#each cats}}<button type="button" data-action="yardTab" data-cat="{{id}}" class="{{#if active}}active{{/if}}">{{label}}</button>{{/each}}</nav>
+<input class="ht-yard-search" name="yard-q" type="search" placeholder="Search {{catLabel}}..." value="{{query}}">
+<ul class="ht-bridge-list">
+  {{#each rows}}<li><img src="{{img}}" alt=""><span>{{name}}<small>{{#if sub}}{{sub}}{{/if}}{{#if grade}} &middot; grade {{grade}}{{/if}}</small></span>
+    <b class="ht-yard-price">{{price}} cr</b><button type="button" data-action="yardBuy" data-uuid="{{uuid}}" title="Buy and install">Buy</button></li>
+  {{else}}<li class="ht-dim">{{#if noPacks}}No SW5e starship compendiums found. Enable the SW5e module's packs.{{else}}Nothing matches.{{/if}}</li>{{/each}}
+</ul>
+{{#if more}}<p class="ht-dim">{{more}} more. Search to narrow it down.</p>{{/if}}
+{{/if}}

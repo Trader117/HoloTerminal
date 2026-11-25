@@ -154,6 +154,13 @@ The datapad's **Bridge** tile (also on the party ship's HoloDock screen) is for 
 - The **Gunner** gets the ship's starship weapons with damage and range and a *Fire* button. The **Engineer** sets power routing and sees system damage.
 - Players who own the ship use the actions straight from the datapad. Otherwise the order goes to chat for the GM to resolve.
 
+## Shipyard
+Open it from the party ship's HoloDock screen (*Shipyard*) or with `api.openShipyard()`. It works wherever the party ship is docked on the galaxy map.
+
+- **Repairs:** restore hull points, recharge shields and clear system damage. Prices per point are module settings (25, 10 and 500 cr by default).
+- **Upgrades:** browse and search the SW5e starship weapons, equipment and modifications compendiums. Buying one installs a copy on the party ship. Weapons and equipment use their list price; modifications (which have none in SW5e) cost a set amount per grade times the ship size's modification multiplier. A price multiplier setting adjusts everything.
+- The active character pays; every purchase goes to the ledger and is whispered to the GM.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
@@ -191,6 +198,7 @@ api.holocall({ actorId: npc.id, line: "We need to talk." }); // GM, all players
 api.openCredits();
 api.openCantina();
 api.openBridge();
+api.openShipyard();
 api.openHoloDock();                    // ship list, or pass an actor id for one ship
 api.showAll("shop", "Outpost Supply"); // GM: push to every player
 ```
