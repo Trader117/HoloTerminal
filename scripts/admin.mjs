@@ -83,7 +83,7 @@ export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#write(doc);
   }
 
-  /** Adds the doors (Walls layer) and lights (Lighting layer) the GM has selected on the map as terminal controls. */
+  /** Adds the doors (Walls layer), lights (Lighting layer) and camera Regions the GM has selected on the map as terminal controls. */
   static #linkSelected() {
     const doc = this.#read();
     if (!doc || !canvas.scene) return;
@@ -100,11 +100,13 @@ export class EditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
       doc.controls.push({ label: `Light ${++lights}`, type: "light", id: l.document.id, scene: canvas.scene.id }); added++;
     }
     let cams = doc.controls.filter((c) => c.type === "camera").length;
-    for (const d of canvas.drawings?.controlled ?? []) {
-      if (have.has(`camera:${d.document.id}`)) continue;
-      doc.controls.push({ label: `Camera ${++cams}`, type: "camera", id: d.document.id, scene: canvas.scene.id }); added++;
+    for (const r of [...(canvas.regions?.controlled ?? []), ...(canvas.drawings?.controlled ?? [])]) {
+      if (have.has(`camera:${r.document.id}`)) continue;
+      const name = r.document.name && r.document.documentName === "Region" ? r.document.name : `Camera ${cams + 1}`;
+      cams++;
+      doc.controls.push({ label: name, type: "camera", id: r.document.id, scene: canvas.scene.id }); added++;
     }
-    if (!added) return ui.notifications.warn("Select doors (Walls layer), lights (Lighting layer) or camera rectangles (Drawings layer) on the map first. Hold Shift to select several.");
+    if (!added) return ui.notifications.warn("Select doors (Walls layer), lights (Lighting layer) or camera Regions (Regions layer) on the map first. Hold Shift to select several.");
     this.#write(doc);
     ui.notifications.info(`Linked ${added}. Rename them in "controls" (the "label" field), then Save.`);
   }

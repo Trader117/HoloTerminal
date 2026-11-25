@@ -1,7 +1,7 @@
 {
   "id": "holo-terminal",
   "title": "Holo-Terminal",
-  "description": "An original sci-fi datapad for Foundry VTT: local-net terminals, a Cipher Lock slicing minigame, a bounty board and map-based markets, plus an SW5e character sheet. Built for Foundry v12 with dnd5e/SW5e.",
+  "description": "An original sci-fi datapad for Foundry VTT: local-net terminals, a Cipher Lock slicing minigame, a bounty board and map-based markets, security cameras, Region triggers, plus an SW5e character sheet. Built for Foundry v12 with dnd5e/SW5e.",
   "version": "0.3.0",
   "authors": [
     {
@@ -54,5 +54,10 @@
         "reason": "Force/tech powercasting, SW5e skills and credits for the character sheet."
       }
     ]
+  },
+  "documentTypes": {
+    "RegionBehavior": {
+      "openDatapad": {}
+    }
   }
 }

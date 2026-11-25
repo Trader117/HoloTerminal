@@ -2,6 +2,7 @@ import { MODULE_ID, registerSettings, initSocket, find, findByName, list } from 
 import { registerActions } from "./actions.mjs";
 import { DatapadApp, PARTIAL_PATHS, NAMED_PARTIALS } from "./datapad.mjs";
 import { ConsoleApp } from "./admin.mjs";
+import { registerRegionBehavior } from "./regions.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
 const loadTpl = (paths) => (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)(paths);
@@ -12,6 +13,7 @@ Hooks.once("init", () => {
   registerSettings();
   registerLootSetting();
   registerLootHud();
+  registerRegionBehavior((view, id) => datapad(view, id));
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
   game.keybindings.register(MODULE_ID, "datapad", {

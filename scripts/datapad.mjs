@@ -88,7 +88,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
-      "createItem", "deleteItem", "updateItem", "updateDrawing", "updateTile", "createToken", "deleteToken"])
+      "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
       Hooks.on(h, () => this.rendered && this.render());
   }
 

@@ -1,7 +1,8 @@
 import { MODULE_ID, list, saveList } from "./store.mjs";
 
-/* Security cameras. A camera is a rectangle Drawing on a scene, linked to a terminal as a control
-   { type: "camera", id: <drawing id>, scene: <scene id>, label }. The feed is rebuilt from scene data
+/* Security cameras. A camera is a Scene Region (any shape; older links may point at a rectangle Drawing),
+   linked to a terminal as a control { type: "camera", id: <region or drawing id>, scene: <scene id>, label }.
+   The feed shows the region's bounding box. The feed is rebuilt from scene data
    (background, tiles, visible tokens), so it works for any scene, not just the one on screen.
    Recordings capture token positions inside the camera's area over time and are stored in the
    "recordings" world setting: { id, cameraKey, label, started, shared, frames: [{ t, tokens: [...] }] }. */
@@ -10,8 +11,32 @@ export const FEED_WIDTH = 390;
 const MAX_FRAMES = 3000;
 export const cameraKey = (c) => `${c.scene}:${c.id}`;
 
+/** Bounding box of one Region shape. */
+function shapeBounds(sh) {
+  switch (sh.type) {
+    case "rectangle": return { x0: sh.x, y0: sh.y, x1: sh.x + sh.width, y1: sh.y + sh.height };
+    case "circle": return { x0: sh.x - sh.radius, y0: sh.y - sh.radius, x1: sh.x + sh.radius, y1: sh.y + sh.radius };
+    case "ellipse": return { x0: sh.x - sh.radiusX, y0: sh.y - sh.radiusY, x1: sh.x + sh.radiusX, y1: sh.y + sh.radiusY };
+    case "polygon": {
+      const xs = sh.points.filter((_, i) => i % 2 === 0), ys = sh.points.filter((_, i) => i % 2 === 1);
+      return xs.length ? { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } : null;
+    }
+    default: return null;
+  }
+}
+
+/** Area a camera watches: the bounding box of its Region's shapes (or of a legacy rectangle Drawing). */
 export function cameraRect(c) {
-  const d = game.scenes.get(c.scene)?.drawings.get(c.id);
+  const scene = game.scenes.get(c.scene);
+  const region = scene?.regions?.get(c.id);
+  if (region) {
+    const b = (region.shapes ?? []).filter((sh) => !sh.hole).map(shapeBounds).filter(Boolean);
+    if (!b.length) return null;
+    const x = Math.min(...b.map((v) => v.x0)), y = Math.min(...b.map((v) => v.y0));
+    const w = Math.max(...b.map((v) => v.x1)) - x, h = Math.max(...b.map((v) => v.y1)) - y;
+    return w > 10 && h > 10 ? { x, y, w, h } : null;
+  }
+  const d = scene?.drawings.get(c.id);
   if (!d) return null;
   const w = Math.abs(d.shape?.width ?? 0), h = Math.abs(d.shape?.height ?? 0);
   return w > 10 && h > 10 ? { x: d.x, y: d.y, w, h } : null;
@@ -53,7 +78,7 @@ export const Recorder = {
     const key = cameraKey(camera);
     if (this.active.has(key)) return;
     const scene = game.scenes.get(camera.scene), r = cameraRect(camera);
-    if (!scene || !r) return ui.notifications.warn("That camera's rectangle is missing.");
+    if (!scene || !r) return ui.notifications.warn("That camera's region is missing.");
     const started = Date.now();
     const rec = { id: foundry.utils.randomID(), cameraKey: key, label: `${camera.label} ${new Date(started).toLocaleString()}`,
       sceneId: scene.id, started, shared: false, rect: r, frames: [] };
