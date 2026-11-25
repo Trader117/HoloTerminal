@@ -39,7 +39,7 @@
 
 /* ---------- tablet: the Holo-Terminal device frame (styles/holo-terminal.css) around a sheet grid ---------- */
 .holo-sheet.application { min-width:720px; min-height:560px; }
-.holo-sheet .holo-device { padding:0 22px 16px; }
+.holo-sheet .holo-device { padding:0 14px 10px; }
 .holo-sheet .holo-screen { display:grid; padding:0;
   grid-template-columns:250px minmax(0,1fr); grid-template-rows:auto minmax(0,1fr);
   grid-template-areas:"header header" "sidebar body";
@@ -53,8 +53,8 @@
 .holo-sheet .holo-screen > .holo-sidebar { grid-area:sidebar; }
 .holo-sheet .holo-screen > .holo-body { grid-area:body; }
 .holo-sheet .holo-controls .ht-keys { flex:none; }
-.holo-sheet .holo-controls .ht-key { width:64px; }
-.holo-sheet .holo-controls .ht-power { width:52px; }
+.holo-sheet .holo-controls .ht-key { width:56px; }
+.holo-sheet .holo-controls .ht-power { width:46px; }
 .holo-grip { position:absolute; right:6px; bottom:6px; width:14px; height:14px; cursor:nwse-resize; opacity:.5;
   background:repeating-linear-gradient(135deg, transparent 0 3px, #5d6f80 3px 4px); clip-path:polygon(100% 0, 100% 100%, 0 100%); }
 .holo-grip:hover { opacity:1; }

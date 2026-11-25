@@ -13,6 +13,7 @@ This works once a GitHub release exists. Publishing a release tagged like `v0.3.
 
 ## Players: the datapad
 Open it from the **tablet icon** in Token controls, or press **Shift+P**. It uses your selected token, or your assigned character if none is selected, and shows that character's credits in the header.
+Drag it by its frame, title bar or bottom keys to move it anywhere; it reopens where you last left it.
 - **Local Net**: terminals on this scene. Each has messages, files and controls (doors and lights). Secured terminals need an access code, or you can **slice in** with the Cipher Lock minigame.
 - **Bounties**: open contracts. Press *Take contract* to sign on.
 - **Markets**: shops on this scene. *Buy* takes credits, adds the item to the character and lowers the stock.
@@ -199,6 +200,7 @@ Settings (per player): when to show it (always, only in combat, never), colour t
 - **Slicing skill**: default `inv` (Investigation) on dnd5e, `tec` (Technology) on the SW5e system. Any skill key the system knows works.
 - **Look**: colours come from `styles/theme.css` (the SW5e Database scheme). Every part of the module reads its `--ht-*` variables, so you can change the palette in that one file.
 - **Boot sound**: optional audio played when the datapad opens.
+- **Datapad & tablet size** (per player): scales the datapad and the character sheet tablet. Default 85%. The Combat HUD has its own size setting (default 85%).
 
 ## Macro / Region API
 ```js

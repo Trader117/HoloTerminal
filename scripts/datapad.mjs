@@ -56,7 +56,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "ht-datapad", classes: ["ht-app"],
     window: { title: "Datapad", frame: false, positioned: true },
-    position: { width: 470, height: 720 },
+    position: { width: 430, height: 660 },
     actions: {
       home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
       go: DatapadApp.#go, back: DatapadApp.#back, tab: DatapadApp.#tab,
@@ -133,6 +133,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const sound = game.settings.get(MODULE_ID, "bootSound");
     if (sound) foundry.audio.AudioHelper.play({ src: sound, volume: 0.6 }, false);
     setTimeout(() => { this.booting = false; this.render(); }, 1200);
+    // open where this player last left it (clamped to the screen by setPosition), else centred over the canvas
+    const scale = game.settings.get(MODULE_ID, "tabletScale") ?? 1;
+    const saved = game.settings.get(MODULE_ID, "datapadPosition");
+    const { width, height } = this.position;
+    const sidebar = document.getElementById("sidebar")?.offsetWidth ?? 0;
+    const left = Number.isFinite(saved?.left) ? saved.left : Math.max(0, (window.innerWidth - sidebar - width * scale) / 2);
+    const top = Number.isFinite(saved?.top) ? saved.top : Math.max(0, (window.innerHeight - height * scale) / 2);
+    this.setPosition({ left, top, scale });
   }
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
@@ -178,14 +186,22 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.justDecrypted = null;
     }
     if (this.game === "firewall" && this.puzzle?.state === "playing") this.element.querySelector(".ht-fw-grid")?.focus();
-    const handle = this.element.querySelector(".ht-bezel-top");
-    if (!handle || handle.dataset.drag) return;
-    handle.dataset.drag = "1";
-    handle.addEventListener("pointerdown", (ev) => {
+    const device = this.element.querySelector(".ht-device");
+    if (!device || device.dataset.drag) return;
+    device.dataset.drag = "1";
+    // grab it anywhere on the bezel or the screen's title bar; buttons, inputs and the screen body stay clickable
+    device.addEventListener("pointerdown", (ev) => {
       if (ev.button !== 0) return;
+      const t = ev.target;
+      const onFrame = t === device || t.closest(".ht-bezel-top, .ht-rail, .ht-header, .ht-controls");
+      if (!onFrame || t.closest("button, a, input, select, textarea, [data-action]")) return;
+      ev.preventDefault();
       const start = { x: ev.clientX, y: ev.clientY, left: this.position.left, top: this.position.top };
       const move = (e) => this.setPosition({ left: start.left + e.clientX - start.x, top: start.top + e.clientY - start.y });
-      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        game.settings.set(MODULE_ID, "datapadPosition", { left: this.position.left, top: this.position.top });
+      };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     });

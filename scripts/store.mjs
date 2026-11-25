@@ -24,6 +24,17 @@ export function registerSettings() {
     name: "Boot sound", hint: "Audio played when a datapad opens.",
     scope: "world", config: true, type: String, default: "", filePicker: "audio"
   });
+  game.settings.register(MODULE_ID, "tabletScale", {
+    name: "Datapad & tablet size", hint: "Scales the datapad and the character sheet tablet on this screen.",
+    scope: "client", config: true, type: Number, default: 0.85, range: { min: 0.6, max: 1.2, step: 0.05 },
+    onChange: (scale) => {
+      for (const app of foundry.applications.instances?.values() ?? []) {
+        if (app.rendered && (app.id === "ht-datapad" || app.options.classes?.includes("holo-sheet"))) app.setPosition({ scale });
+      }
+    }
+  });
+  // where this player last left their datapad; null until they first drag it
+  game.settings.register(MODULE_ID, "datapadPosition", { scope: "client", config: false, type: Object, default: null });
 }
 
 /* ---------- collections ---------- */

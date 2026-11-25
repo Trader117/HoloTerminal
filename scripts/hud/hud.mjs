@@ -188,8 +188,8 @@ Hooks.once("init", () => {
     choices: { always: "Always", combat: "Only during combat", off: "Never" }
   });
   game.settings.register(MODULE_ID, "hudScale", {
-    name: "Combat HUD: size", scope: "client", config: true, type: Number, default: 1, onChange: rerender,
-    range: { min: 0.7, max: 1.4, step: 0.05 }
+    name: "Combat HUD: size", scope: "client", config: true, type: Number, default: 0.85, onChange: rerender,
+    range: { min: 0.6, max: 1.4, step: 0.05 }
   });
   game.settings.register(MODULE_ID, "hudBasicActions", {
     name: "Combat HUD: show common actions", hint: "Dash, Dodge, Hide, Help and the other actions anyone can take.",

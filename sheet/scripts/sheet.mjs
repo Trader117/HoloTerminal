@@ -135,7 +135,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: ["holo-sheet", "ht-frameless"],
     // the sheet lives on a Holo-Terminal tablet: no Foundry window frame, the bezel moves it
-    position: { width: 1000, height: 880 },
+    position: { width: 960, height: 820 },
     window: { frame: false, positioned: true },
     form: { submitOnChange: true },
     actions: {
@@ -534,7 +534,10 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window.addEventListener("pointerup", up);
     });
     drag(this.element.querySelector(".ht-bezel-top"), (s, dx, dy) => ({ left: s.left + dx, top: s.top + dy }));
-    drag(this.element.querySelector(".holo-grip"), (s, dx, dy) => ({ width: Math.max(720, s.width + dx), height: Math.max(560, s.height + dy) }));
+    drag(this.element.querySelector(".holo-grip"), (s, dx, dy) => ({
+      width: Math.max(720, s.width + dx / (s.scale || 1)), height: Math.max(560, s.height + dy / (s.scale || 1)) }));
+    // shrink the whole tablet with the "Datapad & tablet size" setting
+    this.setPosition({ scale: game.settings.get(MODULE_ID, "tabletScale") ?? 1 });
   }
 
   _onRender(context, options) {
