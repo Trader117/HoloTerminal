@@ -1,0 +1,32 @@
+/* Holo-Terminal shared theme, taken from the SW5e Database app (Trader117/SW5e-database, app/style.css).
+   Every part of the module (datapad, terminals, sheet, combat HUD) should read these variables. */
+:root {
+  /* surfaces */
+  --ht-bg: #0e1216;
+  --ht-panel: #141a20;
+  --ht-panel-2: #1b232b;
+  --ht-band-1: #1a232b;
+  --ht-band-2: #222d37;
+  --ht-line: #27323c;
+  /* text */
+  --ht-text: #dce3e9;
+  --ht-strong: #f3f6f8;
+  --ht-muted: #8f9ca8;
+  /* accents */
+  --ht-red: #ff5146;          /* headings, titles, active markers */
+  --ht-red-hover: #ff7a71;
+  --ht-blue: #2aa3df;         /* rules, borders on focus/hover, primary actions */
+  --ht-blue-soft: rgba(42, 163, 223, .2);
+  --ht-warn: #ff9f43;
+  --ht-good: #4cc38a;
+  /* stat-block (gold) look */
+  --ht-gold: #e69a28;         /* stat-block top/bottom bars */
+  --ht-gold-rule: #9b9057;
+  --ht-gold-bg: #1f1b16;
+  --ht-gold-text: #ebe2cf;
+  --ht-gold-label: #fff4df;
+  /* type and shape */
+  --ht-font-display: "Bahnschrift", "Segoe UI", system-ui, sans-serif;
+  --ht-font-body: "Segoe UI", "Open Sans", system-ui, sans-serif;
+  --ht-radius: 6px;
+}

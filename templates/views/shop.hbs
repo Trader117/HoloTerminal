@@ -10,7 +10,7 @@
         <td>{{name}}</td>
         <td>{{#if infinite}}&infin;{{else}}{{stock}}{{/if}}</td>
         <td>{{price}} cr</td>
-        <td><button type="button" data-action="buy" data-index="{{index}}" {{#unless affordable}}disabled{{/unless}}>{{#if soldOut}}Sold out{{else}}Buy{{/if}}</button></td>
+        <td><button type="button" class="ht-primary" data-action="buy" data-index="{{index}}" {{#unless affordable}}disabled{{/unless}}>{{#if soldOut}}Sold out{{else}}Buy{{/if}}</button></td>
       </tr>
     {{else}}<tr><td colspan="5" class="ht-dim">-- shelves empty --</td></tr>{{/each}}
     </tbody>

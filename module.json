@@ -17,6 +17,7 @@
     "sheet/scripts/sheet.mjs"
   ],
   "styles": [
+    "styles/theme.css",
     "styles/holo-terminal.css",
     "sheet/styles/sheet.css"
   ],
