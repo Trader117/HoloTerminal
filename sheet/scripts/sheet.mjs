@@ -133,9 +133,10 @@ function itemPrice(item) {
 /* ---------- the sheet ---------- */
 export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
-    classes: ["holo-sheet"],
-    position: { width: 940, height: 820 },
-    window: { resizable: true },
+    classes: ["holo-sheet", "ht-frameless"],
+    // the sheet lives on a Holo-Terminal tablet: no Foundry window frame, the bezel moves it
+    position: { width: 1000, height: 880 },
+    window: { frame: false, positioned: true },
     form: { submitOnChange: true },
     actions: {
       rollAbility: HoloDossierSheet.#onRollAbility,
@@ -165,7 +166,10 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleEffect: HoloDossierSheet.#onToggleEffect,
       deleteEffect: HoloDossierSheet.#onDeleteEffect,
       editTraits: HoloDossierSheet.#onEditTraits,
-      holoTab: HoloDossierSheet.#onTab
+      holoTab: HoloDossierSheet.#onTab,
+      closeSheet: HoloDossierSheet.#onCloseSheet,
+      configureSheet: HoloDossierSheet.#onConfigureSheet,
+      configurePrototypeToken: HoloDossierSheet.#onConfigureToken
     }
   };
 
@@ -495,6 +499,44 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return ctx;
   }
 
+  /**
+   * Parts render as siblings; this moves them into the tablet: header, sidebar and tab bodies go on
+   * the screen, and the nav part becomes the key row under it. Re-renders replace parts in place.
+   */
+  _replaceHTML(result, content, options) {
+    super._replaceHTML(result, content, options);
+    let device = content.querySelector(":scope > .ht-device");
+    if (!device) {
+      device = document.createElement("div");
+      device.className = "ht-device holo-device";
+      device.innerHTML = `<div class="ht-bezel-top" title="Drag to move"></div>
+        <span class="ht-rail ht-rail-l"></span><span class="ht-rail ht-rail-r"></span>
+        <div class="ht-screen holo-screen"></div>
+        <span class="holo-grip" title="Drag to resize"></span>`;
+      content.prepend(device);
+    }
+    const screen = device.querySelector(".holo-screen");
+    for (const part of content.querySelectorAll(":scope > [data-application-part]")) {
+      if (part.dataset.applicationPart === "nav") screen.after(part);
+      else screen.append(part);
+    }
+  }
+
+  _onFirstRender(context, options) {
+    super._onFirstRender?.(context, options);
+    const drag = (handle, apply) => handle?.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      const start = { x: ev.clientX, y: ev.clientY, ...this.position };
+      const move = (e) => this.setPosition(apply(start, e.clientX - start.x, e.clientY - start.y));
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+    drag(this.element.querySelector(".ht-bezel-top"), (s, dx, dy) => ({ left: s.left + dx, top: s.top + dy }));
+    drag(this.element.querySelector(".holo-grip"), (s, dx, dy) => ({ width: Math.max(720, s.width + dx), height: Math.max(560, s.height + dy) }));
+  }
+
   _onRender(context, options) {
     super._onRender(context, options);
     const el = this.element;
@@ -616,7 +658,24 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static #item(target) { return this.actor.items.get(target.closest("[data-item-id]")?.dataset.itemId); }
   static #effect(target) { return fromUuidSync(target.closest("[data-effect-uuid]")?.dataset.effectUuid); }
 
-  static #onTab(event, target) { this.changeTab(target.dataset.tab, target.dataset.group ?? "primary", { event }); }
+  static #onTab(event, target) {
+    const group = target.dataset.group ?? "primary";
+    this.changeTab(target.dataset.tab, group, { event });
+    // the tablet keys sit outside Foundry's usual nav lookup, so mark the lit key here too
+    this.element.querySelectorAll(`.ht-key[data-group="${group}"]`).forEach((k) => k.classList.toggle("active", k.dataset.tab === target.dataset.tab));
+  }
+  static #onCloseSheet() { return this.close(); }
+  /* the frameless tablet has no window header, so its Sheet and Token buttons live in the sheet header */
+  static #onConfigureSheet() {
+    if (game.release.generation >= 13) return new foundry.applications.apps.DocumentSheetConfig({ document: this.document }).render({ force: true });
+    return new DocumentSheetConfig(this.document).render(true);
+  }
+  static #onConfigureToken() {
+    if (this.token) return this.token.sheet.render(true);
+    const Cls = CONFIG.Token.prototypeSheetClass;
+    if (game.release.generation >= 13) return new Cls({ prototype: this.actor.prototypeToken }).render({ force: true });
+    return new Cls(this.actor.prototypeToken).render(true);
+  }
   static #onToggleMode() { this._editMode = !this._editMode; this.render(); }
 
   static #onRollAbility(event, target) {
