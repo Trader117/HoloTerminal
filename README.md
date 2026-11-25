@@ -116,6 +116,14 @@ Every world prices twelve kinds of cargo (foodstuffs, water, ore, metals, fuel, 
 - **Planet cards** on the galaxy map list what is cheap there and what is wanted.
 - **GM:** *Shift markets* on the trade screen rerolls every world's prices. The *Trade: restricted goods* setting hides weapons and spice. Sales by players are whispered to the GM.
 
+## Hyperspace events
+When the GM uses **Make the jump** on the galaxy map there's a chance (30% by default) of something happening on the way: a pirate ambush, a hyperdrive stutter, a customs patrol, a distress beacon and so on.
+
+- The GM sees the event first and picks **Show players** (a red banner flashes on every screen and a card goes to chat), **Keep it to me** (whispered), **Reroll** or **Nothing happens**.
+- Events can cost extra fuel, taken from the party ship.
+- Edit the table in the console's **Ships** tab under *Hyperspace events*: turn events on or off, change how often each comes up, write your own, roll one on demand, or restore the defaults. `api.jumpEvent()` rolls one from a macro.
+- The chance per jump is a module setting (0 turns events off).
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.

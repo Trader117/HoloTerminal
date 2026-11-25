@@ -590,3 +590,18 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-screen .ht-trade-btns button { padding: 1px 6px; min-width: 0; font-size: 11px; margin-left: 2px; }
 .ht-trade-help { font-size: 11px; margin-top: 8px; }
 .ht-gx-good { color: #9fe3a9; } .ht-gx-want { color: #ffd27a; }
+
+/* ---------- Hyperspace events ---------- */
+.ht-ev-card { border-left: 3px solid var(--ht-red, #ff4d42); padding: 2px 0 2px 10px; }
+.ht-ev-kicker { font: 700 10px var(--ht-font-display, sans-serif); text-transform: uppercase; letter-spacing: .1em; color: var(--ht-gold, #e8b04a); }
+.ht-ev-card h3 { margin: 2px 0 4px; border: 0; color: var(--ht-red, #ff4d42); text-transform: uppercase; }
+.ht-ev-dialog h3 { margin-top: 0; }
+.ht-ev-banner { position: fixed; left: 0; right: 0; top: 34%; z-index: 10000; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 16px; background: linear-gradient(90deg, transparent, rgba(120, 10, 6, .88) 15%, rgba(120, 10, 6, .88) 85%, transparent);
+  border-top: 2px solid #ff4d42; border-bottom: 2px solid #ff4d42; color: #fff; font-family: var(--ht-font-display, sans-serif); text-transform: uppercase;
+  animation: ht-ev-in 6s ease forwards; }
+.ht-ev-banner i { font-size: 22px; color: #ffd27a; }
+.ht-ev-banner span { font-size: 12px; letter-spacing: .3em; color: #ffd0cc; }
+.ht-ev-banner b { font-size: 30px; letter-spacing: .12em; text-shadow: 0 0 12px rgba(255, 77, 66, .9); }
+@keyframes ht-ev-in { 0% { opacity: 0; transform: scaleY(.2); } 6% { opacity: 1; transform: none; } 10%, 18% { opacity: .6; } 14%, 22% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ht-ev-banner { animation: none; } }

@@ -10,6 +10,7 @@ import { registerDockSettings, registerDockHandlers } from "./holodock.mjs";
 import { registerCommsSettings, registerCommsHandlers, initCommsSocket, send as commsSend, startCall } from "./comms.mjs";
 import { HolocallApp } from "./holocall.mjs";
 import { registerTradeSettings, registerTradeHandlers } from "./trade.mjs";
+import { registerEventSettings, initEventSocket, maybeEvent } from "./jump-events.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -27,6 +28,7 @@ Hooks.once("init", () => {
   registerDockSettings();
   registerCommsSettings();
   registerTradeSettings();
+  registerEventSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -46,6 +48,7 @@ Hooks.once("ready", () => {
   registerDockHandlers();
   registerCommsHandlers();
   registerTradeHandlers();
+  initEventSocket();
   initCommsSocket();
   HolocallApp.register();
   initSocket(datapad);
@@ -61,6 +64,8 @@ Hooks.once("ready", () => {
     openHoloDock: (actorId = null) => datapad("holodock", actorId),
     openComms: () => datapad("comms"),
     openTrade: () => datapad("trade"),
+    /** GM: roll on the hyperspace event table now. */
+    jumpEvent: () => maybeEvent({ force: true }),
     /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */
     sendComms: (opts) => commsSend(opts),
     /** GM: holocall from an actor to some users (all players if none given). */
