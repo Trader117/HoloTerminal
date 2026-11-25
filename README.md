@@ -37,14 +37,14 @@ Difficulties are `easy` (3 slots, 5 glyphs), `normal` (4, 6), `hard` (5, 7) and 
 
 ## Character sheet (SW5e)
 Holo-Terminal also includes an original **character sheet** for dnd5e characters, built for SW5e (`sw5e-module`) and styled like the SW5e Database. It does not replace your sheet until you choose it: open a character, click **Sheet** in the window header and pick **Holo-Terminal Dossier (SW5e)**. Tick *default* there to use it for every character.
-- **Header:** name, species, class (archetype) and level, background, alignment, XP bar, AC, initiative (click to roll), proficiency, speed, inspiration, short/long rest, and a **Play / Editing** lock. Play mode protects ability scores, the name and delete buttons; unlock to change them.
-- **Sidebar:** portrait with an HP bar and temp HP over it, hit dice per class (click to spend), Force Points, Tech Points, Superiority Dice, exhaustion (click a level), active conditions, senses, languages, armor and weapon proficiencies, resistances, immunities and vulnerabilities. In edit mode, buttons open dnd5e's own trait editors.
-- **Dossier:** ability cards (click for checks, SAVE for saving throws), favourites (star any item, power or feature), SW5e skills with passives, and tools.
-- **Combat:** weapons with to-hit and damage, then actions, bonus actions and reactions, then maneuvers.
-- **Powers:** Force and Tech, with DC and attack per school (Light, Universal, Dark, Tech), grouped by level with point costs and concentration.
-- **Gear:** credits, load bar, search, and an inventory table (quantity, weight, price, uses) by type. Containers open in place; drag items onto a container to pack them.
-- **Features:** class, archetype, species and background, then class features, species traits, background features and feats.
-- **Effects:** one-click condition toggles, and temporary, passive and inactive effects with their source and duration.
+- **Header:** name, class (archetype) and level, species, background, alignment, a level badge with an XP ring, short/long rest, inspiration, and a **lock** (Play / Editing). Play mode protects ability scores, the name and delete buttons; unlock to change them.
+- **Sidebar:** portrait card with the AC shield and death-save pips, initiative (click to roll), speed and proficiency, then Hit Points (with temp HP), Force Points, Tech Points, Superiority Dice and Hit Dice bars (click Hit Dice to spend one), and your favourites list.
+- **Dossier:** ability tiles (click for checks), Skills and Tools panels, Saving Throws panel, species and background cards, and chips for senses, armor, weapons, languages, resistances, immunities and vulnerabilities. In edit mode, pencils open dnd5e's own trait editors.
+- **Combat:** weapons table (time, range, hit, damage, uses), then actions, bonus actions and reactions with uses and recovery, then maneuvers.
+- **Powers:** Forcecasting and Techcasting cards (ability, attack and DC per school), search, and tables by level with time, range, roll, point cost and uses.
+- **Gear:** load bar, credits, search, and inventory tables (price, weight, quantity with − / +, uses) by type. Containers open in place; drag items onto a container to pack them.
+- **Features:** class cards with archetype and level, search, then class features, species traits, background and feats with uses and recovery.
+- **Effects:** temporary, passive and inactive effects with source, duration and on/off switches, then exhaustion levels and condition switches.
 - **Bio:** personality, ideal, bond and flaw, plus the biography.
 - Number fields accept relative edits: `-7` in HP takes 7 damage, `+250` in credits adds 250. Quantity and uses can be edited right in the lists.
 - Click an item's icon to use it, its name to show its description. Drag items in from compendiums; classes, species and backgrounds still run the dnd5e level-up flow.

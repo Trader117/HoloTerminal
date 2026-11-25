@@ -6,33 +6,20 @@
     <h1 class="holo-name">{{actor.name}}</h1>
     {{/if}}
     <div class="holo-sub">
+      {{#if classLine}}<span>{{classLine}}</span>{{/if}}
       {{#if species}}<span>{{species}}</span>{{/if}}
-      {{#if classLine}}<span class="holo-strong">{{classLine}}</span>{{/if}}
       {{#if background}}<span>{{background}}</span>{{/if}}
       {{#if alignment}}<span>{{alignment}}</span>{{/if}}
     </div>
-    <div class="holo-xp">
-      <span class="holo-level">LVL {{level}}</span>
-      {{#if xp.max}}
-      <div class="holo-bar holo-xp-bar"><span style="width:{{xp.pct}}%"></span></div>
-      <span class="holo-dim"><input type="text" name="system.details.xp.value" value="{{xp.value}}" data-delta data-current="{{xp.value}}"> / {{xp.max}} XP</span>
-      {{/if}}
-    </div>
-  </div>
-  <div class="holo-vitals">
-    <div class="holo-stat holo-ac" data-tooltip="Armor Class"><label>AC</label><b>{{ac}}</b></div>
-    <div class="holo-stat holo-click" data-action="rollInit" data-tooltip="Roll initiative"><label>INIT</label><b>{{init}}</b></div>
-    <div class="holo-stat" data-tooltip="Proficiency bonus"><label>PROF</label><b>{{prof}}</b></div>
-    <div class="holo-stat" data-tooltip="{{otherSpeeds}}"><label>SPEED</label><b>{{speed}}</b></div>
-    <div class="holo-stat holo-click {{#if inspiration}}holo-on{{/if}}" data-action="toggleInspiration" data-tooltip="Inspiration"><label>INSPIRE</label><b><i class="fa-solid fa-star"></i></b></div>
   </div>
   <div class="holo-header-tools">
-    {{#if editable}}
-    <button type="button" class="holo-mode {{#if editMode}}holo-on{{/if}}" data-action="toggleMode" data-tooltip="Unlock to edit scores and details">
-      {{#if editMode}}<i class="fa-solid fa-lock-open"></i> Editing{{else}}<i class="fa-solid fa-lock"></i> Play{{/if}}
-    </button>
-    {{/if}}
-    <button type="button" data-action="rest" data-type="short"><i class="fa-solid fa-mug-hot"></i> {{localize "HOLOSHEET.ShortRest"}}</button>
-    <button type="button" data-action="rest" data-type="long"><i class="fa-solid fa-bed"></i> {{localize "HOLOSHEET.LongRest"}}</button>
+    <a class="holo-icon-btn" data-action="rest" data-type="short" data-tooltip="{{localize "HOLOSHEET.ShortRest"}}"><i class="fa-solid fa-utensils"></i></a>
+    <a class="holo-icon-btn" data-action="rest" data-type="long" data-tooltip="{{localize "HOLOSHEET.LongRest"}}"><i class="fa-solid fa-campground"></i></a>
+    <a class="holo-icon-btn {{#if inspiration}}holo-icon-on{{/if}}" data-action="toggleInspiration" data-tooltip="Inspiration"><i class="fa-solid fa-star"></i></a>
+    {{#if editable}}<a class="holo-icon-btn {{#if editMode}}holo-icon-on{{/if}}" data-action="toggleMode" data-tooltip="{{#if editMode}}Editing: click to lock{{else}}Locked: click to edit{{/if}}"><i class="fa-solid {{#if editMode}}fa-lock-open{{else}}fa-lock{{/if}}"></i></a>{{/if}}
+  </div>
+  <div class="holo-level-badge" data-tooltip="{{#if xp.max}}{{xp.value}} / {{xp.max}} XP{{/if}}">
+    <svg viewBox="0 0 100 100" class="holo-level-ring"><circle cx="50" cy="50" r="44" class="track"/><circle cx="50" cy="50" r="44" class="fill" style="stroke-dasharray:{{xp.pct}} 100" pathLength="100"/></svg>
+    <span>{{level}}</span>
   </div>
 </header>

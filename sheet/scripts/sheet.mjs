@@ -84,6 +84,46 @@ function itemSummary(item) {
   if (labels.activation && !bits.length) bits.push(labels.activation);
   return bits.filter(Boolean).join(" · ");
 }
+const ACT_ABBR = { action: "A", bonus: "BA", reaction: "R", minute: "1m", hour: "1h", day: "1d", special: "S", legendary: "L", crew: "C" };
+const ACT_LABEL = { action: "Action", bonus: "Bonus Action", reaction: "Reaction", minute: "1 Minute", hour: "1 Hour", special: "Special", legendary: "Legendary" };
+const RECOVERY = { sr: "SR", lr: "LR", day: "Day", dawn: "Dawn", dusk: "Dusk", charges: "Charges", turn: "Turn", round: "Round" };
+const activities = (item) => item.system.activities?.contents ?? (item.system.activities ? [...item.system.activities] : []);
+function activationOf(item) {
+  return item.system.activation?.type || activities(item)[0]?.activation?.type || "";
+}
+function rangeOf(item) {
+  const labels = item.labels ?? {};
+  if (labels.range) return labels.range;
+  const r = item.system.range ?? activities(item)[0]?.range ?? {};
+  if (num(r.value)) return `${r.value}${num(r.long) ? "/" + r.long : ""} ${r.units ?? "ft"}`;
+  return { self: "Self", touch: "Touch", spec: "Special", any: "Any" }[r.units] ?? "";
+}
+function rollOf(item) {
+  const labels = item.labels ?? {};
+  const acts = activities(item);
+  const toHit = labels.toHit || acts.find((a) => a.type === "attack")?.labels?.toHit;
+  if (toHit) return { hit: toHit };
+  const save = acts.find((a) => a.type === "save");
+  if (save) {
+    const ability = [...(save.save?.ability ?? [])][0] ?? "";
+    return { ability: ability.toUpperCase(), dc: save.save?.dc?.value ?? save.labels?.save ?? "" };
+  }
+  if (labels.save) return { text: labels.save };
+  return null;
+}
+function recoveryOf(item) {
+  const r = item.system.uses?.recovery;
+  const period = Array.isArray(r) ? r[0]?.period : item.system.uses?.per;
+  return RECOVERY[period] ?? (period ? String(period).toUpperCase() : "");
+}
+function typeLabelOf(item) {
+  const s = item.system, C = cfg();
+  if (s.type?.label) return s.type.label;
+  const pools = { weapon: C.weaponTypes, equipment: C.equipmentTypes, consumable: C.consumableTypes, loot: C.lootTypes, feat: C.featureTypes, tool: C.toolTypes, container: null };
+  const found = pools[item.type]?.[s.type?.value];
+  return loc(found?.label ?? found) || "";
+}
+
 function itemPrice(item) {
   const p = item.system.price;
   if (!p || !num(p.value)) return "";
@@ -110,6 +150,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editItem: HoloDossierSheet.#onEditItem,
       deleteItem: HoloDossierSheet.#onDeleteItem,
       toggleEquip: HoloDossierSheet.#onToggleEquip,
+      adjustQty: HoloDossierSheet.#onAdjustQty,
       toggleFavorite: HoloDossierSheet.#onToggleFavorite,
       expandItem: HoloDossierSheet.#onExpandItem,
       toggleContainer: HoloDossierSheet.#onToggleContainer,
@@ -160,7 +201,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   _editMode = false;
   /** Containers the user has opened, and the current inventory filter. */
   _openContainers = new Set();
-  _search = "";
+  _search = {};
   #dragDrop = null;
 
   get title() { return this.actor.name; }
@@ -202,6 +243,9 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.prof = signed(attr.prof);
     const mv = attr.movement ?? {};
     ctx.speed = `${num(mv.walk)} ${mv.units ?? "ft"}`;
+    const fastest = ["walk", "fly", "swim", "climb", "burrow"].reduce((best, k) => (num(mv[k]) > num(mv[best]) && k !== "walk" && !num(mv.walk) ? k : best), "walk");
+    ctx.speedValue = num(mv[fastest]);
+    ctx.speedLabel = fastest === "walk" ? "Walk" : fastest[0].toUpperCase() + fastest.slice(1);
     ctx.otherSpeeds = ["fly", "swim", "climb", "burrow"].filter((k) => num(mv[k])).map((k) => `${k} ${num(mv[k])}`).join(", ");
     ctx.death = { success: num(attr.death?.success), failure: num(attr.death?.failure), show: ctx.hp.value <= 0 && ctx.hp.max > 0 };
     ctx.death.successPips = [1, 2, 3].map((n) => n <= ctx.death.success);
@@ -218,6 +262,10 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const spent = num(hd.spent ?? c.system.hitDiceUsed);
       return { denom, value: Math.max(0, max - spent), max };
     }).filter((h) => h.max > 0);
+    const hdValue = ctx.hitDice.reduce((t, h) => t + h.value, 0), hdMax = ctx.hitDice.reduce((t, h) => t + h.max, 0);
+    const nextDie = [...ctx.hitDice].filter((h) => h.value > 0).sort((a, b) => num(b.denom.slice(1)) - num(a.denom.slice(1)))[0];
+    ctx.hd = { value: hdValue, max: hdMax, pct: pct(hdValue, hdMax), denom: nextDie?.denom ?? "", show: hdMax > 0,
+      tip: ctx.hitDice.map((h) => `${h.value}/${h.max} ${h.denom}`).join(", ") };
 
     /* abilities + saves */
     ctx.abilities = Object.entries(sys.abilities ?? {}).map(([k, a]) => {
@@ -227,6 +275,8 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         label: loc(C.abilities?.[k]?.label) || k, abbr: (loc(C.abilities?.[k]?.abbreviation) || k).toUpperCase()
       };
     });
+
+    ctx.saves = ctx.abilities.map((a) => ({ key: a.key, label: a.label, save: a.save, proficient: a.proficient }));
 
     /* skills and tools (sw5e-module rewrites CONFIG.DND5E.skills to the SW5e list) */
     const profIcons = { 0: "fa-regular fa-circle", 0.5: "fa-solid fa-circle-half-stroke", 1: "fa-solid fa-circle", 2: "fa-solid fa-circle-dot" };
@@ -251,15 +301,25 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (senses.special) senseList.push(senses.special);
     const tr = sys.traits ?? {};
     ctx.traits = [
-      { label: "Senses", values: senseList },
-      { label: "Languages", values: traitList("languages", tr.languages) },
-      { label: "Armor", values: traitList("armor", tr.armorProf) },
-      { label: "Weapons", values: traitList("weapon", tr.weaponProf) },
-      { label: "Resistances", values: traitList("dr", tr.dr) },
-      { label: "Immunities", values: [...traitList("di", tr.di), ...traitList("ci", tr.ci)] },
-      { label: "Vulnerabilities", values: traitList("dv", tr.dv) }
+      { label: "Senses", icon: "fa-solid fa-eye", trait: "senses", values: senseList },
+      { label: "Armor", icon: "fa-solid fa-shield-halved", trait: "armor", values: traitList("armor", tr.armorProf) },
+      { label: "Weapons", icon: "fa-solid fa-khanda", trait: "weapon", values: traitList("weapon", tr.weaponProf) },
+      { label: "Languages", icon: "fa-solid fa-flag", trait: "languages", values: traitList("languages", tr.languages) },
+      { label: "Resistances", icon: "fa-solid fa-shield-heart", trait: "dr", values: traitList("dr", tr.dr) },
+      { label: "Immunities", icon: "fa-solid fa-shield", trait: "di", values: [...traitList("di", tr.di), ...traitList("ci", tr.ci)] },
+      { label: "Vulnerabilities", icon: "fa-solid fa-heart-crack", trait: "dv", values: traitList("dv", tr.dv) }
     ].filter((t) => t.values.length);
     ctx.size = loc(C.actorSizes?.[tr.size]?.label ?? C.actorSizes?.[tr.size]) || "";
+    const speciesItem = (actor.itemTypes.race ?? actor.itemTypes.species ?? [])[0];
+    const bgItem = (actor.itemTypes.background ?? [])[0];
+    ctx.identityCards = [
+      speciesItem && { id: speciesItem.id, img: speciesItem.img, name: speciesItem.name, sub: ["Species", ctx.size].filter(Boolean).join(" · ") },
+      bgItem && { id: bgItem.id, img: bgItem.img, name: bgItem.name, sub: "Background" }
+    ].filter(Boolean);
+    ctx.classCards = classes.map((c) => {
+      const sub = subclasses.find((x) => x.system.classIdentifier === c.system.identifier);
+      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels: c.system.levels };
+    });
 
     /* conditions */
     const statuses = actor.statuses ?? new Set();
@@ -310,13 +370,18 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .filter((k) => pc[castType]?.schools?.[k])
       .map((k) => {
         const s = pc[castType].schools[k];
-        return { key: k, label: loc(schoolCfg[k]?.label) || k, dc: s.dc ?? "—", attack: s.attr ? signed(sys.abilities?.[s.attr]?.attack) : "—", attr: (s.attr ?? "").toUpperCase() };
+        return { key: k, label: loc(schoolCfg[k]?.label) || k, dc: s.dc ?? "—", attack: s.attr ? signed(sys.abilities?.[s.attr]?.attack) : "—",
+          mod: s.attr ? signed(sys.abilities?.[s.attr]?.mod) : "—", attr: (s.attr ?? "").toUpperCase() };
       });
     ctx.forcePowers = groupPowers(spells.filter((p) => FORCE_SCHOOLS.includes(p.system.school)), "force");
     ctx.techPowers = groupPowers(spells.filter((p) => TECH_SCHOOLS.includes(p.system.school)), "tech");
     ctx.otherPowers = groupPowers(spells.filter((p) => ![...FORCE_SCHOOLS, ...TECH_SCHOOLS].includes(p.system.school)), null);
     ctx.forceSchools = schoolInfo("force", FORCE_SCHOOLS);
     ctx.techSchools = schoolInfo("tech", TECH_SCHOOLS);
+    ctx.castCards = [
+      ctx.forceSchools.length && { label: "Forcecasting", cls: "holo-force", points: ctx.force, schools: ctx.forceSchools },
+      ctx.techSchools.length && { label: "Techcasting", cls: "holo-tech", points: ctx.tech, schools: ctx.techSchools }
+    ].filter(Boolean);
     ctx.powerCount = spells.length;
 
     /* combat */
@@ -399,15 +464,21 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #itemRow(item, favIds) {
     const s = item.system;
+    const act = activationOf(item);
+    const typeLabel = typeLabelOf(item);
+    const uses = itemUses(item);
     return {
+      subtitle: [typeLabel, ACT_LABEL[act]].filter(Boolean).join(" · "),
+      time: ACT_ABBR[act] ?? "", range: rangeOf(item), roll: rollOf(item), recovery: recoveryOf(item),
+      damage: (() => { const d = item.labels?.damages ?? item.labels?.damage; return Array.isArray(d) ? d.map((x) => x.label ?? x.formula).filter(Boolean).join(" + ") : (d || ""); })(),
       id: item.id, name: item.name, img: item.img, type: item.type,
-      quantity: s.quantity ?? null,
+      quantity: s.quantity ?? null, hasQty: Number.isFinite(s.quantity),
       weight: num(s.weight?.value ?? s.weight) || "",
-      price: itemPrice(item),
+      price: itemPrice(item).replace(" cr", ""),
       equipped: !!s.equipped, equippable: "equipped" in s,
       uses: itemUses(item), summary: itemSummary(item),
       favorite: favIds.has(item.id),
-      activation: s.activation?.type ?? s.activities?.contents?.[0]?.activation?.type ?? ""
+      activation: act
     };
   }
 
@@ -464,13 +535,14 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
       input.addEventListener("focus", () => input.select());
     });
-    // inventory search, filtered in place
-    const search = el.querySelector("input.holo-search");
-    if (search) {
+    // list search boxes (gear, powers, features), filtered in place
+    el.querySelectorAll("input.holo-search").forEach((search) => {
+      const scope = search.dataset.scope;
+      const section = search.closest("section.tab");
       const apply = () => {
         const q = search.value.trim().toLowerCase();
-        this._search = search.value;
-        el.querySelectorAll(".holo-gear .holo-item").forEach((li) => {
+        this._search[scope] = search.value;
+        section.querySelectorAll(".holo-item").forEach((li) => {
           const name = li.querySelector(".holo-item-name")?.textContent.toLowerCase() ?? "";
           li.hidden = !!q && !name.includes(q) && !li.querySelector(".holo-contents")?.textContent.toLowerCase().includes(q);
         });
@@ -478,7 +550,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       search.addEventListener("input", apply);
       search.addEventListener("change", (ev) => ev.stopPropagation());
       apply();
-    }
+    });
   }
 
   /** Rich-text bio: ProseMirror element when available, plain textarea otherwise. */
@@ -586,6 +658,11 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = HoloDossierSheet.#item.call(this, target);
     return item?.update({ "system.equipped": !item.system.equipped });
   }
+  static #onAdjustQty(event, target) {
+    const item = HoloDossierSheet.#item.call(this, target);
+    if (!item) return;
+    return item.update({ "system.quantity": Math.max(0, num(item.system.quantity) + num(target.dataset.step)) });
+  }
   static async #onToggleFavorite(event, target) {
     const item = HoloDossierSheet.#item.call(this, target);
     const sys = this.actor.system;
@@ -676,6 +753,5 @@ Hooks.once("init", () => {
   if (DSC) DSC.registerSheet(Actor, `${MODULE_ID}-sheet`, HoloDossierSheet, sheetOpts);
   else Actors.registerSheet(`${MODULE_ID}-sheet`, HoloDossierSheet, sheetOpts);
 
-  registerPartial("holo-terminal.sheet-item", TPL("_item"));
-  registerPartial("holo-terminal.sheet-gear-item", TPL("_gear-item"));
+  registerPartial("holo-terminal.sheet-row", TPL("_row"));
 });

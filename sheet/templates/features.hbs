@@ -1,13 +1,21 @@
 <section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="features">
-  {{#if identityItems.length}}
-  <h3 class="holo-h">Class, Species &amp; Background</h3>
-  <ul class="holo-list">{{#each identityItems}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
-  {{/if}}
+  <div class="holo-class-cards">
+    {{#each classCards}}
+    <div class="holo-id-card holo-class-card" data-item-id="{{id}}">
+      <img src="{{img}}" data-action="editItem">{{#if subImg}}<img src="{{subImg}}">{{/if}}
+      <div><a class="holo-id-name" data-action="editItem">{{name}}</a><span>{{sub}}</span></div>
+      <b class="holo-class-level">{{levels}}</b>
+    </div>
+    {{/each}}
+  </div>
+  <div class="holo-search-row"><i class="fa-solid fa-magnifying-glass"></i><input class="holo-search" data-scope="features" type="search" placeholder="Search features" value="{{search.features}}"></div>
   {{#each featureGroups}}
-  <h3 class="holo-h">{{label}}{{#if @first}} <a data-action="createItem" data-type="feat" data-tooltip="Add feature"><i class="fa-solid fa-plus"></i></a>{{/if}}</h3>
-  <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-item"}}{{/each}}</ul>
+  <div class="holo-table">
+    <div class="holo-thead"><span class="holo-thead-title">{{label}}</span><span class="c-uses">Uses</span><span class="c-rec">Recovery</span>
+      <span class="c-ctrl">{{#if @first}}<a data-action="createItem" data-type="feat" data-tooltip="Add feature"><i class="fa-solid fa-plus"></i></a>{{/if}}</span></div>
+    <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-row" feature=true}}{{/each}}</ul>
+  </div>
   {{else}}
-  <h3 class="holo-h">Features <a data-action="createItem" data-type="feat"><i class="fa-solid fa-plus"></i></a></h3>
-  <p class="holo-dim holo-empty">{{localize "HOLOSHEET.Empty"}}</p>
+  <p class="holo-dim holo-empty">{{localize "HOLOSHEET.Empty"}} <a data-action="createItem" data-type="feat">Add a feature</a></p>
   {{/each}}
 </section>
