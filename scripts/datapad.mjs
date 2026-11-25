@@ -19,6 +19,7 @@ export const HACKS = {
 import { openEditor, ConsoleApp, blank } from "./admin.mjs";
 import { isLootable, lootSummary } from "./loot.mjs";
 import * as Crypt from "./decrypt.mjs";
+import { entryHtml } from "./richtext.mjs";
 import * as Cam from "./cameras.mjs";
 import * as Scan from "./scanner.mjs";
 import { runScan, lastPulse, PULSE_HOOK } from "./scan-wheel.mjs";
@@ -288,7 +289,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Local Net", terminals: terms };
   }
 
-  _ctx_terminal() {
+  async _ctx_terminal() {
     const t = find("terminals", this.viewId);
     if (!t) return { title: "NO SIGNAL", missing: true };
     const locked = !game.user.isGM && !!(t.password || t.slice) && !unlockedIds().has(t.id);
@@ -313,8 +314,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       title: t.name, terminal: t, theme: t.theme ?? "cyan", locked, denied: this.denied,
       hasPassword: !!t.password, slice: t.slice, tab: this.tab,
-      messages: this.#cryptEntries(t, "messages", (m) => `${m.from} ${m.subject}`),
-      files: this.#cryptEntries(t, "files", (f) => f.name),
+      messages: await this.#cryptEntries(t, "messages", (m) => `${m.from} ${m.subject}`),
+      files: await this.#cryptEntries(t, "files", (f) => f.name),
       tabs: ["messages", "files", "controls", ...(cams.length ? ["cameras"] : [])]
         .map((id) => ({ id, active: id === this.tab, label: game.i18n.localize(`HT.${id}`) })),
       controls: (t.controls ?? []).map((c, i) => ({ ...c, index: i })).filter((c) => c.type !== "camera").map((c) => ({ ...c, ...state(c) })),
@@ -325,17 +326,18 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Messages or files with their encryption state for this user. */
-  #cryptEntries(t, kind, titleOf) {
+  async #cryptEntries(t, kind, titleOf) {
     const actor = activeActor();
-    return (t[kind] ?? []).map((e, index) => {
+    return Promise.all((t[kind] ?? []).map(async (e, index) => {
       const key = Crypt.entryKey(t.id, kind, index);
       const enc = e.encrypted ? (typeof e.encrypted === "object" ? e.encrypted : {}) : null;
       const open = !enc || Crypt.isDecrypted(key);
-      return { ...e, index, key, kind, encrypted: !!enc, open, resolving: this.justDecrypted === key,
-        scrambled: open ? null : Crypt.scramble(Crypt.plainText(e.body), index + 3),
+      const html = await entryHtml(e);
+      return { ...e, index, key, kind, encrypted: !!enc, open, resolving: this.justDecrypted === key, html,
+        scrambled: open ? null : Crypt.scrambleHtml(html, index + 3),
         dc: enc?.dc ?? 15, keyName: enc?.key, hasKey: Crypt.hasKey(actor, enc?.key),
         checkUsed: enc && Crypt.checkFailed(key), canHack: enc?.game !== "none", titleText: titleOf(e) };
-    });
+    }));
   }
 
   _ctx_slice() {

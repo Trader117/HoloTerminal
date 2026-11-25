@@ -3,9 +3,9 @@
     {{#if encrypted}}<i class="fas {{#if open}}fa-lock-open{{else}}fa-lock{{/if}} ht-crypt-icon"></i>{{/if}}
     {{#if (eq kind "files")}}&#128190; {{name}}{{else}}<b>{{from}}</b> &mdash; {{subject}}{{/if}}
   </summary>
-  {{#if open}}<div class="ht-text">{{{body}}}</div>
+  {{#if open}}<div class="ht-text ht-rich">{{{html}}}</div>
   {{else}}
-    <div class="ht-text ht-scrambled">{{scrambled}}</div>
+    <div class="ht-text ht-rich ht-scrambled">{{{scrambled}}}</div>
     <div class="ht-crypt-actions">
       <span class="ht-crypt-label">Encrypted</span>
       {{#if hasKey}}<button type="button" class="ht-primary" data-action="decryptKey" data-kind="{{kind}}" data-index="{{index}}"><i class="fas fa-key"></i> Use {{keyName}}</button>{{/if}}

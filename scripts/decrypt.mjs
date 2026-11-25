@@ -16,6 +16,11 @@ export function scramble(text, seed = 7) {
     return NOISE[h % NOISE.length];
   });
 }
+/** Scrambles the words of an HTML snippet but keeps its tags, so headings, lists and line breaks stay in place. */
+export function scrambleHtml(html, seed = 7) {
+  let n = seed;
+  return String(html ?? "").split(/(<[^>]*>|&[#\w]+;)/g).map((part) => (part.startsWith("<") || /^&[#\w]+;$/.test(part) ? part : scramble(part, n++))).join("");
+}
 export const plainText = (html) => String(html ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 const flagList = (name) => new Set(game.user.getFlag(MODULE_ID, name) ?? []);
