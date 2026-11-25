@@ -1,0 +1,75 @@
+{{#if ship}}
+{{#with ship}}
+<div class="ht-dock-head">
+  <img src="{{img}}" alt="">
+  <div>
+    {{#if party}}<span class="ht-dock-tag">Party ship</span>{{/if}}
+    <div class="ht-dock-meta">{{#if size}}{{size}} starship &middot; {{/if}}{{#if hyper}}Hyperdrive class {{hyper}}{{else}}No hyperdrive{{/if}}</div>
+    {{#if location}}<div class="ht-dock-loc"><i class="fas fa-location-dot"></i> {{location}}</div>{{/if}}
+  </div>
+</div>
+{{#if ../locked}}<p class="ht-dim">Access restricted. You can see this ship on the registry, but not its systems.</p>
+{{else}}
+<div class="ht-dock-bars">
+  <div class="ht-dock-bar ht-tone-hull{{#if hull.low}} low{{/if}}"><span>Hull</span><div class="ht-charge"><span style="width:{{hull.pct}}%"></span></div><b>{{hull.value}}{{#if hull.max}}/{{hull.max}}{{/if}}</b></div>
+  {{#if shields}}<div class="ht-dock-bar ht-tone-shields{{#if shields.low}} low{{/if}}"><span>Shields</span><div class="ht-charge"><span style="width:{{shields.pct}}%"></span></div><b>{{shields.value}}{{#if shields.max}}/{{shields.max}}{{/if}}</b></div>{{/if}}
+  <div class="ht-dock-bar ht-tone-fuel{{#if fuel.low}} low{{/if}}"><span>Fuel</span><div class="ht-charge"><span style="width:{{fuel.pct}}%"></span></div><b>{{fuel.value}}{{#if fuel.max}}/{{fuel.max}}{{/if}}</b></div>
+</div>
+<div class="ht-dock-stats">
+  {{#if (ne systemDamage null)}}<div><small>System damage</small><b class="{{#if systemDamage}}ht-warn{{/if}}">{{systemDamage}}</b></div>{{/if}}
+  {{#if routing}}<div><small>Power routing</small>{{#if ../canCommand}}<select data-dock-routing>{{#each routing.options}}<option value="{{v}}" {{#if sel}}selected{{/if}}>{{l}}</option>{{/each}}</select>{{else}}<b>{{routing.label}}</b>{{/if}}</div>{{/if}}
+  <div><small>Cargo</small><b>{{cargoUsed}}{{#if cargoCap}} / {{cargoCap}}{{/if}} t</b></div>
+  <div><small>Fuel price</small><b>{{fuel.price}} cr/unit</b></div>
+</div>
+{{#if ../canCommand}}
+<div class="ht-row ht-dock-actions">
+  <button type="button" data-action="dockRefuel" data-units="1"{{#if fuel.max}}{{#if (eq fuel.value fuel.max)}} disabled{{/if}}{{/if}}><i class="fas fa-gas-pump"></i> {{#if ../isGM}}Add 1 fuel{{else}}Buy 1 fuel{{/if}}</button>
+  {{#if fuel.max}}<button type="button" data-action="dockRefuel" data-units="fill"{{#if (eq fuel.value fuel.max)}} disabled{{/if}}><i class="fas fa-gas-pump"></i> Fill tanks{{#unless ../isGM}} ({{../fillCost}} cr){{/unless}}</button>{{/if}}
+  <button type="button" data-action="galaxy"><i class="fas fa-earth-americas"></i> Plot a jump</button>
+  {{#if party}}<button type="button" data-action="go" data-view="trade"><i class="fas fa-scale-balanced"></i> Trade</button>{{/if}}
+</div>
+{{/if}}
+{{#if crew.length}}
+<h3 class="ht-dock-h">Deployed crew</h3>
+<ul class="ht-dock-list">{{#each crew}}<li><span class="ht-dock-role">{{role}}</span>{{name}}</li>{{/each}}</ul>
+{{/if}}
+<h3 class="ht-dock-h">Cargo hold</h3>
+<ul class="ht-dock-list">
+  {{#each cargo}}<li><span class="ht-dock-qty">&times;{{qty}}</span>{{name}}{{#if good}} <small>t{{#if from}} from {{from}}{{/if}}</small>{{else}}{{#if tons}} <small>{{tons}} t each</small>{{/if}}{{/if}}
+    {{#if ../../canCommand}}<button type="button" class="ht-icon-btn" data-action="dockCargoRemove" data-id="{{id}}" title="Unload"><i class="fas fa-xmark"></i></button>{{/if}}</li>
+  {{else}}<li class="ht-dim">Hold is empty.</li>{{/each}}
+</ul>
+{{#if ../canCommand}}
+<div class="ht-dock-add">
+  <input name="dock-cargo-name" type="text" placeholder="Cargo"><input name="dock-cargo-qty" type="number" min="1" value="1" title="Quantity"><input name="dock-cargo-tons" type="number" min="0" step="0.1" placeholder="t" title="Tons each">
+  <button type="button" data-action="dockCargoAdd"><i class="fas fa-plus"></i> Load</button>
+</div>
+{{/if}}
+{{#if notes}}<h3 class="ht-dock-h">Log</h3><p class="ht-dock-notes">{{notes}}</p>{{/if}}
+{{/if}}
+{{#if ../isGM}}
+<div class="ht-row ht-dock-actions">
+  {{#if party}}<button type="button" data-action="dockParty" data-id=""><i class="fas fa-star"></i> Clear party ship</button>
+  {{else}}<button type="button" data-action="dockParty" data-id="{{id}}"><i class="far fa-star"></i> Set as party ship</button>{{/if}}
+  <button type="button" data-action="dockSheet"><i class="fas fa-id-card"></i> Sheet</button>
+</div>
+{{/if}}
+{{/with}}
+{{else}}
+<div class="ht-dock-ships">
+  {{#each ships}}
+  <button type="button" class="ht-dock-card{{#if party}} ht-dock-party{{/if}}" data-action="go" data-view="holodock" data-id="{{id}}">
+    <img src="{{img}}" alt="">
+    <span class="ht-dock-card-info">
+      <span class="ht-dock-name">{{name}}{{#if party}} <span class="ht-dock-tag">Party</span>{{/if}}</span>
+      <span class="ht-dock-meta">{{#if size}}{{size}} &middot; {{/if}}{{#if hyper}}Class {{hyper}}{{else}}No hyperdrive{{/if}}</span>
+      {{#if observer}}
+      <span class="ht-dock-mini ht-tone-hull{{#if hull.low}} low{{/if}}"><i style="width:{{hull.pct}}%"></i></span>
+      {{#if shields}}<span class="ht-dock-mini ht-tone-shields{{#if shields.low}} low{{/if}}"><i style="width:{{shields.pct}}%"></i></span>{{/if}}
+      <span class="ht-dock-mini ht-tone-fuel{{#if fuel.low}} low{{/if}}"><i style="width:{{fuel.pct}}%"></i></span>
+      {{/if}}
+    </span>
+  </button>
+  {{else}}<p class="ht-dim">No ships registered. {{#if isGM}}Add one from the GM Console (Ships tab). SW5e starship actors appear here on their own.{{else}}The GM hasn't given you access to a ship yet.{{/if}}</p>{{/each}}
+</div>
+{{/if}}

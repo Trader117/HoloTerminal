@@ -1,11 +1,22 @@
 <div class="ht-device">
+  <div class="ht-bezel-top" title="Drag to move"></div>
+  <span class="ht-rail ht-rail-l" aria-hidden="true"></span><span class="ht-rail ht-rail-r" aria-hidden="true"></span>
   <div class="ht-screen ht-theme-{{theme}}">
     <header class="ht-header">
-      {{#if canBack}}<button type="button" class="ht-icon" data-action="back" title="Back">&#9664;</button>{{/if}}
-      <span class="ht-title">{{title}}</span>
-      <span class="ht-meta">{{#if actorName}}{{actorName}}{{#if (ne credits null)}} &middot; {{credits}} cr{{/if}}{{else}}no ID linked{{/if}}</span>
+      <div class="ht-kicker"><span>{{kicker}}</span><span class="ht-clock">{{#if actorName}}{{actorName}} &middot; {{/if}}{{clock}}</span></div>
+      <div class="ht-title">{{title}}</div>
     </header>
     {{#if booting}}<pre class="ht-boot">{{bootText}}</pre>
-    {{else}}<section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
+    {{else}}
+    {{#if shipTabs}}<nav class="ht-ship-tabs">{{#each shipTabs}}<button type="button" class="{{#if active}}active{{/if}}" data-action="go" data-view="{{view}}" data-id="{{id}}"><i class="fas {{icon}}"></i> {{label}}</button>{{/each}}</nav>{{/if}}
+    <section class="ht-body">{{> (lookup this "partial")}}</section>{{/if}}
   </div>
+  <nav class="ht-controls">
+    <div class="ht-keys">
+      <button type="button" class="ht-key" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><i class="fas fa-arrow-left"></i><span>Back</span></button>
+      <button type="button" class="ht-key" data-action="home" title="Home" {{#if (eq view "home")}}disabled{{/if}}><i class="fas fa-house"></i><span>Home</span></button>
+    </div>
+    <div class="ht-readout" title="Credits">{{#if (ne credits null)}}{{credits}}<small>cr</small>{{else}}<small>no ID</small>{{/if}}</div>
+    <button type="button" class="ht-key ht-power" data-action="close" title="Close datapad"><i class="fas fa-power-off"></i><span>Close</span></button>
+  </nav>
 </div>

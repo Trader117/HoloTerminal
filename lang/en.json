@@ -2,7 +2,14 @@
   "HT.messages": "Messages",
   "HT.files": "Files",
   "HT.controls": "Controls",
+  "HT.cameras": "Cameras",
   "HT.password": "Access code",
   "HT.login": "Authenticate",
-  "HT.slice": "Slice in"
+  "HT.slice": "Slice in",
+  "TYPES": {
+    "RegionBehavior": {
+      "holo-terminal.openDatapad": "Open Datapad",
+      "holo-terminal.scanSignature": "Scan Signature"
+    }
+  }
 }

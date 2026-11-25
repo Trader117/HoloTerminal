@@ -1,5 +1,9 @@
-<nav class="holo-tabs tabs" data-group="primary">
-  {{#each tabs}}
-  <a class="{{cssClass}}" data-action="holoTab" data-group="primary" data-tab="{{id}}"><i class="{{icon}}"></i> {{localize label}}</a>
-  {{/each}}
-</nav>
+<div class="ht-controls holo-controls">
+  <nav class="ht-keys holo-tabs tabs" data-group="primary">
+    {{#each tabs}}
+    <button type="button" class="ht-key {{cssClass}}" data-action="holoTab" data-group="primary" data-tab="{{id}}" data-tooltip="{{localize label}}"><i class="{{icon}}"></i><span>{{localize label}}</span></button>
+    {{/each}}
+  </nav>
+  <div class="ht-readout" data-tooltip="Credits">{{credits}}<small>cr</small></div>
+  <button type="button" class="ht-key ht-power" data-action="closeSheet"><i class="fa-solid fa-power-off"></i><span>Close</span></button>
+</div>

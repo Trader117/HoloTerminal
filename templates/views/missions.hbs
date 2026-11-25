@@ -1,0 +1,29 @@
+{{#if isGM}}<button type="button" data-action="post" data-kind="missions">+ New mission</button>{{/if}}
+{{#each groups}}
+<h3 class="ht-dock-h">{{label}}</h3>
+{{#each items}}
+<article class="ht-mission ht-mission-{{status}}">
+  <header><span class="ht-mission-title">{{title}}</span>{{#if hidden}} <em class="ht-dim">(hidden)</em>{{/if}}<span class="ht-mission-count">{{doneCount}}/{{objectives.length}}</span></header>
+  <div class="ht-dock-meta">{{#if giver}}From {{giver}}{{/if}}{{#if location}} &middot; {{location}}{{/if}}{{#if reward}} &middot; {{reward}}{{/if}}</div>
+  {{#if summary}}<p>{{summary}}</p>{{/if}}
+  <ul class="ht-objectives">
+    {{#each objectives}}
+    <li class="{{#if done}}done{{/if}}">
+      {{#if ../../../isGM}}<button type="button" class="ht-obj-box" data-action="missionObj" data-id="{{../id}}" data-index="{{@index}}" title="Tick off"><i class="fas {{#if done}}fa-square-check{{else}}fa-square{{/if}}"></i></button>
+      {{else}}<span class="ht-obj-box"><i class="fas {{#if done}}fa-square-check{{else}}fa-square{{/if}}"></i></span>{{/if}}
+      <span>{{text}}</span>
+    </li>
+    {{/each}}
+  </ul>
+  {{#if ../../isGM}}
+  <div class="ht-row">
+    {{#if (ne status "done")}}<button type="button" data-action="missionStatus" data-id="{{id}}" data-status="done">Done</button>{{/if}}
+    {{#if (ne status "failed")}}<button type="button" data-action="missionStatus" data-id="{{id}}" data-status="failed">Failed</button>{{/if}}
+    {{#if (ne status "active")}}<button type="button" data-action="missionStatus" data-id="{{id}}" data-status="active">Reopen</button>{{/if}}
+    <button type="button" data-action="edit" data-kind="missions" data-id="{{id}}">Edit</button>
+    <button type="button" data-action="del" data-kind="missions" data-id="{{id}}">Delete</button>
+  </div>
+  {{/if}}
+</article>
+{{/each}}
+{{else}}<p class="ht-dim">-- no missions logged --</p>{{/each}}

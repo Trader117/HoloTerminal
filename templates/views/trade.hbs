@@ -1,0 +1,28 @@
+{{#if noShip}}<p class="ht-dim">{{noShip}}</p>
+{{else}}
+<div class="ht-trade-head">
+  <div><small>Docked at</small><b>{{planet.name}}</b><span class="ht-dock-meta">{{planet.region}}{{#if planet.terrain}} &middot; {{planet.terrain}}{{/if}}</span></div>
+  <div><small>{{shipName}} hold</small><b>{{used}}{{#if cap}} / {{cap}}{{/if}} t</b>{{#if cap}}<div class="ht-charge" style="--sig:var(--ht-gold)"><span style="width:{{pct}}%"></span></div>{{/if}}</div>
+</div>
+<table class="ht-trade">
+  <thead><tr><th>Cargo</th><th>Buy</th><th>Sell</th><th>Hold</th><th></th></tr></thead>
+  <tbody>
+  {{#each goods}}
+  <tr class="{{#if restricted}}restricted{{/if}}">
+    <td><span class="ht-trade-name">{{name}}</span>{{#if tag}}<small class="ht-trade-tag {{tagTone}}">{{tag}}</small>{{/if}}</td>
+    <td class="num">{{#if stocked}}{{buy}}{{else}}<span class="ht-dim">--</span>{{/if}}</td>
+    <td class="num">{{sell}}</td>
+    <td class="num">{{#if held}}{{held}} t{{#if paidTxt}}<small>{{paidTxt}}</small>{{/if}}{{/if}}</td>
+    <td class="ht-trade-btns">
+      {{#if ../canTrade}}
+      {{#if stocked}}<button type="button" data-action="tradeBuy" data-good="{{id}}" data-tons="1" title="Buy 1 t">+1</button><button type="button" data-action="tradeBuy" data-good="{{id}}" data-tons="5" title="Buy 5 t">+5</button>{{/if}}
+      {{#if held}}<button type="button" data-action="tradeSell" data-good="{{id}}" data-tons="{{held}}" class="ht-primary" title="Sell all">Sell</button>{{/if}}
+      {{/if}}
+    </td>
+  </tr>
+  {{/each}}
+  </tbody>
+</table>
+<p class="ht-dim ht-trade-help">Prices are credits per ton. Buy where a good is cheap (green), sell where it's wanted (gold). Your active character pays and is paid.</p>
+{{#if isGM}}<div class="ht-row"><button type="button" data-action="tradeShift" title="New prices on every world"><i class="fas fa-shuffle"></i> Shift markets</button></div>{{/if}}
+{{/if}}

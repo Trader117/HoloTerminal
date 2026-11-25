@@ -1,3 +1,11 @@
 <section class="tab holo-body holo-bio {{tab.cssClass}}" data-group="primary" data-tab="bio">
+  <div class="holo-personality">
+    {{#each personality}}
+    <div class="holo-persona"><h4>{{label}}</h4>
+      {{#if ../editMode}}<textarea name="system.details.{{key}}" rows="3">{{value}}</textarea>{{else}}<p>{{#if value}}{{value}}{{else}}<span class="holo-dim">Unlock to write.</span>{{/if}}</p>{{/if}}
+    </div>
+    {{/each}}
+  </div>
+  <h3 class="holo-h">Biography</h3>
   <div class="holo-bio-editor"></div>
 </section>

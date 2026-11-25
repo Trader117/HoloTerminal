@@ -1,5 +1,8 @@
+{{#if ticker}}<div class="ht-ticker" data-action="go" data-view="news"><span class="ht-ticker-label"><i class="fas fa-satellite"></i> HoloNet</span><span class="ht-ticker-track"><span>{{ticker}}</span></span></div>{{/if}}
 <div class="ht-apps">
   {{#each apps}}
-  <button type="button" class="ht-app-tile" data-action="go" data-view="{{view}}"><i class="fas {{icon}}"></i><span>{{label}}</span></button>
+  <button type="button" class="ht-app-tile ht-tone-{{tone}}" {{#if action}}data-action="{{action}}"{{else}}data-action="go" data-view="{{view}}"{{#if id}} data-id="{{id}}"{{/if}}{{/if}}>
+    <span class="ht-badge"><i class="fas {{icon}}"></i></span><span class="ht-app-label">{{label}}</span>{{#if count}}<span class="ht-app-count">{{count}}</span>{{/if}}
+  </button>
   {{/each}}
 </div>

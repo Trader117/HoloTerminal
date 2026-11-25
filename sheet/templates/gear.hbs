@@ -1,13 +1,18 @@
-<section class="tab holo-body {{tab.cssClass}}" data-group="primary" data-tab="gear">
-  <div class="holo-wallet">
-    <label><i class="fa-solid fa-coins"></i> {{localize "HOLOSHEET.Credits"}}</label>
-    <input type="text" name="system.currency.{{creditsKey}}" value="{{credits}}" data-delta data-current="{{credits}}">
+<section class="tab holo-body holo-gear {{tab.cssClass}}" data-group="primary" data-tab="gear">
+  <div class="holo-gear-top">
     {{#if encumbrance.max}}
-    <div class="holo-enc"><label>Load {{encumbrance.value}} / {{encumbrance.max}}</label><div class="holo-bar"><span style="width:{{encumbrance.pct}}%"></span></div></div>
+    <div class="holo-enc-card holo-enc-{{encumbrance.state}}">
+      <div class="holo-meter-bar"><span class="holo-meter-fill" style="width:{{encumbrance.pct}}%"></span><div class="holo-meter-text"><i class="fa-solid fa-weight-hanging"></i> <b>{{encumbrance.value}}</b><span>/ {{encumbrance.max}}</span></div></div>
+    </div>
     {{/if}}
+    <div class="holo-credits"><i class="fa-solid fa-coins" data-tooltip="{{localize "HOLOSHEET.Credits"}}"></i><input type="text" name="system.currency.{{creditsKey}}" value="{{credits}}" data-delta data-current="{{credits}}"><span>cr</span></div>
   </div>
+  <div class="holo-search-row"><i class="fa-solid fa-magnifying-glass"></i><input class="holo-search" data-scope="gear" type="search" placeholder="Search inventory" value="{{search.gear}}"></div>
   {{#each gear}}
-  <h3 class="holo-h">{{label}} <a data-action="createItem" data-type="{{type}}"><i class="fa-solid fa-plus"></i></a></h3>
-  <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-item"}}{{else}}<li class="holo-dim">—</li>{{/each}}</ul>
+  <div class="holo-table">
+    <div class="holo-thead"><span class="holo-thead-title">{{label}}</span><span class="c-price">Price</span><span class="c-weight">Weight</span><span class="c-qty">Quantity</span><span class="c-uses">Uses</span>
+      <span class="c-ctrl"><a data-action="createItem" data-type="{{type}}" data-tooltip="Add"><i class="fa-solid fa-plus"></i></a></span></div>
+    <ul class="holo-list">{{#each items}}{{> "holo-terminal.sheet-row" gear=true}}{{else}}<li class="holo-dim holo-small holo-empty">None.</li>{{/each}}</ul>
+  </div>
   {{/each}}
 </section>

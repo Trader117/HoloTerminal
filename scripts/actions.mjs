@@ -5,7 +5,7 @@ const gmWhisper = (content) => ChatMessage.create({ content, whisper: ChatMessag
 
 /* Terminal controls: doors (wall id) and lights (ambient light id) on a scene. */
 export async function runControl(sceneId, control) {
-  const scene = game.scenes.get(sceneId) ?? canvas.scene;
+  const scene = game.scenes.get(control.scene) ?? game.scenes.get(sceneId) ?? canvas.scene;
   if (control.type === "door") {
     const wall = scene?.walls.get(control.id);
     if (!wall) throw new Error(`Wall ${control.id} not found on this scene`);
@@ -27,9 +27,14 @@ export function registerActions() {
     if (!user.isGM) gmWhisper(`<b>${user.name}</b> used <i>${control.label}</i> on ${t.name}.`);
   });
 
-  registerHandler("sliceResult", async ({ terminalId, success, actorName }, user) => {
+  registerHandler("sliceResult", async ({ terminalId, success, actorName, game }, user) => {
     const t = find("terminals", terminalId);
-    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}.`);
+    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}${game ? ` (${game})` : ""}.`);
+  });
+
+  registerHandler("decryptResult", async ({ terminalId, label, success, how, actorName }, user) => {
+    const t = find("terminals", terminalId);
+    gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "decrypted" : "<b>failed</b> to decrypt"} <i>${label}</i> on ${t?.name ?? "a terminal"}${how ? ` (${how})` : ""}.`);
   });
 
   registerHandler("claimBounty", async ({ bountyId, actorName }, user) => {
@@ -68,10 +73,14 @@ export function registerActions() {
     const credits = getCredits(actor);
     if (credits < price) throw new Error(`${actor.name} needs ${price} credits but has ${credits}.`);
 
-    const source = entry.uuid ? await fromUuid(entry.uuid) : null;
-    if (!source) throw new Error(`Item source for ${entry.name} is missing. Ask the GM to re-add it.`);
-    const data = source.toObject();
+    let data = entry.data ? foundry.utils.deepClone(entry.data) : null; // imported shops carry the item inline
+    if (!data) {
+      const source = entry.uuid ? await fromUuid(entry.uuid) : null;
+      if (!source) throw new Error(`Item source for ${entry.name} is missing. Ask the GM to re-add it.`);
+      data = source.toObject();
+    }
     delete data._id;
+    if (data.system && "quantity" in data.system) data.system.quantity = 1;
     await actor.createEmbeddedDocuments("Item", [data]);
     await setCredits(actor, credits - price);
     if (entry.stock > 0) { entry.stock -= 1; await upsert("shops", shop); }
