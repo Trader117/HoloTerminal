@@ -4,9 +4,9 @@ import { MODULE_ID } from "./store.mjs";
    Planets come from data/planets.json, built from Wookieepedia (CC BY-SA 3.0; see data/ATTRIBUTION.md).
    Each row: [title, grid, region, sector, system, flags, weight, class, climate, terrain, routes, subregions, x, y]
    flags: 1 = Legends-only, 2 = canon and Legends both, 0 = canon only.
-   Positions: one grid square = 100 map units. x, y come from Henry Bernberg's Star Wars galaxy map (ArcGIS) for the
-   ~4,800 worlds it plots (see tools/arcgis-import.py). Worlds it doesn't plot sit next to a plotted world of the same
-   system, or failing that inside their grid square at a spot seeded from the system's name. The GM can drag any planet.
+   Positions: one grid square = 100 map units. x, y come from Henry Bernberg's Star Wars galaxy map (ArcGIS); only the
+   worlds it plots are kept (see tools/arcgis-import.py). A row without x, y falls back to a spot inside its grid square
+   seeded from the system's name. The GM can drag any planet.
    Hyperlanes come from data/hyperlanes.json (the same ArcGIS map's Hyperspace layer). */
 
 export const SQ = 100;
@@ -84,18 +84,8 @@ export function buildGalaxy(rows, canon = null, laneData = null) {
     byKey.set(key, keep);
   }
   const planets = [...byKey.values()];
-  // Worlds the ArcGIS map plots go exactly where it puts them.
-  const sysAnchor = new Map();
-  for (const p of planets) if (p.ax != null) { p.x = p.ax; p.y = p.ay; p.placed = true; if (p.system && !sysAnchor.has(p.system)) sysAnchor.set(p.system, p); }
   for (const p of planets) {
-    if (p.placed) continue;
-    // Same system as a plotted world (and in or next to the same square): sit just beside it.
-    const a = p.system && sysAnchor.get(p.system);
-    if (a && Math.abs(a.g.col - p.g.col) <= 1 && Math.abs(a.g.row - p.g.row) <= 1) {
-      const h = hash(p.key), ang = rand01(h) * Math.PI * 2, r = 1.2 + rand01(h ^ 77) * 1.6;
-      p.x = a.x + Math.cos(ang) * r; p.y = a.y + Math.sin(ang) * r;
-      continue;
-    }
+    if (p.ax != null) { p.x = p.ax; p.y = p.ay; p.placed = true; continue; }
     const seed = hash(p.system || p.key);
     const sx = 0.15 + rand01(seed) * 0.7, sy = 0.15 + rand01(seed ^ 0x9e3779b9) * 0.7;
     const off = p.system ? (rand01(hash(p.key)) - 0.5) * 0.08 : 0, off2 = p.system ? (rand01(hash(p.key) ^ 77) - 0.5) * 0.08 : 0;
