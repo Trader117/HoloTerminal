@@ -1,13 +1,14 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
 import { EditorApp, ConsoleApp, blank } from "./admin.mjs";
+import { isLootable, lootSummary } from "./loot.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -47,7 +48,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
-      del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy
+      del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
+      lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
@@ -58,7 +60,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
-    for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor"])
+    for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
+      "createItem", "deleteItem", "updateItem"])
       Hooks.on(h, () => this.rendered && this.render());
   }
 
@@ -122,9 +125,10 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const apps = [
       { view: "network", icon: "fa-network-wired", label: "Local Net", tone: "blue" },
       { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
-      { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" }
+      { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
+      { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" }
     ];
-    if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "green" });
+    if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
     return { title: "Apps", apps };
   }
 
@@ -175,6 +179,13 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _ctx_shops() {
     const shops = list("shops").filter((s) => game.user.isGM || (!s.hidden && onScene(s)));
     return { title: "Markets", shops, sceneName: canvas.scene?.name };
+  }
+
+  _ctx_salvage(ctx, actor) {
+    const bodies = (canvas.scene?.tokens ?? []).filter((t) => isLootable(t)).map((t) => lootSummary(t, actor))
+      .filter((b) => b.items.length || b.credits > 0)
+      .sort((a, b) => Number(b.near) - Number(a.near));
+    return { title: "Salvage", bodies, noActor: !actor };
   }
 
   _ctx_shop(ctx) {
@@ -256,6 +267,16 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const doc = blank(el.dataset.kind);
     await upsert(el.dataset.kind, doc);
     new EditorApp(el.dataset.kind, doc.id).render(true);
+  }
+  static #lootItem(e, el) {
+    const actor = activeActor();
+    if (!actor) return ui.notifications.warn("Select or assign a character first.");
+    requestGM("lootItem", { sceneId: canvas.scene.id, tokenId: el.dataset.token, itemId: el.dataset.item, actorUuid: actor.uuid });
+  }
+  static #lootCredits(e, el) {
+    const actor = activeActor();
+    if (!actor) return ui.notifications.warn("Select or assign a character first.");
+    requestGM("lootCredits", { sceneId: canvas.scene.id, tokenId: el.dataset.token, actorUuid: actor.uuid });
   }
   static #buy(e, el) {
     const actor = activeActor();

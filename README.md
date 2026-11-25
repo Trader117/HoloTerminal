@@ -17,6 +17,8 @@ Open it from the **tablet icon** in Token controls, or press **Shift+P**. It use
 - **Bounties**: open contracts. Press *Take contract* to sign on.
 - **Markets**: shops on this scene. *Buy* takes credits, adds the item to the character and lowers the stock.
 
+- **Salvage**: bodies on this scene. Any NPC token at 0 HP can be looted, and the GM can open or lock a body with the sack icon on its token HUD. Players take items one at a time and pocket the credits. By default their token has to be within 2 squares (setting: *Salvage range*).
+
 ## GM: the console
 Open it from the **terminal icon** in Token controls. It has tabs for Terminals, Markets and Bounties. On each entry you can:
 - toggle whether players can see it (eye),

@@ -186,3 +186,14 @@
 .ht-editor textarea:focus { border-color: var(--ht-blue); box-shadow: 0 0 0 3px var(--ht-blue-soft); outline: none; }
 .ht-drop { border: 2px dashed var(--ht-blue); padding: 12px; text-align: center; border-radius: var(--ht-radius); color: var(--ht-muted); }
 .ht-editor .ht-row { justify-content: flex-end; }
+
+/* ---------- salvage ---------- */
+.ht-loot { margin: 0 0 12px; border: 1px solid var(--ht-line); border-radius: var(--ht-radius); background: var(--ht-panel); }
+.ht-loot header { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 2px solid var(--ht-good); }
+.ht-loot header img { width: 32px; height: 32px; border: 0; border-radius: 4px; object-fit: cover; }
+.ht-loot-name { flex: 1; font: 700 15px var(--ht-font-display); color: var(--ht-strong); text-transform: uppercase; letter-spacing: .5px; }
+.ht-loot ul { list-style: none; margin: 0; padding: 0; }
+.ht-loot li { display: flex; align-items: center; gap: 8px; padding: 4px 10px; }
+.ht-loot li:nth-child(odd) { background: var(--ht-band-1); } .ht-loot li:nth-child(even) { background: var(--ht-band-2); }
+.ht-loot li img { border: 0; } .ht-loot li span { flex: 1; }
+.ht-far { opacity: .6; }

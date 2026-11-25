@@ -2,6 +2,7 @@ import { MODULE_ID, registerSettings, initSocket, find, findByName, list } from 
 import { registerActions } from "./actions.mjs";
 import { DatapadApp, PARTIAL_PATHS } from "./datapad.mjs";
 import { ConsoleApp } from "./admin.mjs";
+import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
 const loadTpl = (paths) => (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)(paths);
 const datapad = (view, id) => DatapadApp.instance.show(view, id);
@@ -9,6 +10,8 @@ const resolve = (kind, ref) => find(kind, ref) ?? findByName(kind, ref);
 
 Hooks.once("init", () => {
   registerSettings();
+  registerLootSetting();
+  registerLootHud();
   loadTpl(PARTIAL_PATHS);
   game.keybindings.register(MODULE_ID, "datapad", {
     name: "Open datapad", editable: [{ key: "KeyP", modifiers: ["Shift"] }],
@@ -18,6 +21,7 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   registerActions();
+  registerLootHandlers();
   initSocket(datapad);
   game.modules.get(MODULE_ID).api = {
     datapad: () => datapad("home"),
@@ -25,6 +29,7 @@ Hooks.once("ready", () => {
     openTerminal: (ref) => { const t = resolve("terminals", ref); return t && datapad("terminal", t.id); },
     openShop: (ref) => { const s = resolve("shops", ref); return s && datapad("shop", s.id); },
     openBounties: () => datapad("bounties"),
+    openSalvage: () => datapad("salvage"),
     /** GM: push a view to every player's datapad. */
     showAll: (view, ref) => {
       const kind = { terminal: "terminals", shop: "shops" }[view];
