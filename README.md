@@ -90,6 +90,16 @@ Open it from the globe button in the Token controls, from the datapad's **Galaxy
 - **Settings:** show canon and Legends or canon only, hours per grid square at class 1 (lanes are twice as fast), and the default hyperdrive class.
 - The arrow button opens the ArcGIS fan map in a browser tab for reference.
 
+## HoloDock (ships)
+The datapad's **HoloDock** tile lists the crew's ships. SW5e starship actors appear on their own; the GM can add any other actor (a vehicle or NPC) from the console's **Ships** tab.
+
+- **Ship status:** hull, shields and fuel bars, hyperdrive class, system damage, power routing, cargo and deployed crew (pilot, crew and passengers from the SW5e sheet). The values are read straight from the starship actor, so damage taken in combat shows at once.
+- **Hyperdrive class** comes from the ship's *Hyperdrive, Class X* item (the best equipped one, ignoring backups). **Fuel capacity**, **cargo capacity** and **fuel price** come from the ship's size item (Tiny to Gargantuan). The GM can override any of these, set shield capacity, a location and a log in the Ships tab (pen button).
+- **Party ship:** star a ship in the Ships tab (or use *Set as party ship* on its datapad screen). Every player can see it. It names the galaxy map's ship marker and sets the default hyperdrive class for routes.
+- **Who sees what:** players see the party ship and any ship they have at least Limited rights on. Observer lets them read its systems. Owner (or the party ship) lets them buy fuel with the active character's credits, change power routing and load or unload cargo.
+- **Jumps:** with a route plotted on the galaxy map, the nav computer shows the fuel the party ship needs. The GM's **Make the jump** button moves the ship marker to the destination, burns the fuel, updates the ship's location and posts the arrival to chat.
+- **Settings:** fuel per day in hyperspace (default 1, or 0 to turn fuel use off) and a fallback fuel price for ships without an SW5e size item.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
@@ -121,6 +131,7 @@ api.datapad();                         // open home screen
 api.openTerminal("Security Node");     // by name or id
 api.openShop("Outpost Supply");
 api.openBounties();
+api.openHoloDock();                    // ship list, or pass an actor id for one ship
 api.showAll("shop", "Outpost Supply"); // GM: push to every player
 ```
 Add a Region behavior **Execute Script** on token enter that calls `api.openShop(...)` so a shop pops up when players walk up to the counter.

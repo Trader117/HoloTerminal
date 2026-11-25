@@ -24,15 +24,16 @@ import { runScan, lastPulse, PULSE_HOOK } from "./scan-wheel.mjs";
 import { pingPoint } from "./scan-fx.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { rollSkill } from "./roll.mjs";
+import * as Dock from "./holodock.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -64,7 +65,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
       lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits,
       galaxy: () => GalaxyMapApp.instance.render(true),
-      scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge
+      scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge,
+      dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
+      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/datapad.hbs`, scrollable: [".ht-body"] } };
@@ -79,6 +82,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options) {
     super(options);
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
+    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && this.view === "holodock" && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
       "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
@@ -131,6 +135,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.element.querySelector(".ht-wave-player")?.setAttribute("d", Signal.wavePath(this.puzzle.dials));
         const out = this.element.querySelector(`[data-dial-out="${key}"]`); if (out) out.textContent = this.puzzle.dials[key];
         const sy = this.element.querySelector(".ht-sync"); if (sy) sy.textContent = `${Signal.sync(this.puzzle)}%`;
+      });
+      this.element.addEventListener("change", (ev) => {
+        if (ev.target?.matches?.("[data-dock-routing]")) requestGM("dockRouting", { shipId: this.viewId, routing: ev.target.value });
       });
       this.element.addEventListener("keydown", (ev) => {
         const dir = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[ev.key];
@@ -208,7 +215,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
       { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" },
       { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" },
-      { action: "galaxy", icon: "fa-earth-americas", label: "Galaxy Map", tone: "gold" }
+      { action: "galaxy", icon: "fa-earth-americas", label: "Galaxy Map", tone: "gold" },
+      { view: "holodock", icon: "fa-shuttle-space", label: "HoloDock", tone: "red" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
     return { title: "Apps", apps };
@@ -320,6 +328,15 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Salvage", bodies, noActor: !actor };
   }
 
+  _ctx_holodock() {
+    if (!this.viewId) return { title: "HoloDock", ships: Dock.shipActors().map((a) => Dock.shipInfo(a)) };
+    const a = game.actors.get(this.viewId);
+    if (!a || !Dock.shipActors().includes(a)) return { title: "NO SIGNAL", ships: [] };
+    const ship = Dock.shipInfo(a);
+    const room = ship.fuel.max ? Math.max(0, ship.fuel.max - ship.fuel.value) : 0;
+    return { title: ship.name, ship, locked: !ship.observer, canCommand: game.user.isGM || ship.party || ship.owner, fillCost: room * ship.fuel.price };
+  }
+
   _ctx_scanner(ctx, actor) {
     const SWEEP = 2.4, units = canvas.scene?.grid?.units ?? "";
     const scanners = Scan.scannersOf(actor).map((s) => {
@@ -402,6 +419,19 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   /* ---------- pulse scanner ---------- */
   static async #scanPulse(e, el) { await runScan(activeActor(), el.dataset.id); this.render(); }
+  static async #dockRefuel(e, el) {
+    const ship = Dock.shipInfo(game.actors.get(this.viewId));
+    const units = el.dataset.units === "fill" ? Math.max(0, (ship.fuel.max ?? 0) - ship.fuel.value) : Number(el.dataset.units) || 1;
+    await requestGM("dockRefuel", { shipId: this.viewId, payerId: activeActor()?.id, units });
+  }
+  static async #dockCargoAdd() {
+    const q = (n) => this.element.querySelector(`[name="dock-cargo-${n}"]`)?.value;
+    if (!q("name")?.trim()) return ui.notifications.warn("Name the cargo first.");
+    await requestGM("dockCargo", { shipId: this.viewId, op: "add", item: { name: q("name").trim(), qty: q("qty"), tons: q("tons") } });
+  }
+  static async #dockCargoRemove(e, el) { await requestGM("dockCargo", { shipId: this.viewId, op: "remove", cargoId: el.dataset.id }); }
+  static async #dockParty(e, el) { if (game.user.isGM) await Dock.setPartyShip(el.dataset.id); }
+  static #dockSheet() { game.actors.get(this.viewId)?.sheet?.render(true); }
   static async #scanRecharge(e, el) { if (await Scan.recharge(activeActor(), el.dataset.id)) this.render(); }
   static #scanMark(e, el) {
     const h = lastPulse?.found?.[Number(el.dataset.index)];
