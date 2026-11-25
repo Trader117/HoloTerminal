@@ -146,6 +146,14 @@ An original card game against the house, from the datapad's **Cantina** tile. St
 - Beat the house to double your stake; win on exactly 23 (a **Nova**) for three times your stake. Ties go to the house. Results go to chat and the ledger.
 - The *Cantina: table limit* setting caps a stake (500 cr by default).
 
+## Bridge (crew stations)
+The datapad's **Bridge** tile (also on the party ship's HoloDock screen) is for starship combat on the party ship.
+
+- Five stations: **Pilot**, **Gunner**, **Engineer**, **Operator** and **Captain**. Each character takes one (one per station; the GM can move anyone). The station bar shows who sits where.
+- Each station lists the SW5e starship actions on the ship that belong to it (Fly, Evade and Dogfight for the pilot; Fire for the gunner; Patch, Boost and Regenerate Shields for the engineer; Search and Interfere for the operator; Direct for the captain), plus Cast a Power and Use an Object.
+- The **Gunner** gets the ship's starship weapons with damage and range and a *Fire* button. The **Engineer** sets power routing and sees system damage.
+- Players who own the ship use the actions straight from the datapad. Otherwise the order goes to chat for the GM to resolve.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.
@@ -182,6 +190,7 @@ api.sendComms({ fromId: npc.id, to: pc.id, text: "Bay 12, midnight." });
 api.holocall({ actorId: npc.id, line: "We need to talk." }); // GM, all players
 api.openCredits();
 api.openCantina();
+api.openBridge();
 api.openHoloDock();                    // ship list, or pass an actor id for one ship
 api.showAll("shop", "Outpost Supply"); // GM: push to every player
 ```

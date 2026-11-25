@@ -29,15 +29,16 @@ import * as Comms from "./comms.mjs";
 import * as Trade from "./trade.mjs";
 import * as Bank from "./bank.mjs";
 import * as Nova from "./cantina.mjs";
+import * as Bridge from "./bridge.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina", "bridge"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina", bridge: "Ship Bridge" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -73,6 +74,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      bridgeView: DatapadApp.#bridgeView, bridgeClaim: DatapadApp.#bridgeClaim, bridgeUse: DatapadApp.#bridgeUse, bridgeRoute: DatapadApp.#bridgeRoute,
+      bridgeClear: DatapadApp.#bridgeClear,
       novaDeal: DatapadApp.#novaDeal, novaMove: DatapadApp.#novaMove, novaPickSwap: DatapadApp.#novaPickSwap, novaSwap: DatapadApp.#novaSwap,
       novaCancel: DatapadApp.#novaCancel, novaAgain: DatapadApp.#novaAgain,
       bankSend: DatapadApp.#bankSend, bankGrant: DatapadApp.#bankGrant,
@@ -94,7 +97,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     Hooks.on(Bank.BANK_HOOK, () => this.rendered && this.view === "bank" && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
-    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade"].includes(this.view) && this.render());
+    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade", "bridge"].includes(this.view) && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
       "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
@@ -239,7 +242,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" },
       { action: "galaxy", icon: "fa-earth-americas", label: "Galaxy Map", tone: "gold" },
       { view: "cantina", icon: "fa-dice", label: "Cantina", tone: "gold" },
-      { view: "holodock", icon: "fa-shuttle-space", label: "HoloDock", tone: "red" }
+      { view: "holodock", icon: "fa-shuttle-space", label: "HoloDock", tone: "red" },
+      { view: "bridge", icon: "fa-users-gear", label: "Bridge", tone: "red" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
     return { title: "Apps", apps };
@@ -368,6 +372,17 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const a of [...Comms.playerCharacters(), ...npcContacts, ...all.map((t) => game.actors.get(t.key)).filter(Boolean)])
       if (!seen.has(a.id)) { seen.add(a.id); contacts.push({ id: a.id, name: a.name }); }
     return { title: "Comms", threads: all, contacts };
+  }
+
+  bridgeStation = null;
+  _ctx_bridge(ctx, actor) {
+    const ship = Dock.partyShip();
+    if (!ship) return { title: "Bridge", noShip: "No party ship. The GM can set one in the HoloDock." };
+    const seats = Bridge.stationsOf(ship), mine = actor ? Bridge.stationFor(ship, actor.id) : null;
+    const current = this.bridgeStation ?? mine ?? "pilot";
+    const stations = Bridge.STATIONS.map((s) => ({ ...s, crewName: game.actors.get(seats[s.id])?.name, mine: s.id === mine, active: s.id === current }));
+    return { title: ship.name, ship: Dock.shipInfo(ship), stations, station: Bridge.stationView(ship, current), owner: ship.isOwner,
+      canClaim: !!actor, mineHere: mine === current };
   }
 
   /** Nova hand in progress: { game, betId, swapping }. */
@@ -534,6 +549,12 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await Comms.send({ fromId: activeActor()?.id, to: el.dataset.to, text });
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
+
+  static #bridgeView(e, el) { this.bridgeStation = el.dataset.station; this.render(); }
+  static async #bridgeClaim(e, el) { await requestGM("bridgeClaim", { actorId: activeActor()?.id, station: el.dataset.station || null }); }
+  static async #bridgeUse(e, el) { await Bridge.useItem(Dock.partyShip(), el.dataset.item, activeActor()?.name); }
+  static async #bridgeRoute(e, el) { await requestGM("dockRouting", { shipId: Dock.partyShip()?.id, routing: el.dataset.routing }); }
+  static async #bridgeClear() { await requestGM("bridgeClear"); }
 
   static async #novaDeal(e, el) {
     const actor = activeActor(), stake = Number(el.dataset.stake);

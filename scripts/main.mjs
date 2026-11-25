@@ -13,6 +13,7 @@ import { registerTradeSettings, registerTradeHandlers } from "./trade.mjs";
 import { registerEventSettings, initEventSocket, maybeEvent } from "./jump-events.mjs";
 import { registerBankSettings, registerBankHandlers } from "./bank.mjs";
 import { registerCantinaSettings, registerCantinaHandlers } from "./cantina.mjs";
+import { registerBridgeHandlers } from "./bridge.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -55,6 +56,7 @@ Hooks.once("ready", () => {
   initEventSocket();
   registerBankHandlers();
   registerCantinaHandlers();
+  registerBridgeHandlers();
   initCommsSocket();
   HolocallApp.register();
   initSocket(datapad);
@@ -72,6 +74,7 @@ Hooks.once("ready", () => {
     openTrade: () => datapad("trade"),
     openCredits: () => datapad("bank"),
     openCantina: () => datapad("cantina"),
+    openBridge: () => datapad("bridge"),
     /** GM: roll on the hyperspace event table now. */
     jumpEvent: () => maybeEvent({ force: true }),
     /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */
