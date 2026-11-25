@@ -26,7 +26,11 @@ Open it from the **terminal icon** in Token controls. It has tabs for Terminals,
 - push it to every player's datapad (people icon),
 - edit it, or delete it.
 
-The editor is JSON for now. For shops, drag Items from the sidebar or a compendium onto the drop zone to stock them. Prices come from the item. Set `stock` to -1 for unlimited and `markup` to change prices (1.2 = +20%). Use *Limit to current scene* to tie a terminal or shop to the map you're on. An empty `scenes` list means it shows up everywhere.
+**Markets** have their own editor. You can set the name, description, picture and price level (120% = 20% dearer), and hide the market from players. You can also pick which scenes it opens on. To stock it, drag Items, or a whole folder of Items, from the sidebar or a compendium onto the drop zone. Then set each item's price and stock (leave stock blank for unlimited).
+
+**Moving from Monk's Enhanced Journal:** in the console's Markets tab, press *Import Monk's shops*. Every Monk's shop is copied in with its items, prices and quantities, and starts hidden so you can check it first. Importing again refreshes the copies.
+
+Terminals and bounties still use the JSON editor. Use *Limit to current scene* to tie one to the map you're on. An empty `scenes` list means it shows up everywhere.
 
 Bounties: *Complete & pay* splits `reward` between the hunters who took the contract and adds it to their credits. It matches hunters to actors by name.
 

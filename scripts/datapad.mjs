@@ -1,6 +1,6 @@
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
 import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
-import { EditorApp, ConsoleApp, blank } from "./admin.mjs";
+import { openEditor, ConsoleApp, blank } from "./admin.mjs";
 import { isLootable, lootSummary } from "./loot.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -258,7 +258,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static #claim(e, el) { requestGM("claimBounty", { bountyId: el.dataset.id, actorName: activeActor()?.name }); }
   static #complete(e, el) { requestGM("completeBounty", { bountyId: el.dataset.id, payout: el.dataset.payout === "true" }); }
-  static #edit(e, el) { new EditorApp(el.dataset.kind, el.dataset.id).render(true); }
+  static #edit(e, el) { openEditor(el.dataset.kind, el.dataset.id); }
   static async #del(e, el) {
     const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Delete?" }, content: "<p>Delete this entry?</p>" });
     if (ok) await remove(el.dataset.kind, el.dataset.id);
@@ -266,7 +266,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #post(e, el) {
     const doc = blank(el.dataset.kind);
     await upsert(el.dataset.kind, doc);
-    new EditorApp(el.dataset.kind, doc.id).render(true);
+    openEditor(el.dataset.kind, doc.id);
   }
   static #lootItem(e, el) {
     const actor = activeActor();

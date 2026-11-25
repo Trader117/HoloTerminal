@@ -197,3 +197,20 @@
 .ht-loot li:nth-child(odd) { background: var(--ht-band-1); } .ht-loot li:nth-child(even) { background: var(--ht-band-2); }
 .ht-loot li img { border: 0; } .ht-loot li span { flex: 1; }
 .ht-far { opacity: .6; }
+
+/* ---------- shop editor ---------- */
+.ht-shop-editor { overflow: hidden; }
+.ht-form-grid { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; align-items: center; }
+.ht-form-grid > label:not(.ht-check) { font: 700 11px var(--ht-font-display); color: var(--ht-muted); text-transform: uppercase; letter-spacing: 1px; }
+.ht-editor input[type=text], .ht-editor input[type=number], .ht-editor textarea[name=description] {
+  background: var(--ht-panel); color: var(--ht-text); border: 1px solid var(--ht-line); border-radius: var(--ht-radius); padding: 4px 8px; }
+.ht-editor textarea[name=description] { min-height: 0; font: 13px var(--ht-font-body); flex: none; }
+.ht-inline { display: flex; gap: 6px; align-items: center; } .ht-inline input[type=text] { flex: 1; }
+.ht-editor .ht-num { width: 76px; }
+.ht-check { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; color: var(--ht-text); }
+.ht-scene-list { display: flex; flex-wrap: wrap; gap: 2px 0; margin-top: 4px; max-height: 70px; overflow-y: auto; }
+.ht-drop.over { background: var(--ht-blue-soft); color: var(--ht-strong); }
+.ht-shop-items { flex: 1; min-height: 120px; overflow-y: auto; }
+.ht-shop-editor .ht-shop td { vertical-align: middle; }
+.ht-shop-editor .ht-shop td button { width: 2.2em; padding: 4px 0; }
+.ht-console .ht-row { justify-content: flex-start; margin-top: 0; }
