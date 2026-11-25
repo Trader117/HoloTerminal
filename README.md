@@ -78,8 +78,8 @@ API: `game.modules.get("holo-terminal").api.openScanner()` opens the wheel, and 
 ## Galaxy map
 Open it from the globe button in the Token controls, from the datapad's **Galaxy Map** tile, or with `api.galaxy()`.
 
-- **6,928 worlds** with their real grid squares (A–V × 1–21), canon and Legends, from Wookieepedia (see `data/ATTRIBUTION.md`). The best-known worlds are labelled first, and more appear as you zoom in.
-- **190 hyperspace lanes** built from each planet's listed routes. The big trade routes show at every zoom; smaller lanes appear as you zoom in.
+- **7,351 worlds**, canon and Legends, from Wookieepedia (see `data/ATTRIBUTION.md`). About 4,500 of them sit at the exact spot Henry Bernberg's Star Wars galaxy map on ArcGIS puts them; the rest (worlds that map doesn't plot) sit beside a plotted world of the same system, or inside their real grid square (A–V × 1–21). The best-known worlds are labelled first, and more appear as you zoom in.
+- **Hyperspace lanes** with their real shapes and names (Hydian Way, Nache Bhelfia, Shaltin Tunnels and about 120 more, plus unnamed links), from the same ArcGIS map's Hyperspace layer (`data/hyperlanes.json`). The big trade routes show at every zoom; smaller lanes and lane names appear as you zoom in.
 - **Regions:** shaded bands with borders from the Deep Core out to the Outer Rim, shaped by where each region's planets actually are. The Unknown Regions and Wild Space are drawn where their planets cluster.
 - **Canon regions:** the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions, drawn as outlined, tinted areas. The outlines are stored in `data/canon-regions.json` (traced from Henry Bernberg's Star Wars galaxy map on ArcGIS) and sit on the same A–V grid as the planets. Turn off *Main regions* in Layers to see them on their own. The GM can hide them with the *Galaxy map: canon regions* setting, which also carries the credits.
 - **Local areas** (off until switched on): smaller named areas such as Hutt Space, the Tion Cluster and the Legends-era Trans-Hydian, drawn with dashed outlines. Planet cards list every area a world belongs to.
