@@ -12,9 +12,7 @@
   <nav class="ht-controls">
     <div class="ht-keys">
       <button type="button" class="ht-key" data-action="back" title="Back" {{#unless canBack}}disabled{{/unless}}><i class="fas fa-arrow-left"></i><span>Back</span></button>
-      {{#each keys}}
-      <button type="button" class="ht-key{{#if active}} active{{/if}}" data-action="{{action}}" {{#if view}}data-view="{{view}}"{{/if}} title="{{#if title}}{{title}}{{else}}{{label}}{{/if}}"><i class="fas {{icon}}"></i><span>{{label}}</span></button>
-      {{/each}}
+      <button type="button" class="ht-key" data-action="home" title="Home" {{#if (eq view "home")}}disabled{{/if}}><i class="fas fa-house"></i><span>Home</span></button>
     </div>
     <div class="ht-readout" title="Credits">{{#if (ne credits null)}}{{credits}}<small>cr</small>{{else}}<small>no ID</small>{{/if}}</div>
     <button type="button" class="ht-key ht-power" data-action="close" title="Close datapad"><i class="fas fa-power-off"></i><span>Close</span></button>

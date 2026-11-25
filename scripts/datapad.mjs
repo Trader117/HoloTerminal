@@ -111,14 +111,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       view: this.view, viewId: this.viewId, partial: T(this.view), kicker: KICKER[this.view],
       clock: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       canForward: this.hIndex < this.history.length - 1,
-      keys: [
-        { action: "home", icon: "fa-house", label: "Home", active: this.view === "home" },
-        { action: "go", view: "network", icon: "fa-network-wired", label: "Net", title: "Local Net",
-          active: ["network", "terminal", "slice"].includes(this.view) },
-        { action: "go", view: "bounties", icon: "fa-crosshairs", label: "Bounties", active: this.view === "bounties" },
-        { action: "go", view: "shops", icon: "fa-store", label: "Shops", title: "Markets", active: ["shops", "shop"].includes(this.view) },
-        ...(game.user.isGM ? [{ action: "console", icon: "fa-terminal", label: "GM", title: "GM Console" }] : [])
-      ], booting: this.booting, isGM: game.user.isGM, theme: "cyan",
+      booting: this.booting, isGM: game.user.isGM, theme: "cyan",
       actorName: actor?.name, credits: actor ? getCredits(actor) : null, canBack: this.view !== "home" || this.hIndex > 0,
       bootText: ["DATAPAD OS 4.2", "Linking to local net...", `Node: ${canvas.scene?.name ?? "deep space"}`, "READY"].join("\n")
     };
