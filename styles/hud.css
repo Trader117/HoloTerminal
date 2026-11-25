@@ -14,7 +14,7 @@
 #htc-hud a { color: inherit; text-decoration: none; cursor: pointer; }
 .htc-dim { color: var(--htc-dim); }
 
-.htc-bar { display: flex; align-items: flex-end; gap: 6px; }
+.htc-bar { display: flex; align-items: stretch; gap: 6px; height: calc(230px * var(--htc-scale)); }
 .htc-bar > div { background: var(--htc-bg); border: 1px solid var(--htc-dim); border-radius: 3px;
   box-shadow: 0 0 10px rgba(0, 0, 0, .6), inset 0 0 12px var(--htc-panel);
   background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px); }
@@ -51,21 +51,21 @@
 #htc-hud .htc-attn { border-color: var(--htc-fg); animation: htc-pulse 1.4s ease-in-out infinite; }
 
 /* help */
-.htc-help { padding: 6px 10px; max-width: 300px; font-size: .9em; }
+.htc-help { padding: 6px 10px; max-width: 300px; font-size: .9em; overflow-y: auto; scrollbar-width: thin; }
 .htc-help h4 { margin: 0 0 4px; border-bottom: 1px solid var(--htc-dim); text-transform: uppercase; letter-spacing: .1em; font-family: inherit; }
 .htc-help ul { margin: 0; padding-left: 1.1em; } .htc-help li { margin: 2px 0; }
 
 /* action groups */
-.htc-group { --cols: 2; display: flex; flex-direction: column; flex: 0 0 auto; min-width: 150px;
+.htc-group { --cols: 2; display: flex; flex-direction: column; flex: 0 0 auto; min-width: calc(195px * var(--htc-scale));
   width: calc(var(--cols) * 68px * var(--htc-scale) + 18px); }
-.htc-group-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; padding: 3px 6px; border-bottom: 1px solid var(--htc-dim);
+.htc-group-head { display: flex; flex-wrap: nowrap; flex: 0 0 auto; min-height: 2em; justify-content: space-between; align-items: center; gap: 6px; padding: 3px 6px; border-bottom: 1px solid var(--htc-dim);
   text-transform: uppercase; letter-spacing: .06em; font-weight: bold; }
 .htc-group-label { cursor: help; white-space: nowrap; }
 #htc-hud .htc-pip { font-size: .72em; padding: 0 5px; letter-spacing: .05em; }
 .htc-used .htc-group-head { color: var(--htc-dim); }
 #htc-hud .htc-used .htc-pip { background: var(--htc-dim); color: #000; }
 .htc-used .htc-group-body { opacity: .55; }
-.htc-group-body { padding: 4px 6px 6px; overflow-y: auto; scrollbar-width: thin; max-height: calc(280px * var(--htc-scale)); }
+.htc-group-body { padding: 4px 6px 6px; overflow-y: auto; scrollbar-width: thin; flex: 1 1 auto; min-height: 0; }
 .htc-section + .htc-section { margin-top: 4px; }
 .htc-section-label { font-size: .7em; text-transform: uppercase; letter-spacing: .12em; color: var(--htc-dim); border-bottom: 1px dashed rgba(255, 255, 255, .1); margin-bottom: 3px; }
 .htc-tiles { display: grid; grid-template-columns: repeat(var(--cols, 2), calc(64px * var(--htc-scale))); gap: 4px; }
