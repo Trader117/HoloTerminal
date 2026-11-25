@@ -14,6 +14,7 @@ import { registerEventSettings, initEventSocket, maybeEvent } from "./jump-event
 import { registerBankSettings, registerBankHandlers } from "./bank.mjs";
 import { registerCantinaSettings, registerCantinaHandlers } from "./cantina.mjs";
 import { registerBridgeHandlers } from "./bridge.mjs";
+import { registerYardSettings, registerYardHandlers } from "./shipyard.mjs";
 import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
@@ -34,6 +35,7 @@ Hooks.once("init", () => {
   registerEventSettings();
   registerBankSettings();
   registerCantinaSettings();
+  registerYardSettings();
   registerSignatureBehavior();
   loadTpl([...PARTIAL_PATHS, ...Object.values(NAMED_PARTIALS)]);
   loadTpl(NAMED_PARTIALS); // also register the short names, e.g. {{> cryptEntry}}
@@ -57,6 +59,7 @@ Hooks.once("ready", () => {
   registerBankHandlers();
   registerCantinaHandlers();
   registerBridgeHandlers();
+  registerYardHandlers();
   initCommsSocket();
   HolocallApp.register();
   initSocket(datapad);
@@ -75,6 +78,7 @@ Hooks.once("ready", () => {
     openCredits: () => datapad("bank"),
     openCantina: () => datapad("cantina"),
     openBridge: () => datapad("bridge"),
+    openShipyard: () => datapad("shipyard"),
     /** GM: roll on the hyperspace event table now. */
     jumpEvent: () => maybeEvent({ force: true }),
     /** Send a comms message: { fromId | anon + alias, to: actorId | "all", text }. */

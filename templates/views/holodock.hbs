@@ -27,7 +27,8 @@
   {{#if fuel.max}}<button type="button" data-action="dockRefuel" data-units="fill"{{#if (eq fuel.value fuel.max)}} disabled{{/if}}><i class="fas fa-gas-pump"></i> Fill tanks{{#unless ../isGM}} ({{../fillCost}} cr){{/unless}}</button>{{/if}}
   <button type="button" data-action="galaxy"><i class="fas fa-earth-americas"></i> Plot a jump</button>
   {{#if party}}<button type="button" data-action="go" data-view="trade"><i class="fas fa-scale-balanced"></i> Trade</button>
-  <button type="button" data-action="go" data-view="bridge"><i class="fas fa-users-gear"></i> Bridge</button>{{/if}}
+  <button type="button" data-action="go" data-view="bridge"><i class="fas fa-users-gear"></i> Bridge</button>
+  <button type="button" data-action="go" data-view="shipyard"><i class="fas fa-screwdriver-wrench"></i> Shipyard</button>{{/if}}
 </div>
 {{/if}}
 {{#if crew.length}}

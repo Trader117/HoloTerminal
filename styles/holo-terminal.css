@@ -703,3 +703,10 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-bridge-list img { width: 28px; height: 28px; border: 0; border-radius: 4px; }
 .ht-bridge-list span { flex: 1; min-width: 0; color: var(--ht-strong); }
 .ht-bridge-list small { display: block; color: var(--ht-muted); font-size: 11px; }
+
+/* ---------- Shipyard ---------- */
+.ht-yard-repairs li span { flex: 1; }
+.ht-screen .ht-yard-repairs button { padding: 2px 8px; font-size: 12px; }
+.ht-yard-tabs { margin: 4px 0 6px; }
+.ht-screen .ht-yard-search { width: 100%; margin-bottom: 6px; background: var(--ht-band-1); color: var(--ht-strong); border: 1px solid var(--ht-line); border-radius: 4px; height: 28px; padding: 0 8px; }
+.ht-yard-price { color: var(--ht-gold); white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 13px; }

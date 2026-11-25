@@ -30,15 +30,16 @@ import * as Trade from "./trade.mjs";
 import * as Bank from "./bank.mjs";
 import * as Nova from "./cantina.mjs";
 import * as Bridge from "./bridge.mjs";
+import * as Yard from "./shipyard.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina", "bridge"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "cantina", "bridge", "shipyard"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina", bridge: "Ship Bridge" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "HoloDock", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", cantina: "Cantina", bridge: "Ship Bridge", shipyard: "Shipyard" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -74,6 +75,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
       dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
+      yardRepair: DatapadApp.#yardRepair, yardBuy: DatapadApp.#yardBuy, yardTab: DatapadApp.#yardTab,
       bridgeView: DatapadApp.#bridgeView, bridgeClaim: DatapadApp.#bridgeClaim, bridgeUse: DatapadApp.#bridgeUse, bridgeRoute: DatapadApp.#bridgeRoute,
       bridgeClear: DatapadApp.#bridgeClear,
       novaDeal: DatapadApp.#novaDeal, novaMove: DatapadApp.#novaMove, novaPickSwap: DatapadApp.#novaPickSwap, novaSwap: DatapadApp.#novaSwap,
@@ -97,7 +99,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     Hooks.on(Bank.BANK_HOOK, () => this.rendered && this.view === "bank" && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
-    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade", "bridge"].includes(this.view) && this.render());
+    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade", "bridge", "shipyard"].includes(this.view) && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
       "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
@@ -135,6 +137,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
     super._onRender?.(context, options);
+    const yq = this.element.querySelector("input[name=yard-q]");
+    if (yq) yq.addEventListener("input", foundry.utils.debounce((ev) => { this.yardQuery = ev.target.value; this.render().then(() => {
+      const n = this.element.querySelector("input[name=yard-q]"); n?.focus(); n?.setSelectionRange(n.value.length, n.value.length); }); }, 300));
     if (this.view === "comms" && this.viewId) {
       const body = this.element.querySelector(".ht-body"); if (body) body.scrollTop = body.scrollHeight;
       this.element.querySelector("[name=comms-text]")?.addEventListener("keydown", (ev) => {
@@ -374,6 +379,21 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "Comms", threads: all, contacts };
   }
 
+  yardCat = "weapons"; yardQuery = "";
+  async _ctx_shipyard() {
+    const ship = Dock.partyShip();
+    if (!ship) return { title: "Shipyard", noShip: "No party ship. The GM can set one in the HoloDock." };
+    const planet = await Trade.dockedPlanet();
+    if (!planet) return { title: "Shipyard", noShip: `${ship.name} isn't docked at a known world. Move it on the galaxy map.` };
+    const rep = Yard.repairs(ship), cat = await Yard.loadCatalog();
+    const q = this.yardQuery.trim().toLowerCase();
+    const all = (cat[this.yardCat] ?? []).filter((r) => !q || r.name.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q));
+    const rows = all.slice(0, 40).map((r) => ({ ...r, price: Yard.priceFor(r, ship, this.yardCat) }));
+    return { title: "Shipyard", planet, shipName: ship.name, ship: rep.info, rep, rows, more: Math.max(0, all.length - 40), query: this.yardQuery,
+      noPacks: !Object.values(cat).some((l) => l.length),
+      cats: Object.entries(Yard.CATEGORIES).map(([id, c]) => ({ id, label: c.label, active: id === this.yardCat })), catLabel: Yard.CATEGORIES[this.yardCat].label.toLowerCase() };
+  }
+
   bridgeStation = null;
   _ctx_bridge(ctx, actor) {
     const ship = Dock.partyShip();
@@ -549,6 +569,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await Comms.send({ fromId: activeActor()?.id, to: el.dataset.to, text });
   }
   static #commsOpen() { const to = this.element.querySelector("[name=comms-to]")?.value; if (to) { this.#navigate("comms", to); this.render(); } }
+
+  static async #yardRepair(e, el) { await requestGM("yardRepair", { kind: el.dataset.kind, points: Number(el.dataset.points) || 0, payerId: activeActor()?.id }); }
+  static async #yardBuy(e, el) {
+    const row = el.closest("li"), name = row?.querySelector("span")?.firstChild?.textContent?.trim() ?? "this", price = row?.querySelector(".ht-yard-price")?.textContent ?? "";
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Buy upgrade" }, content: `<p>Buy ${Handlebars.escapeExpression(name)} for ${Handlebars.escapeExpression(price)} and install it on the party ship?</p>` });
+    if (ok) await requestGM("yardBuy", { uuid: el.dataset.uuid, cat: this.yardCat, payerId: activeActor()?.id });
+  }
+  static #yardTab(e, el) { this.yardCat = el.dataset.cat; this.yardQuery = ""; this.render(); }
 
   static #bridgeView(e, el) { this.bridgeStation = el.dataset.station; this.render(); }
   static async #bridgeClaim(e, el) { await requestGM("bridgeClaim", { actorId: activeActor()?.id, station: el.dataset.station || null }); }
