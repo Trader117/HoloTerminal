@@ -3,19 +3,69 @@
     {{#each abilities}}
     <div class="holo-ability" data-ability="{{key}}">
       <a class="holo-abbr" data-action="rollAbility" data-tooltip="{{label}} check">{{abbr}}</a>
-      <b class="holo-mod" data-action="rollAbility">{{mod}}</b>
-      <input type="number" name="system.abilities.{{key}}.value" value="{{value}}">
-      <a class="holo-save {{#if proficient}}holo-on{{/if}}" data-action="rollSave" data-tooltip="{{label}} save">SAVE {{save}}</a>
+      <b class="holo-mod" data-action="rollAbility" data-tooltip="{{label}} check">{{mod}}</b>
+      {{#if ../editMode}}<input type="number" class="holo-score" name="system.abilities.{{key}}.value" value="{{value}}">{{else}}<span class="holo-score">{{value}}</span>{{/if}}
     </div>
     {{/each}}
   </div>
-  <h3 class="holo-h">Skills</h3>
-  <ul class="holo-skills">
-    {{#each skills}}
-    <li data-skill="{{key}}" data-action="rollSkill">
-      <i class="{{icon}}"></i><span class="holo-skill-name">{{label}}</span>
-      <span class="holo-dim">{{ability}}</span><b>{{total}}</b><span class="holo-dim" data-tooltip="Passive">({{passive}})</span>
-    </li>
-    {{/each}}
-  </ul>
+
+  <div class="holo-columns">
+    <div class="holo-col">
+      <div class="holo-panel">
+        <h3 class="holo-panel-title"><i class="fa-solid fa-briefcase"></i> Skills</h3>
+        <ul class="holo-skills">
+          {{#each skills}}
+          <li data-skill="{{key}}" data-action="rollSkill" class="{{#if proficient}}holo-prof{{/if}}">
+            <i class="{{icon}}" data-tooltip="{{tip}}"></i><span class="holo-abil">{{ability}}</span><span class="holo-skill-name">{{label}}</span>
+            <b>{{total}}</b><span class="holo-passive" data-tooltip="Passive">{{passive}}</span>
+          </li>
+          {{/each}}
+        </ul>
+      </div>
+      <div class="holo-panel">
+        <h3 class="holo-panel-title"><i class="fa-solid fa-screwdriver-wrench"></i> Tools</h3>
+        <ul class="holo-skills">
+          {{#each tools}}
+          <li data-tool="{{key}}" data-action="rollTool"><i class="{{icon}}"></i><span class="holo-abil">{{ability}}</span><span class="holo-skill-name">{{label}}</span><b>{{total}}</b></li>
+          {{else}}<li class="holo-dim holo-small">No tool proficiencies.</li>{{/each}}
+        </ul>
+      </div>
+    </div>
+    <div class="holo-col">
+      <div class="holo-panel">
+        <h3 class="holo-panel-title"><i class="fa-solid fa-shield-heart"></i> Saving Throws</h3>
+        <ul class="holo-saves">
+          {{#each saves}}
+          <li data-ability="{{key}}" data-action="rollSave" class="{{#if proficient}}holo-prof{{/if}}" data-tooltip="{{label}} saving throw">
+            <i class="{{#if proficient}}fa-solid{{else}}fa-regular{{/if}} fa-circle"></i><span class="holo-skill-name">{{label}}</span><b>{{save}}</b>
+          </li>
+          {{/each}}
+        </ul>
+      </div>
+      {{#each identityCards}}
+      <div class="holo-id-card" data-item-id="{{id}}">
+        <img src="{{img}}" data-action="editItem">
+        <div><a class="holo-id-name" data-action="editItem">{{name}}</a><span>{{sub}}</span></div>
+      </div>
+      {{/each}}
+      {{#each traits}}
+      <div class="holo-trait-group">
+        <h4 class="holo-trait-title"><i class="{{icon}}"></i> {{label}}{{#if ../editMode}} <a data-action="editTraits" data-trait="{{trait}}" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>{{/if}}</h4>
+        <div class="holo-chips">{{#each values}}<span class="holo-chip">{{this}}</span>{{/each}}</div>
+      </div>
+      {{/each}}
+      {{#if editMode}}
+      <div class="holo-trait-group">
+        <h4 class="holo-trait-title"><i class="fa-solid fa-pen"></i> Edit traits</h4>
+        <div class="holo-chips">
+          <a class="holo-chip" data-action="editTraits" data-trait="senses">Senses</a><a class="holo-chip" data-action="editTraits" data-trait="languages">Languages</a>
+          <a class="holo-chip" data-action="editTraits" data-trait="armor">Armor</a><a class="holo-chip" data-action="editTraits" data-trait="weapon">Weapons</a>
+          <a class="holo-chip" data-action="editTraits" data-trait="tool">Tools</a><a class="holo-chip" data-action="editTraits" data-trait="dr">Resist</a>
+          <a class="holo-chip" data-action="editTraits" data-trait="di">Immune</a><a class="holo-chip" data-action="editTraits" data-trait="dv">Vulnerable</a>
+          <a class="holo-chip" data-action="editTraits" data-trait="ci">Condition immune</a>
+        </div>
+      </div>
+      {{/if}}
+    </div>
+  </div>
 </section>

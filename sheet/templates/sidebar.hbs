@@ -1,0 +1,65 @@
+<aside class="holo-sidebar">
+  <div class="holo-card">
+    <img class="holo-portrait" src="{{actor.img}}" alt="{{actor.name}}" data-action="editImage" data-tooltip="Change portrait">
+    <div class="holo-ac-row">
+      <span class="holo-death-pips" data-tooltip="Death save successes">{{#each death.successPips}}<i class="holo-pip holo-pip-good {{#if this}}on{{/if}}"></i>{{/each}}</span>
+      <div class="holo-ac" data-tooltip="Armor Class"><b>{{ac}}</b></div>
+      <span class="holo-death-pips" data-tooltip="Death save failures">{{#each death.failurePips}}<i class="holo-pip holo-pip-bad {{#if this}}on{{/if}}"></i>{{/each}}</span>
+    </div>
+    {{#if death.show}}<button type="button" class="holo-death-btn" data-action="deathSave"><i class="fa-solid fa-skull"></i> Death save</button>{{/if}}
+    <div class="holo-diamonds">
+      <div class="holo-diamond holo-click" data-action="rollInit" data-tooltip="Roll initiative"><b>{{init}}</b><label>Initiative</label></div>
+      <div class="holo-diamond holo-diamond-low" data-tooltip="{{otherSpeeds}}"><b>{{speedValue}}</b><label>{{speedLabel}}</label></div>
+      <div class="holo-diamond"><b>{{prof}}</b><label>Proficiency</label></div>
+    </div>
+    <div class="holo-meter holo-meter-hp holo-hp-{{hp.state}}">
+      <label>Hit Points</label>
+      <div class="holo-meter-bar">
+        <span class="holo-meter-fill" style="width:{{hp.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="system.attributes.hp.value" value="{{hp.value}}" data-delta data-current="{{hp.value}}" data-tooltip="Type -5 or +5 to adjust"><span>/ {{hp.max}}</span></div>
+        <input class="holo-meter-side" type="text" name="system.attributes.hp.temp" value="{{#if hp.temp}}{{hp.temp}}{{/if}}" placeholder="TMP" data-delta data-current="{{hp.temp}}" data-tooltip="Temporary HP">
+      </div>
+    </div>
+    {{#if force.show}}
+    <div class="holo-meter holo-meter-force">
+      <label>{{localize "HOLOSHEET.ForcePoints"}}</label>
+      <div class="holo-meter-bar"><span class="holo-meter-fill" style="width:{{force.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="{{force.path}}" value="{{force.value}}" data-delta data-current="{{force.value}}"><span>/ {{force.max}}</span></div></div>
+    </div>
+    {{/if}}
+    {{#if tech.show}}
+    <div class="holo-meter holo-meter-tech">
+      <label>{{localize "HOLOSHEET.TechPoints"}}</label>
+      <div class="holo-meter-bar"><span class="holo-meter-fill" style="width:{{tech.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="{{tech.path}}" value="{{tech.value}}" data-delta data-current="{{tech.value}}"><span>/ {{tech.max}}</span></div></div>
+    </div>
+    {{/if}}
+    {{#if superiority.show}}
+    <div class="holo-meter holo-meter-sup">
+      <label>{{localize "HOLOSHEET.Superiority"}} {{superiority.die}}</label>
+      <div class="holo-meter-bar"><span class="holo-meter-fill" style="width:{{superiority.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="system.superiority.dice.value" value="{{superiority.value}}" data-delta data-current="{{superiority.value}}"><span>/ {{superiority.max}}</span></div></div>
+    </div>
+    {{/if}}
+    {{#if hd.show}}
+    <div class="holo-meter holo-meter-hd">
+      <label>Hit Dice</label>
+      <a class="holo-meter-bar" data-action="rollHitDie" data-denom="{{hd.denom}}" data-tooltip="{{hd.tip}}{{#if hd.denom}} · click to spend a {{hd.denom}}{{/if}}"><span class="holo-meter-fill" style="width:{{hd.pct}}%"></span>
+        <div class="holo-meter-text"><b>{{hd.value}}</b><span>/ {{hd.max}}</span></div></a>
+    </div>
+    {{/if}}
+  </div>
+
+  <div class="holo-favs">
+    <h4 class="holo-side-title"><i class="fa-solid fa-bookmark"></i> Favourites</h4>
+    <ul class="holo-fav-list">
+      {{#each favorites}}
+      <li class="holo-fav-item" data-item-id="{{id}}">
+        <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+        <div class="holo-fav-text"><a class="holo-fav-name" data-action="useItem">{{name}}</a><span>{{#if subtitle}}{{subtitle}}{{/if}}{{#if recovery}} · {{recovery}}{{/if}}</span></div>
+        {{#if uses}}<span class="holo-fav-uses"><input type="text" data-item-field="system.uses.value" value="{{uses.value}}"> / {{uses.max}}</span>{{/if}}
+      </li>
+      {{else}}<li class="holo-dim holo-small holo-empty">Star an item, power or feature to pin it here.</li>{{/each}}
+    </ul>
+  </div>
+</aside>
