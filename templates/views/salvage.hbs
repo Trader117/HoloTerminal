@@ -2,7 +2,7 @@
 {{#each bodies}}
   <article class="ht-loot{{#unless near}} ht-far{{/unless}}">
     <header>
-      {{#if img}}<img src="{{img}}" alt="">{{/if}}
+      {{#if img}}<img class="ht-loot-ping" src="{{img}}" alt="" data-action="pingBody" data-token="{{id}}" data-tooltip="Show this body on the map">{{/if}}
       <span class="ht-loot-name">{{name}}</span>
       {{#unless near}}<span class="ht-tag">Out of reach</span>{{/unless}}
       {{#if credits}}<button type="button" class="ht-primary" data-action="lootCredits" data-token="{{id}}" {{#unless near}}disabled{{/unless}}>{{credits}} cr</button>{{/if}}
