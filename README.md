@@ -90,6 +90,15 @@ Open it from the globe button in the Token controls, from the datapad's **Galaxy
 - **Settings:** show canon and Legends or canon only, hours per grid square at class 1 (lanes are twice as fast), and the default hyperdrive class.
 - The arrow button opens the ArcGIS fan map in a browser tab for reference.
 
+## Comms and holocalls
+The datapad's **Comms** tile is an in-character inbox for the active character, with a red count of unread messages.
+
+- **Messages:** players write to any player character, or to an NPC who has messaged them. Conversations show as chat bubbles; Enter sends, Shift+Enter adds a line.
+- **GM:** the console's **Comms** tab sends as any actor (an NPC contact), as an anonymous alias ("A friend") or as a broadcast to everyone. When a player writes to an NPC the GM gets a notice and can answer as that NPC.
+- **GM can read everything:** the Comms tab logs every message, including player-to-player ones. Turn off *Comms: GM can read player messages* to hide those from the log. They are still stored in the world, so it is honour-system privacy.
+- **Holocalls:** pick a caller (an NPC or an unknown caller), tick the players to call and start the call. Each player sees a floating blue hologram of the caller's portrait. Type lines into the call window to speak as the caller; *End call* closes it for everyone.
+- **Settings:** an optional sound when a message arrives.
+
 ## HoloDock (ships)
 The datapad's **HoloDock** tile lists the crew's ships. SW5e starship actors appear on their own; the GM can add any other actor (a vehicle or NPC) from the console's **Ships** tab.
 
@@ -131,6 +140,9 @@ api.datapad();                         // open home screen
 api.openTerminal("Security Node");     // by name or id
 api.openShop("Outpost Supply");
 api.openBounties();
+api.openComms();
+api.sendComms({ fromId: npc.id, to: pc.id, text: "Bay 12, midnight." });
+api.holocall({ actorId: npc.id, line: "We need to talk." }); // GM, all players
 api.openHoloDock();                    // ship list, or pass an actor id for one ship
 api.showAll("shop", "Outpost Supply"); // GM: push to every player
 ```

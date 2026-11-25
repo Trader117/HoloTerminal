@@ -51,6 +51,39 @@
       {{else}}<li class="ht-dim">No scan targets on this scene.</li>{{/each}}
     </ul>
   </section>
+  {{else if isComms}}
+  <section class="ht-body ht-sc">
+    <details class="ht-sc-give" open>
+      <summary><i class="fas fa-tower-broadcast"></i> Send a message</summary>
+      <div class="ht-sc-grid">
+        <label>From <select name="cm-from"><option value="anon">Anonymous / alias</option><optgroup label="NPCs and others">{{#each others}}<option value="{{id}}">{{name}}</option>{{/each}}</optgroup><optgroup label="Player characters">{{#each pcs}}<option value="{{id}}">{{name}}</option>{{/each}}</optgroup></select></label>
+        <label>To <select name="cm-to"><option value="all">Everyone (broadcast)</option>{{#each pcs}}<option value="{{id}}">{{name}}</option>{{/each}}</select></label>
+        <label>Alias (anonymous only) <input name="cm-alias" type="text" placeholder="e.g. A friend"></label>
+      </div>
+      <textarea name="cm-text" rows="3" placeholder="Message"></textarea>
+      <div class="ht-row"><button type="button" class="ht-primary" data-action="cmSend"><i class="fas fa-paper-plane"></i> Transmit</button></div>
+    </details>
+    <details class="ht-sc-give">
+      <summary><i class="fas fa-satellite"></i> Holocall</summary>
+      <div class="ht-sc-grid">
+        <label>Caller <select name="cm-caller"><option value="anon">Unknown caller</option>{{#each others}}<option value="{{id}}">{{name}}</option>{{/each}}</select></label>
+        <label>Name shown <input name="cm-callname" type="text" placeholder="Actor's name"></label>
+      </div>
+      <div class="ht-cm-users">{{#each players}}<label class="ht-check"><input type="checkbox" name="cm-user" value="{{id}}" {{#if active}}checked{{/if}}> {{name}}</label>{{/each}}</div>
+      <input name="cm-callline" type="text" placeholder="Opening line (optional)">
+      <div class="ht-row"><button type="button" class="ht-primary" data-action="cmCall" title="Untick everyone to call all players"><i class="fas fa-phone"></i> Start call</button></div>
+    </details>
+    <h3 class="ht-sc-h">Comms log{{#unless gmRead}} <small class="ht-dim">(private player messages hidden)</small>{{/unless}}</h3>
+    <ul>
+      {{#each log}}
+      <li class="ht-entry">
+        <span class="ht-entry-name"><span>{{from}} <i class="fas fa-arrow-right"></i> {{to}}</span><small>{{time}}{{#if private}} · between players{{/if}}</small><span class="ht-cm-text">{{text}}</span></span>
+        <button type="button" data-action="cmDelete" data-id="{{id}}" title="Delete"><i class="fas fa-trash"></i></button>
+      </li>
+      {{else}}<li class="ht-dim">No transmissions yet.</li>{{/each}}
+    </ul>
+    <div class="ht-row"><button type="button" data-action="cmClear"><i class="fas fa-broom"></i> Clear all</button></div>
+  </section>
   {{else if isShips}}
   <section class="ht-body ht-sc">
     <div class="ht-row ht-dock-addship">

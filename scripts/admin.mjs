@@ -1,10 +1,11 @@
-import { MODULE_ID, CHANGED_HOOK, list, find, upsert, remove, itemPrice } from "./store.mjs";
+import { MODULE_ID, CHANGED_HOOK, list, find, upsert, remove, itemPrice, requestGM } from "./store.mjs";
 import { DatapadApp } from "./datapad.mjs";
 import { ShopEditorApp, importMejShops } from "./shop-editor.mjs";
 import * as Scan from "./scanner.mjs";
 import { runScan } from "./scan-wheel.mjs";
 import { playPulse } from "./scan-fx.mjs";
 import * as Dock from "./holodock.mjs";
+import * as Comms from "./comms.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -145,7 +146,8 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
       scRecharge: ConsoleApp.#scRecharge, scDelete: ConsoleApp.#scDelete, tgToggle: ConsoleApp.#tgToggle, tgPreview: ConsoleApp.#tgPreview,
       tgEdit: ConsoleApp.#tgEdit,
       shipAdd: ConsoleApp.#shipAdd, shipParty: ConsoleApp.#shipParty, shipOpen: ConsoleApp.#shipOpen, shipShow: ConsoleApp.#shipShow,
-      shipEdit: ConsoleApp.#shipEdit, shipRemove: ConsoleApp.#shipRemove
+      shipEdit: ConsoleApp.#shipEdit, shipRemove: ConsoleApp.#shipRemove,
+      cmSend: ConsoleApp.#cmSend, cmCall: ConsoleApp.#cmCall, cmDelete: ConsoleApp.#cmDelete, cmClear: ConsoleApp.#cmClear
     }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/console.hbs`, scrollable: [".ht-body"] } };
@@ -158,13 +160,15 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on(CHANGED_HOOK, () => this.rendered && this.render());
     for (const h of ["updateActor", "createRegionBehavior", "updateRegionBehavior", "deleteRegionBehavior", "updateRegion", "canvasReady"])
       Hooks.on(h, () => this.rendered && this.tab === "scanners" && this.render());
+    Hooks.on(Comms.COMMS_HOOK, () => this.rendered && this.tab === "comms" && this.render());
     for (const h of ["updateActor", "createActor", "deleteActor", Dock.DOCK_HOOK])
       Hooks.on(h, () => this.rendered && this.tab === "ships" && this.render());
   }
 
   async _prepareContext() {
-    const tabs = [...Object.entries(KIND_LABEL), ["scanners", "Scanners"], ["ships", "Ships"]].map(([id, label]) => ({ id, label, active: id === this.tab }));
+    const tabs = [...Object.entries(KIND_LABEL), ["scanners", "Scanners"], ["ships", "Ships"], ["comms", "Comms"]].map(([id, label]) => ({ id, label, active: id === this.tab }));
     if (this.tab === "scanners") return { tab: this.tab, tabs, isScanners: true, ...this.#scannerContext() };
+    if (this.tab === "comms") return { tab: this.tab, tabs, isComms: true, ...this.#commsContext() };
     if (this.tab === "ships") return { tab: this.tab, tabs, isShips: true, ships: Dock.shipActors().map((a) => Dock.shipInfo(a)),
       candidates: game.actors.filter((a) => !Dock.isShip(a)).sort((a, b) => a.name.localeCompare(b.name)).map((a) => ({ id: a.id, name: `${a.name} (${a.type})` })) };
     return {
@@ -252,6 +256,37 @@ export class ConsoleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     playPulse({ sceneId: canvas.scene.id, origin: c, rangePx: 1, color: t.color, style: "ripple", areas, tokens: [] },
       { highlightSeconds: game.settings.get(MODULE_ID, "scanHighlight") });
   }
+  /* ---------- comms tab ---------- */
+  #commsContext() {
+    const pcs = Comms.playerCharacters(), pcIds = new Set(pcs.map((a) => a.id));
+    const others = game.actors.filter((a) => !pcIds.has(a.id)).sort((a, b) => a.name.localeCompare(b.name));
+    const name = (id) => (id === "all" ? "Everyone" : game.actors.get(id)?.name ?? "?");
+    const gmRead = game.settings.get(MODULE_ID, "commsGmRead");
+    const log = Comms.gmLog().slice(0, 150).map((m) => ({ id: m.id, text: m.text, to: name(m.to),
+      from: m.from?.name ?? (m.from?.alias ? `${m.from.alias} (anon)` : "Anonymous"), private: pcIds.has(m.from?.id) && pcIds.has(m.to),
+      time: new Date(m.ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) }));
+    return { pcs: pcs.map((a) => ({ id: a.id, name: a.name })), others: others.map((a) => ({ id: a.id, name: a.name })), log, gmRead,
+      players: game.users.filter((u) => !u.isGM).map((u) => ({ id: u.id, name: u.name, active: u.active })) };
+  }
+  static async #cmSend() {
+    const q = (n) => this.element.querySelector(`[name="cm-${n}"]`);
+    const from = q("from")?.value, text = q("text")?.value.trim();
+    if (!text) return ui.notifications.warn("Write a message first.");
+    await Comms.send({ fromId: from === "anon" ? null : from, anon: from === "anon", alias: q("alias")?.value.trim(), to: q("to")?.value, text });
+    q("text").value = "";
+  }
+  static #cmCall() {
+    const q = (n) => this.element.querySelector(`[name="cm-${n}"]`);
+    const userIds = [...this.element.querySelectorAll("[name=cm-user]:checked")].map((b) => b.value);
+    const actorId = q("caller")?.value;
+    Comms.startCall({ actorId: actorId === "anon" ? null : actorId, name: q("callname")?.value.trim(), userIds, line: q("callline")?.value.trim() });
+  }
+  static async #cmDelete(e, el) { await requestGM("commsDelete", { id: el.dataset.id }); }
+  static async #cmClear() {
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Clear all comms?" }, content: "<p>Delete every message for everyone? This can't be undone.</p>" });
+    if (ok) await requestGM("commsClear");
+  }
+
   /* ---------- ships tab ---------- */
   static async #shipAdd() {
     const a = game.actors.get(this.element.querySelector("[name=ship-actor]")?.value);

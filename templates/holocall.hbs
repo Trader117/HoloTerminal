@@ -1,0 +1,11 @@
+<div class="ht-call">
+  <div class="ht-call-head"><i class="fas fa-satellite"></i> Incoming holocall <button type="button" class="ht-icon-btn" data-action="hangUp" title="{{#if owner}}End call{{else}}Hang up{{/if}}"><i class="fas fa-phone-slash"></i></button></div>
+  <div class="ht-call-stage">
+    <div class="ht-holo"><img src="{{img}}" alt=""><span class="ht-holo-scan"></span></div>
+    <span class="ht-call-base"></span>
+  </div>
+  <div class="ht-call-name">{{name}}</div>
+  {{#each earlier}}<p class="ht-call-old">{{this}}</p>{{/each}}
+  {{#if latest}}<p class="ht-call-line">{{latest}}</p>{{else}}<p class="ht-call-old">Signal open...</p>{{/if}}
+  {{#if owner}}<div class="ht-call-say"><input name="line" type="text" placeholder="Say something as {{name}}"><button type="button" data-action="say"><i class="fas fa-comment"></i></button></div>{{/if}}
+</div>
