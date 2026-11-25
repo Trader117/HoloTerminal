@@ -1,0 +1,40 @@
+{{#if noShip}}<p class="ht-dim">{{noShip}}</p>
+{{else}}
+<div class="ht-dock-bars ht-bridge-bars">
+  <div class="ht-dock-bar ht-tone-hull{{#if ship.hull.low}} low{{/if}}"><span>Hull</span><div class="ht-charge"><span style="width:{{ship.hull.pct}}%"></span></div><b>{{ship.hull.value}}{{#if ship.hull.max}}/{{ship.hull.max}}{{/if}}</b></div>
+  {{#if ship.shields}}<div class="ht-dock-bar ht-tone-shields{{#if ship.shields.low}} low{{/if}}"><span>Shields</span><div class="ht-charge"><span style="width:{{ship.shields.pct}}%"></span></div><b>{{ship.shields.value}}{{#if ship.shields.max}}/{{ship.shields.max}}{{/if}}</b></div>{{/if}}
+</div>
+<div class="ht-stations">
+  {{#each stations}}
+  <button type="button" class="ht-station{{#if mine}} mine{{/if}}{{#if active}} active{{/if}}" data-action="bridgeView" data-station="{{id}}" title="{{help}}">
+    <i class="fas {{icon}}"></i><b>{{label}}</b><small>{{#if crewName}}{{crewName}}{{else}}open{{/if}}</small>
+  </button>
+  {{/each}}
+</div>
+{{#with station}}
+<div class="ht-station-panel">
+  <div class="ht-station-head"><i class="fas {{icon}}"></i> {{label}} station <small>{{help}}</small></div>
+  {{#if ../canClaim}}
+  <div class="ht-row">{{#if ../mineHere}}<button type="button" data-action="bridgeClaim" data-station="">Leave station</button>
+    {{else}}<button type="button" class="ht-primary" data-action="bridgeClaim" data-station="{{id}}"><i class="fas fa-chair"></i> Take this station</button>{{/if}}</div>
+  {{/if}}
+  {{#if power}}{{#if ../ship.routing}}
+  <div class="ht-bridge-power"><span>Power routing</span>
+    {{#each ../ship.routing.options}}<button type="button" class="{{#if sel}}ht-primary{{/if}}" data-action="bridgeRoute" data-routing="{{v}}">{{l}}</button>{{/each}}
+  </div>
+  <div class="ht-dock-meta">System damage {{../ship.systemDamage}}</div>
+  {{/if}}{{/if}}
+  {{#if weapons.length}}
+  <h3 class="ht-dock-h">Weapons</h3>
+  <ul class="ht-bridge-list">{{#each weapons}}<li><img src="{{img}}" alt=""><span>{{name}}<small>{{#if damage}}{{damage}}{{/if}}{{#if range}} &middot; {{range}}{{/if}}</small></span>
+    <button type="button" class="ht-primary" data-action="bridgeUse" data-item="{{id}}"><i class="fas fa-burst"></i> Fire</button></li>{{/each}}</ul>
+  {{/if}}
+  <h3 class="ht-dock-h">Actions</h3>
+  <ul class="ht-bridge-list">{{#each actions}}<li><img src="{{img}}" alt=""><span>{{name}}{{#if type}}<small>{{type}}</small>{{/if}}</span>
+    <button type="button" data-action="bridgeUse" data-item="{{id}}">Use</button></li>
+  {{else}}<li class="ht-dim">No matching actions on this ship. Add the SW5e starship actions to it, or the GM can run this station by hand.</li>{{/each}}</ul>
+  {{#unless ../owner}}<p class="ht-dim">You don't own the ship, so actions go to chat as orders for the GM.</p>{{/unless}}
+</div>
+{{/with}}
+{{#if isGM}}<div class="ht-row"><button type="button" data-action="bridgeClear"><i class="fas fa-broom"></i> Clear all stations</button></div>{{/if}}
+{{/if}}
