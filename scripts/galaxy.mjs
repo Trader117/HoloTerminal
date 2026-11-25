@@ -24,32 +24,6 @@ export function registerGalaxySettings() {
     scope: "world", config: true, type: Number, default: 6 });
   game.settings.register(MODULE_ID, "galaxyClass", { name: "Galaxy map: default hyperdrive class", hint: "Used for route estimates until a ship is chosen.",
     scope: "world", config: true, type: Number, default: 2 });
-  game.settings.register(MODULE_ID, "galaxyRegionSource", { name: "Galaxy map: canon region borders",
-    hint: "Reference map: loads the region outlines from Henry Bernberg's public ArcGIS galaxy map each time the galaxy map opens (needs internet; nothing is stored in the module). Built-in: borders worked out from Wookieepedia's planet data.",
-    scope: "world", config: true, type: String, default: "reference", choices: { reference: "Reference map (online)", builtin: "Built-in" },
-    onChange: () => { refShapes = null; Hooks.callAll(GALAXY_HOOK); } });
-}
-
-/* ---------- reference region outlines (loaded live, never bundled) ---------- */
-export const REF_REGIONS_URL = "https://services3.arcgis.com/nM57tYg6wB9iTP3P/arcgis/rest/services/Regions__new_/FeatureServer/4/query";
-export const REF_MAP_CREDIT = "Region outlines: Henry Bernberg's Star Wars galaxy map (ArcGIS)";
-let refShapes = null;
-/** Its grid square A-1 spans x -16.5M..-15M and y 13.5M..12M (Web Mercator metres); one square = 1.5M. */
-const refToMap = ([X, Y]) => [((X + 16.5e6) / 1.5e6) * SQ, ((13.5e6 - Y) / 1.5e6) * SQ];
-/** Fetches the reference map's region outlines. Resolves to [{ name, rings: [[x,y]...][] }] grouped by region, or null. */
-export function loadReferenceRegions() {
-  if (refShapes) return refShapes;
-  const q = new URLSearchParams({ where: "1=1", outFields: "cregion", returnGeometry: "true", geometryPrecision: "0", maxAllowableOffset: "15000", f: "json" });
-  refShapes = fetch(`${REF_REGIONS_URL}?${q}`).then((r) => r.json()).then((j) => {
-    const by = new Map();
-    for (const f of j.features ?? []) {
-      const name = f.attributes?.cregion; if (!name || !f.geometry?.rings) continue;
-      if (!by.has(name)) by.set(name, []);
-      for (const ring of f.geometry.rings) by.get(name).push(ring.map(refToMap));
-    }
-    return by.size ? [...by].map(([name, rings]) => ({ name, rings })) : null;
-  }).catch((err) => { console.warn(`${MODULE_ID} | reference region outlines could not be loaded`, err); return null; });
-  return refShapes;
 }
 
 /* ---------- helpers ---------- */
@@ -266,134 +240,92 @@ export function buildBands(planets, ringInfo) {
 const SUB_COLORS = ["#ff7eb6", "#7ee0c3", "#ffb454", "#b39dff", "#6fd3ff", "#ff8a65", "#c5e86c", "#f06292", "#4dd0e1", "#e6c36a", "#9fa8ff", "#81e6a1"];
 
 /**
- * Modern regions as wedges: each main ring band is cut into 5-degree cells, and every cell takes the named region
- * (The Slice, Western Reaches, Trailing Sectors...) most of its worlds belong to. Gaps between two cells of the same
- * region are filled, runs are smoothed, and one-cell slivers are absorbed, which gives the familiar sliced-ring map.
- * Returns { n, cx, cy, rings: [{ inner: number[], outer: number[] }], cells: (string|null)[][], names: [{name, color, label}] }.
+ * The six canon regions (The Galactic Explorer's Guide), laid out on the ring cells (5-degree slices of each main band).
+ * - The Slice runs between the Perlemian Trade Route and the Corellian Run: in each ring its edges are where those
+ *   two lanes' worlds actually sit, so it fans out from the Colonies to the Outer Rim.
+ * - The rest of each ring, going clockwise from the Corellian Run (south, west, north), is split in canon order:
+ *   Trailing Sectors, Western Reaches, the Interior, Unknown Regions, New Territories. The split points are chosen to
+ *   agree with as many worlds' listed regions as possible; the Interior is strongly favoured in the inner rings.
+ * Returns { n, cx, cy, rings: [{ inner, outer }], cells: (string|null)[][], names: [{name, color, label}] }.
  */
 export const CANON_REGIONS = ["The Interior", "New Territories", "The Slice", "Trailing Sectors", "Western Reaches", "Unknown Regions"];
 export const CANON_COLOR = { "The Interior": "#ffd36b", "New Territories": "#7ee0c3", "The Slice": "#ff7eb6", "Trailing Sectors": "#6fd3ff", "Western Reaches": "#c5e86c", "Unknown Regions": "#b39dff" };
+const RING_ORDER = ["Trailing Sectors", "Western Reaches", "The Interior", "Unknown Regions", "New Territories"];
 
-export function buildSectors(planets, B, { minCells = 3, only = new Set(CANON_REGIONS) } = {}) {
-  const N = B.n, K = B.bands.length, { cx, cy } = B;
+export function buildSectors(planets, B) {
+  const N = B.n, K = B.bands.length, { cx, cy } = B, TAU = Math.PI * 2;
   const rings = B.bands.map((b, k) => ({ outer: b.r, inner: k ? B.bands[k - 1].r : new Array(N).fill(0) }));
-  const votes = Array.from({ length: K }, () => Array.from({ length: N }, () => new Map()));
-  const size = new Map();
-  for (const p of planets) for (const n of p.subregions ?? []) size.set(n, (size.get(n) ?? 0) + 1);
-  const namesOf = (p) => {
-    const out = (p.subregions ?? []).filter((n) => only.has(n));
-    if (only.has(p.region) && !out.includes(p.region)) out.push(p.region);
+  const place = (p) => {
+    const ang = (Math.atan2(p.y - cy, p.x - cx) + TAU) % TAU, a = Math.floor((ang / TAU) * N) % N;
+    const d = Math.hypot(p.x - cx, p.y - cy);
+    return { ang, a, k: rings.findIndex((r) => d <= r.outer[a]) };
+  };
+  // Lane angle per ring: the circular median of the lane's worlds in that ring, filled in from neighbouring rings.
+  const laneAngles = (route) => {
+    const per = Array.from({ length: K }, () => []);
+    for (const p of planets) if (p.routes?.includes(route)) { const { ang, k } = place(p); if (k >= 0) per[k].push(ang); }
+    const out = per.map((angs) => {
+      if (angs.length < 2) return null;
+      const mean = Math.atan2(angs.reduce((t, a) => t + Math.sin(a), 0), angs.reduce((t, a) => t + Math.cos(a), 0));
+      const rel = angs.map((a) => ((a - mean + Math.PI * 3) % TAU) - Math.PI).sort((x, y) => x - y);
+      return (mean + rel[Math.floor(rel.length / 2)] + TAU) % TAU;
+    });
+    for (let k = 0; k < K; k++) if (out[k] === null) out[k] = out.slice(k + 1).find((v) => v !== null) ?? out.slice(0, k).reverse().find((v) => v !== null) ?? null;
     return out;
   };
+  const perl = laneAngles("Perlemian Trade Route"), corr = laneAngles("Corellian Run");
+  // Region votes per ring cell from the worlds' listed regions.
+  const votes = Array.from({ length: K }, () => Array.from({ length: N }, () => new Map()));
   for (const p of planets) {
-    const names = namesOf(p);
+    const names = (p.subregions ?? []).filter((n) => RING_ORDER.includes(n));
+    if (p.region === "Unknown Regions" && !names.includes("Unknown Regions")) names.push("Unknown Regions");
     if (!names.length) continue;
-    const ang = (Math.atan2(p.y - cy, p.x - cx) + Math.PI * 2) % (Math.PI * 2), a = Math.floor((ang / (Math.PI * 2)) * N) % N;
-    const d = Math.hypot(p.x - cx, p.y - cy), k = rings.findIndex((r) => d <= r.outer[a]);
-    if (k < 0) continue;
-    for (const [da, w] of [[0, 1], [-1, 0.35], [1, 0.35]]) {
-      const m = votes[k][(a + da + N) % N];
-      for (const n of names) m.set(n, (m.get(n) ?? 0) + w);
-    }
+    const { a, k } = place(p); if (k < 0) continue;
+    for (const [da, w] of [[0, 1], [-1, 0.4], [1, 0.4]]) { const m = votes[k][(a + da + N) % N]; for (const n of names) m.set(n, (m.get(n) ?? 0) + w); }
   }
-  // The Interior fills the inner rings (Deep Core to the Inner Rim) unless another region's worlds say otherwise.
-  if (only.has("The Interior")) votes.forEach((ring, k) => { const w = k <= 3 ? 1.5 : k === 4 ? 0.6 : 0; if (w) for (const m of ring) m.set("The Interior", (m.get("The Interior") ?? 0) + w); });
-  let cells = votes.map((ring) => ring.map((m) => {
-    let best = null, bv = 0, tot = 0;
-    for (const [n, v] of m) { tot += v; if (v > bv) { bv = v; best = n; } }
-    return bv >= 0.6 && bv >= tot * 0.3 ? best : null;
-  }));
-  const at = (ring, a) => ring[(a + N) % N];
-  cells = cells.map((ring) => {
-    // Fill short gaps between two cells of the same region.
-    const out = ring.slice();
-    for (let a = 0; a < N; a++) {
-      if (ring[a]) continue;
-      let l = null, r = null;
-      for (let d = 1; d <= 4 && !l; d++) l = at(ring, a - d);
-      for (let d = 1; d <= 4 && !r; d++) r = at(ring, a + d);
-      if (l && l === r) out[a] = l;
+  const interiorPrior = [9, 3, 2, 1.5, 0.35, 0, 0];
+  const cells = [];
+  for (let k = 0; k < K; k++) {
+    const row = new Array(N).fill(null);
+    // The Slice: from the Perlemian clockwise to the Corellian Run, when that is a real wedge (both lanes start at
+    // Coruscant, so in the innermost rings they overlap and there is no Slice yet).
+    let s0 = null, s1 = null;
+    if (k > 0 && perl[k] !== null && corr[k] !== null) {
+      const width = (corr[k] - perl[k] + TAU) % TAU;
+      if (width > TAU / 36 && width < TAU / 2) { s0 = Math.round((perl[k] / TAU) * N) % N; s1 = Math.round((corr[k] / TAU) * N) % N; }
     }
-    // Majority smoothing over five cells, twice.
-    let cur = out;
-    for (let pass = 0; pass < 2; pass++) {
-      const nx = cur.slice();
-      for (let a = 0; a < N; a++) {
-        const c = new Map();
-        for (let d = -2; d <= 2; d++) { const v = at(cur, a + d); if (v) c.set(v, (c.get(v) ?? 0) + (d ? 1 : 1.5)); }
-        let best = cur[a], bv = cur[a] ? c.get(cur[a]) ?? 0 : 0;
-        for (const [n, v] of c) if (v > bv + 0.5) { best = n; bv = v; }
-        nx[a] = best;
-      }
-      cur = nx;
+    if (s0 !== null) for (let a = s0; a !== s1; a = (a + 1) % N) row[a] = "The Slice";
+    // The rest: split in canon order by dynamic programming (each cell's label index never goes back).
+    const arc = [];
+    for (let i = 0, a = s1 ?? Math.round(((corr[k] ?? 0) / TAU) * N) % N; i < N; i++, a = (a + 1) % N) if (!row[a]) arc.push(a);
+    const L = RING_ORDER.length, score = (a, l) => (votes[k][a].get(RING_ORDER[l]) ?? 0) + (RING_ORDER[l] === "The Interior" ? interiorPrior[k] ?? 0 : 0);
+    const dp = arc.map(() => new Array(L).fill(-Infinity)), from = arc.map(() => new Array(L).fill(0));
+    for (let l = 0; l < L; l++) dp[0][l] = score(arc[0], l);
+    for (let i = 1; i < arc.length; i++) for (let l = 0; l < L; l++) {
+      let best = -Infinity, bl = 0;
+      for (let q = 0; q <= l; q++) { const v = dp[i - 1][q] - (q === l ? 0 : 0.5); if (v > best) { best = v; bl = q; } }
+      dp[i][l] = best + score(arc[i], l); from[i][l] = bl;
     }
-    // Absorb slivers: runs under three cells join the longer run beside them.
-    for (let pass = 0; pass < 40; pass++) {
-      const start = cur.findIndex((v, a) => v !== at(cur, a - 1));
-      if (start < 0) break;
-      const runs = [];
-      for (let a = start; a < start + N; a++) { const v = at(cur, a); if (!runs.length || runs.at(-1).v !== v) runs.push({ v, a, n: 0 }); runs.at(-1).n++; }
-      if (runs.length < 3) break;
-      const i = runs.findIndex((r) => r.n < 3);
-      if (i < 0) break;
-      [runs[i]].forEach((r) => {
-        const L = runs[(i - 1 + runs.length) % runs.length], R = runs[(i + 1) % runs.length];
-        const pick = (L.v && (!R.v || L.n >= R.n)) ? L.v : R.v;
-        for (let d = 0; d < r.n; d++) cur[(r.a + d) % N] = pick;
-      });
+    if (arc.length) {
+      let l = dp.at(-1).indexOf(Math.max(...dp.at(-1)));
+      for (let i = arc.length - 1; i >= 0; i--) { row[arc[i]] = RING_ORDER[l]; l = from[i][l]; }
     }
-    // Every cell of a ring gets a region: empty ones take the nearest region along the ring.
-    if (cur.some(Boolean)) {
-      const filled = cur.slice();
-      for (let a = 0; a < N; a++) if (!cur[a]) for (let d = 1; d < N; d++) { const v = at(cur, a - d) ?? at(cur, a + d); if (v) { filled[a] = v; break; } }
-      cur = filled;
-    }
-    return cur;
-  });
-  // Each region keeps only its largest connected piece; stray pieces join the region around them.
-  for (let pass = 0; pass < 2; pass++) {
-    const comp = cells.map((r) => r.map(() => -1)), info = [];
-    for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
-      if (!cells[k][a] || comp[k][a] >= 0) continue;
-      const id = info.length, v = cells[k][a], st = [[k, a]], members = []; comp[k][a] = id;
-      while (st.length) {
-        const [kk, aa] = st.pop(); members.push([kk, aa]);
-        for (const [dk, da] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
-          const k2 = kk + dk, a2 = (aa + da + N) % N;
-          if (k2 < 0 || k2 >= K || comp[k2][a2] >= 0 || cells[k2][a2] !== v) continue;
-          comp[k2][a2] = id; st.push([k2, a2]);
-        }
-      }
-      info.push({ v, members });
-    }
-    const biggest = new Map();
-    for (const c of info) if (!biggest.has(c.v) || biggest.get(c.v).members.length < c.members.length) biggest.set(c.v, c);
-    for (const c of info) {
-      if (biggest.get(c.v) === c) continue;
-      const around = new Map();
-      for (const [k, a] of c.members) for (const [dk, da] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
-        const v = cells[k + dk]?.[(a + da + N) % N]; if (v && v !== c.v) around.set(v, (around.get(v) ?? 0) + 1);
-      }
-      const to = [...around].sort((x, y) => y[1] - x[1])[0]?.[0];
-      if (to) for (const [k, a] of c.members) cells[k][a] = to;
-    }
+    cells.push(row);
   }
-  // Names that hold enough cells to count as a wedge; the rest are cleared and drawn as local areas instead.
+  // Labels: in the cell with the most same-region neighbours, preferring thick bands.
   const count = new Map();
-  for (const ring of cells) for (const v of ring) if (v) count.set(v, (count.get(v) ?? 0) + 1);
-  cells = cells.map((ring) => ring.map((v) => (v && count.get(v) >= minCells ? v : null)));
-  const names = [...count.keys()].filter((n) => count.get(n) >= minCells).sort((a, b) => count.get(b) - count.get(a)).map((name, i) => {
-    // Label in the cell with the most same-region neighbours.
+  for (const row of cells) for (const v of row) if (v) count.set(v, (count.get(v) ?? 0) + 1);
+  const names = [...count.keys()].map((name) => {
     let best = null, bs = -1;
     for (let k = 0; k < K; k++) for (let a = 0; a < N; a++) {
       if (cells[k][a] !== name) continue;
       let sc = 0;
       for (let dk = -1; dk <= 1; dk++) for (let da = -2; da <= 2; da++) if (cells[k + dk]?.[(a + da + N) % N] === name) sc++;
-      sc += (rings[k].outer[a] - rings[k].inner[a]) / SQ; // prefer thick bands, where the text fits
+      sc += (rings[k].outer[a] - rings[k].inner[a]) / SQ;
       if (sc > bs) { bs = sc; best = [k, a]; }
     }
-    const [k, a] = best, ang = ((a + 0.5) / N) * Math.PI * 2, r = (rings[k].inner[a] + rings[k].outer[a]) / 2;
-    return { name, color: CANON_COLOR[name] ?? SUB_COLORS[i % SUB_COLORS.length], cells: count.get(name), label: { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r } };
+    const [k, a] = best, ang = ((a + 0.5) / N) * TAU, r = (rings[k].inner[a] + rings[k].outer[a]) / 2;
+    return { name, color: CANON_COLOR[name], cells: count.get(name), label: { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r } };
   });
   return { n: N, cx, cy, rings, cells, names };
 }

@@ -56,9 +56,6 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this.galaxy) this.galaxy = await G.loadGalaxy();
     this.state = G.state();
     const pins = game.user.getFlag(MODULE_ID, "galaxyPins") ?? [];
-    if (game.settings.get(MODULE_ID, "galaxyRegionSource") === "reference") {
-      G.loadReferenceRegions().then((shapes) => { if (shapes && this.refShapes !== shapes) { this.refShapes = shapes; if (this.rendered) this.render(); } });
-    } else this.refShapes = null;
     this.planets = G.visiblePlanets(this.galaxy, this.state);
     if (!this.show.legends) this.planets = this.planets.filter((p) => p.canon || p.custom || p.edited);
     this.pmap = new Map(this.planets.map((p) => [p.key, p]));
@@ -341,40 +338,7 @@ export class GalaxyMapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const color = new Map(S.names.map((n) => [n.name, n.color]));
     return (this._sectorArt = { fills: [...fills].map(([name, path]) => ({ name, path, color: color.get(name) })), border, names: S.names });
   }
-  /** Reference-map outlines as paths, with a label inside each region's largest piece. */
-  #refArt(shapes) {
-    if (this._refArt?.src === shapes) return this._refArt;
-    const inside = (pt, ring) => { let o = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) o = !o; } return o; };
-    const area = (r) => Math.abs(r.reduce((t, [x, y], i) => { const [x2, y2] = r[(i + 1) % r.length]; return t + x * y2 - x2 * y; }, 0) / 2);
-    const fills = [], border = new Path2D(), names = [];
-    for (const { name, rings } of shapes) {
-      const path = new Path2D();
-      for (const r of rings) { r.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y))); path.closePath(); }
-      border.addPath(path);
-      const color = G.CANON_COLOR[name] ?? "#f0d460";
-      fills.push({ name, path, color });
-      // Label: the inside point of the largest ring nearest its average point, searched on a coarse grid.
-      const big = rings.reduce((a, b) => (area(b) > area(a) ? b : a));
-      const mx = big.reduce((t, p) => t + p[0], 0) / big.length, my = big.reduce((t, p) => t + p[1], 0) / big.length;
-      const xs = big.map((p) => p[0]), ys = big.map((p) => p[1]);
-      let best = [mx, my], bd = inside(best, big) ? 0 : Infinity;
-      if (bd) for (let x = Math.min(...xs); x <= Math.max(...xs); x += 15) for (let y = Math.min(...ys); y <= Math.max(...ys); y += 15) {
-        if (!inside([x, y], big)) continue; const d = Math.hypot(x - mx, y - my); if (d < bd) { bd = d; best = [x, y]; }
-      }
-      names.push({ name, color, label: { x: best[0], y: best[1] } });
-    }
-    return (this._refArt = { src: shapes, fills, border, names });
-  }
   #drawSectors(c, g, z) {
-    if (this.refShapes) {
-      const art = this.#refArt(this.refShapes), [ox, oy] = this.toScreen(0, 0);
-      c.save(); c.translate(ox, oy); c.scale(z, z);
-      for (const f of art.fills) { c.fillStyle = this.#alpha(f.color, 0.07); c.fill(f.path, "evenodd"); }
-      c.lineWidth = 1.2 / z; c.lineJoin = "round"; c.strokeStyle = "rgba(240,212,96,.8)"; c.stroke(art.border);
-      c.restore();
-      if (this.show.regionLabels) this.#placeLabels(c, art.names, z, "600");
-      return;
-    }
     if (!g.sectors) return;
     const art = this.#sectorArt(g), [ox, oy] = this.toScreen(0, 0);
     c.save(); c.translate(ox, oy); c.scale(z, z);
