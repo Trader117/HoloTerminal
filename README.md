@@ -74,6 +74,22 @@ Players send pulses from their token, and matching targets light up on the map.
 
 API: `game.modules.get("holo-terminal").api.openScanner()` opens the wheel, and `.scan(actor, scannerId)` scans directly.
 
+## Galaxy map
+Open it from the globe button in the Token controls, from the datapad's **Galaxy Map** tile, or with `api.galaxy()`.
+
+- **6,928 worlds** with their real grid squares (A–V × 1–21), canon and Legends, from Wookieepedia (see `data/ATTRIBUTION.md`). The best-known worlds are labelled first, and more appear as you zoom in.
+- **190 hyperspace lanes** built from each planet's listed routes. The big trade routes show at every zoom; smaller lanes appear as you zoom in.
+- **Regions:** shaded bands with borders from the Deep Core out to the Outer Rim, shaped by where each region's planets actually are. The Unknown Regions and Wild Space are drawn where their planets cluster.
+- **Canon regions:** the Interior, New Territories, the Slice, Trailing Sectors, Western Reaches and Unknown Regions, drawn as outlined, tinted areas. The outlines are stored in `data/canon-regions.json` (traced from Henry Bernberg's Star Wars galaxy map on ArcGIS) and sit on the same A–V grid as the planets. Turn off *Main regions* in Layers to see them on their own. The GM can hide them with the *Galaxy map: canon regions* setting, which also carries the credits.
+- **Local areas** (off until switched on): smaller named areas such as Hutt Space, the Tion Cluster and the Legends-era Trans-Hydian, drawn with dashed outlines. Planet cards list every area a world belongs to.
+- **Layers:** the layers button opens checkboxes for main regions, canon regions, local areas, region names, hyperlanes, lane names, planet names, Legends-only worlds, the grid and pins. Each player's choices are remembered in their browser. Search finds any planet and flies to it.
+- **Planet cards** show the grid square, region, sector, system, class, climate, terrain and routes, plus a canon or Legends badge and a link to the Wookieepedia article.
+- **Nav computer:** *Plot course here* finds the fastest route from the party ship (or a chosen start) using the lanes. It shows an estimated time from the hyperdrive class and lists each leg. The GM can show a route to every player.
+- **Pins:** right-click to add a private pin. The GM can also add pins that everyone sees.
+- **GM tools:** right-click or use the card to move the party ship, edit a planet (notes, which players can be allowed to read, image, linked journal or scene), move it, hide it from players, or add a new planet anywhere.
+- **Settings:** show canon and Legends or canon only, hours per grid square at class 1 (lanes are twice as fast), and the default hyperdrive class.
+- The arrow button opens the ArcGIS fan map in a browser tab for reference.
+
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
 - **Players only** (on by default): tokens moved by the GM don't trigger it.

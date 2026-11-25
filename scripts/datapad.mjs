@@ -22,6 +22,7 @@ import * as Cam from "./cameras.mjs";
 import * as Scan from "./scanner.mjs";
 import { runScan, lastPulse, PULSE_HOOK } from "./scan-wheel.mjs";
 import { pingPoint } from "./scan-fx.mjs";
+import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { rollSkill } from "./roll.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -62,6 +63,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       claim: DatapadApp.#claim, complete: DatapadApp.#complete, edit: DatapadApp.#edit,
       del: DatapadApp.#del, post: DatapadApp.#post, buy: DatapadApp.#buy,
       lootItem: DatapadApp.#lootItem, lootCredits: DatapadApp.#lootCredits,
+      galaxy: () => GalaxyMapApp.instance.render(true),
       scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge
     }
   };
@@ -205,7 +207,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { view: "bounties", icon: "fa-crosshairs", label: "Bounty Board", tone: "red" },
       { view: "shops", icon: "fa-store", label: "Markets", tone: "gold" },
       { view: "salvage", icon: "fa-sack-dollar", label: "Salvage", tone: "green" },
-      { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" }
+      { view: "scanner", icon: "fa-satellite-dish", label: "Pulse Scanner", tone: "blue" },
+      { action: "galaxy", icon: "fa-earth-americas", label: "Galaxy Map", tone: "gold" }
     ];
     if (game.user.isGM) apps.push({ action: "console", icon: "fa-terminal", label: "GM Console", tone: "blue" });
     return { title: "Apps", apps };

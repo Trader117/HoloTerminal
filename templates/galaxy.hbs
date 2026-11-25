@@ -1,0 +1,87 @@
+<div class="ht-gx">
+  <header class="ht-gx-bar">
+    <div class="ht-gx-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input name="gx-search" type="text" placeholder="Search {{count}} planets..." value="{{query}}" autocomplete="off">
+      {{#if results.length}}<ul class="ht-gx-results">{{#each results}}<li><button type="button" data-action="pick" data-key="{{key}}"><b>{{name}}</b><small>{{grid}} · {{region}}</small></button></li>{{/each}}</ul>{{/if}}
+    </div>
+    <div class="ht-gx-toggles">
+      <button type="button" data-action="layers" class="{{#if layersOpen}}on{{/if}}" title="Layers: choose what the map shows"><i class="fas fa-layer-group"></i></button>
+      {{#if ship}}<button type="button" data-action="findShip" title="Find the party ship"><i class="fas fa-location-arrow"></i></button>{{/if}}
+      <button type="button" data-action="fit" title="Whole galaxy"><i class="fas fa-expand"></i></button>
+      <button type="button" data-action="ext" title="Open the reference map in a browser tab"><i class="fas fa-up-right-from-square"></i></button>
+    </div>
+  </header>
+  <div class="ht-gx-stage">
+    {{#if layersOpen}}
+    <div class="ht-gx-layers">
+      <div class="ht-gx-kicker">Show on map</div>
+      {{#each layers}}<label title="{{hint}}"><input type="checkbox" data-layer="{{key}}" {{#if on}}checked{{/if}}> <span>{{label}}</span>{{#if hint}}<small>{{hint}}</small>{{/if}}</label>{{/each}}
+    </div>
+    {{/if}}
+    <canvas class="ht-gx-canvas"></canvas>
+    <div class="ht-gx-zoom"><button type="button" data-action="zoomIn"><i class="fas fa-plus"></i></button><button type="button" data-action="zoomOut"><i class="fas fa-minus"></i></button></div>
+    {{#if moving}}<div class="ht-gx-banner">Click where <b>{{moving}}</b> should go.</div>{{/if}}
+    {{#if routeFrom}}{{#unless route}}<div class="ht-gx-banner">Course from <b>{{routeFrom}}</b>. Pick a destination: right-click the map or use a planet card.</div>{{/unless}}{{/if}}
+
+    {{#if card}}
+    <aside class="ht-gx-card" style="--rc:{{card.regionColor}}">
+      <button type="button" class="ht-gx-x" data-action="closeCard"><i class="fas fa-xmark"></i></button>
+      {{#if card.img}}<img class="ht-gx-img" src="{{card.img}}" alt="">{{/if}}
+      <div class="ht-gx-kicker">{{card.region}}{{#if card.hidden}} · <span class="ht-warn">hidden</span>{{/if}}</div>
+      <h2>{{card.name}}</h2>
+      <div class="ht-gx-badges"><span class="ht-gx-badge">{{card.grid}}</span><span class="ht-gx-badge ht-gx-{{#if card.canon}}canon{{else}}leg{{/if}}">{{card.badge}}</span>{{#if card.here}}<span class="ht-gx-badge ht-gx-here">Party here</span>{{/if}}</div>
+      <dl>
+        {{#if card.subText}}<dt>Area</dt><dd>{{card.subText}}</dd>{{/if}}
+        {{#if card.sector}}<dt>Sector</dt><dd>{{card.sector}}</dd>{{/if}}
+        {{#if card.system}}<dt>System</dt><dd>{{card.system}}</dd>{{/if}}
+        {{#if card.cls}}<dt>Class</dt><dd>{{card.cls}}</dd>{{/if}}
+        {{#if card.climate}}<dt>Climate</dt><dd>{{card.climate}}</dd>{{/if}}
+        {{#if card.terrain}}<dt>Terrain</dt><dd>{{card.terrain}}</dd>{{/if}}
+        {{#if card.routesText}}<dt>Routes</dt><dd>{{card.routesText}}</dd>{{/if}}
+      </dl>
+      {{#if card.notes}}{{#if card.showNotes}}<div class="ht-gx-notes">{{card.notes}}</div>{{/if}}{{/if}}
+      <div class="ht-gx-actions">
+        <button type="button" data-action="routeTo" data-key="{{card.key}}" class="ht-primary"><i class="fas fa-route"></i> Plot course here</button>
+        <button type="button" data-action="routeFrom" data-key="{{card.key}}"><i class="fas fa-flag"></i> Start from here</button>
+        {{#if card.linkName}}<button type="button" data-action="openLink" data-key="{{card.key}}"><i class="fas fa-book-open"></i> {{card.linkName}}</button>{{/if}}
+        {{#if card.wiki}}<button type="button" data-action="wiki" data-key="{{card.key}}"><i class="fas fa-arrow-up-right-from-square"></i> Wookieepedia</button>{{/if}}
+      </div>
+      {{#if isGM}}<div class="ht-gx-actions ht-gx-gm">
+        <button type="button" data-action="shipHere" data-key="{{card.key}}" title="Move the party ship here"><i class="fas fa-location-arrow"></i> Ship here</button>
+        <button type="button" data-action="editPlanet" data-key="{{card.key}}"><i class="fas fa-pen"></i> Edit</button>
+        <button type="button" data-action="movePlanet" data-key="{{card.key}}"><i class="fas fa-arrows-up-down-left-right"></i> Move</button>
+        <button type="button" data-action="hidePlanet" data-key="{{card.key}}"><i class="fas {{#if card.hidden}}fa-eye{{else}}fa-eye-slash{{/if}}"></i> {{#if card.hidden}}Show{{else}}Hide{{/if}}</button>
+      </div>{{/if}}
+    </aside>
+    {{/if}}
+
+    {{#if route}}
+    <aside class="ht-gx-route">
+      <div class="ht-gx-kicker">Nav computer</div>
+      <div class="ht-gx-eta">{{route.time}}</div>
+      <div class="ht-gx-sub">{{route.squares}} grid squares · hyperdrive class <input name="gx-class" type="number" min="0.5" step="0.5" value="{{hyper}}"></div>
+      <ol>{{#each route.legs}}<li><span class="ht-gx-leg">{{#if lane}}{{lane}}{{else}}Open jump{{/if}}</span>{{from}} <i class="fas fa-arrow-right"></i> {{to}}{{#if (ne stops 1)}} <small>({{stops}} hops)</small>{{/if}}</li>{{/each}}</ol>
+      <div class="ht-gx-actions">
+        {{#if isGM}}<button type="button" data-action="shareRoute"><i class="fas fa-users"></i> Show players</button>{{/if}}
+        <button type="button" data-action="clearRoute"><i class="fas fa-xmark"></i> Clear</button>
+      </div>
+    </aside>
+    {{/if}}
+
+    {{#if menu}}
+    <ul class="ht-gx-menu" style="left:{{menu.sx}}px;top:{{menu.sy}}px">
+      {{#if menu.planetName}}<li class="ht-gx-menu-h">{{menu.planetName}}</li>{{/if}}
+      <li><button type="button" data-action="routeTo"><i class="fas fa-route"></i> Plot course here</button></li>
+      <li><button type="button" data-action="routeFrom"><i class="fas fa-flag"></i> Start course here</button></li>
+      {{#if isGM}}<li><button type="button" data-action="shipHere"><i class="fas fa-location-arrow"></i> Move party ship here</button></li>{{/if}}
+      {{#if menu.pin}}{{#if menu.pinMine}}<li><button type="button" data-action="delPin"><i class="fas fa-trash"></i> Remove pin</button></li>{{/if}}{{/if}}
+      <li><button type="button" data-action="menu" data-do="pin"><i class="fas fa-map-pin"></i> Add private pin</button></li>
+      {{#if isGM}}<li><button type="button" data-action="menu" data-do="sharedPin"><i class="fas fa-thumbtack"></i> Add pin for everyone</button></li>
+      {{#unless menu.planet}}<li><button type="button" data-action="menu" data-do="newPlanet"><i class="fas fa-plus"></i> New planet here</button></li>{{/unless}}
+      {{#if menu.planet}}<li><button type="button" data-action="hidePlanet"><i class="fas fa-eye-slash"></i> Hide / show</button></li>{{/if}}{{/if}}
+    </ul>
+    {{/if}}
+    <footer class="ht-gx-credit">Planet data: <a href="https://starwars.fandom.com/" target="_blank" rel="noopener">Wookieepedia</a>, CC BY-SA 3.0</footer>
+  </div>
+</div>
