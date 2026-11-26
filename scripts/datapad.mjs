@@ -541,7 +541,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const goods = Trade.market(planet).map((g) => {
       const h = held.get(g.id), margin = h?.paid ? g.sell - h.paid : null;
       return { ...g, held: h?.qty ?? 0, paidTxt: h?.paid ? `paid ${h.paid}` : "",
-        tag: g.factor < 0.85 ? "cheap" : g.factor > 1.2 ? "wanted" : g.restricted ? "restricted" : "", tagTone: g.factor < 0.85 ? "good" : g.factor > 1.2 ? "gold" : "red",
+        cheap: g.factor < 0.9, wanted: g.factor > 1.1, pct: Math.round((g.factor - 1) * 100),
         margin };
     });
     const used = info.cargoUsed, cap = info.cargoCap;

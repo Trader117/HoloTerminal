@@ -595,6 +595,7 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-trade-tag { display: inline-block; margin-left: 5px; padding: 0 4px; border-radius: 2px; font: 700 9px var(--ht-font-display); text-transform: uppercase; letter-spacing: .06em; }
 .ht-trade-tag.good { color: #10161c; background: #5fd08a; } .ht-trade-tag.gold { color: #10161c; background: var(--ht-gold); } .ht-trade-tag.red { color: #fff; background: var(--ht-red); }
 .ht-trade-btns { text-align: right; white-space: nowrap; }
+.ht-trade .num.ht-price-cheap { color: #5fd08a; font-weight: 700; } .ht-trade .num.ht-price-wanted { color: var(--ht-gold); font-weight: 700; }
 .ht-screen .ht-trade-btns button { padding: 1px 6px; min-width: 0; font-size: 11px; margin-left: 2px; }
 .ht-trade-help { font-size: 11px; margin-top: 8px; }
 .ht-gx-good { color: #9fe3a9; } .ht-gx-want { color: #ffd27a; }
