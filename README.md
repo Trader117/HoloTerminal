@@ -31,6 +31,8 @@ Open it from the **terminal icon** in Token controls. It has tabs for Terminals,
 
 **Moving from Monk's Enhanced Journal:** in the console's Markets tab, press *Import Monk's shops*. Every Monk's shop is copied in with its items, prices and quantities, and starts hidden so you can check it first. Importing again refreshes the copies.
 
+**Drawing camera views:** on the Regions layer, turn on the **Camera cone** button (video icon). Set the cone's width in the bar at the top, then click where the camera sits and drag toward what it watches. Let go and a cone-shaped Region named *Camera 1, 2...* is created and selected, ready for *Add selected* in a terminal's editor.
+
 **Linking doors and lights to a terminal:** open the terminal's editor. On the map, select one or more doors (Walls layer) or lights (Lighting layer), holding Shift to pick several, and press *Add selected*. Each one appears in the *Doors, lights and cameras* list with a placeholder name. Type the name players should see, then Save. Linked controls remember their scene, so a terminal can open a door on another map. On the datapad they show colour-coded states: SEALED, OPEN, LOCKED, ON, OFF, or OFFLINE if the door or light was deleted.
 
 **Terminals, bounties, missions and contacts** open in a plain form: labelled boxes, drop-downs and tick boxes, no code. On a terminal you set its name and screen colour, which scenes it shows up on (*Only this scene* is one click), and its security: switch on *Needs a password*, *Can be sliced* (pick the hacking game, difficulty and DC), or both. Messages and files are cards you can add, reorder and remove. Type straight into the box (line breaks are kept), press *Open full editor* for a big window with the journal toolbar (headings, lists, tables, bold, italic, dividers, links), or drag a Journal page onto the card to show that page instead. Each card has an *Encrypted* switch that reveals its decrypt DC, key item and slicing game. Linked doors, lights and cameras are listed by name with buttons to rename, reorder, show on the map or unlink. Nothing is saved until you press Save. *Advanced* shows the raw data for anyone who wants it.
@@ -178,7 +180,8 @@ The datapad has a **HoloNet** app: an in-world news feed with a scrolling ticker
 
 ## Region triggers
 Give any Region the **Open Datapad** behaviour (Region config, Behaviors tab, +). When a player's token walks in, their datapad opens on what you pick: a terminal, a market, the bounty board, Salvage, the Pulse Scanner or the home screen. Locked terminals still ask for their code.
-- **Players only** (on by default): tokens moved by the GM don't trigger it.
+- **Players only** (on by default): NPC tokens moved by the GM don't trigger it.
+- **Testing as GM:** move a player's token into the Region and the datapad opens in test mode. You see the password screen, slicing and encryption just as that player would, and nothing you unlock is saved. *GM override* on the terminal stops the test. On any secured terminal you can also press *Test as player* (it uses the selected token).
 - **Only once per player**: each player gets it the first time only. Turn it off and on again to reset.
 
 ## Encrypted messages and files

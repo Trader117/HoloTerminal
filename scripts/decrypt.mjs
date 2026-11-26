@@ -23,11 +23,20 @@ export function scrambleHtml(html, seed = 7) {
 }
 export const plainText = (html) => String(html ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-const flagList = (name) => new Set(game.user.getFlag(MODULE_ID, name) ?? []);
-export const isDecrypted = (key) => game.user.isGM || flagList("decrypted").has(key);
+/* GM "test as a player" session: while it's on, the GM sees terminals like a player would, and every
+   unlock, decryption and failed check is kept in memory only, so nothing sticks once the test ends. */
+export const test = { on: false, actor: null, unlocked: new Set(), decrypted: new Set(), decryptFailed: new Set() };
+export function startTest(actor) { Object.assign(test, { on: true, actor: actor ?? null, unlocked: new Set(), decrypted: new Set(), decryptFailed: new Set() }); }
+export function endTest() { Object.assign(test, { on: false, actor: null }); }
+
+const flagList = (name) => (test.on ? test[name] : new Set(game.user.getFlag(MODULE_ID, name) ?? []));
+const saveList = async (name, set) => { if (!test.on) await game.user.setFlag(MODULE_ID, name, [...set]); };
+export const isDecrypted = (key) => (game.user.isGM && !test.on) || flagList("decrypted").has(key);
 export const checkFailed = (key) => flagList("decryptFailed").has(key);
-export async function markDecrypted(key) { const s = flagList("decrypted"); s.add(key); await game.user.setFlag(MODULE_ID, "decrypted", [...s]); }
-export async function markCheckFailed(key) { const s = flagList("decryptFailed"); s.add(key); await game.user.setFlag(MODULE_ID, "decryptFailed", [...s]); }
+export async function markDecrypted(key) { const s = flagList("decrypted"); s.add(key); await saveList("decrypted", s); }
+export async function markCheckFailed(key) { const s = flagList("decryptFailed"); s.add(key); await saveList("decryptFailed", s); }
+export const unlockedIds = () => flagList("unlocked");
+export async function unlock(id) { const s = flagList("unlocked"); s.add(id); await saveList("unlocked", s); }
 
 export function hasKey(actor, keyName) {
   if (!actor || !keyName) return false;
