@@ -31,7 +31,7 @@ Open it from the **terminal icon** in Token controls. It has tabs for Terminals,
 
 **Moving from Monk's Enhanced Journal:** in the console's Markets tab, press *Import Monk's shops*. Every Monk's shop is copied in with its items, prices and quantities, and starts hidden so you can check it first. Importing again refreshes the copies.
 
-**Drawing camera views:** on the Regions layer, turn on the **Camera cone** button (video icon). Set the cone's width in the bar at the top, then click where the camera sits and drag toward what it watches. Let go and a cone-shaped Region named *Camera 1, 2...* is created and selected, ready for *Add selected* in a terminal's editor.
+**Drawing camera views:** on the Regions layer, turn on the **Camera cone** button (video icon). Set the cone's width in the bar at the top, then click where the camera sits and drag toward what it watches. Let go and a cone-shaped Region named *Camera 1, 2...* is created and selected, ready for *Add selected* in a terminal's editor. The feed shows the whole cone, and anything behind a wall (as seen from the camera's spot) is dark. Closed doors block the view, open ones don't. Use the − and + buttons on a feed to zoom.
 
 **Linking doors and lights to a terminal:** open the terminal's editor. On the map, select one or more doors (Walls layer) or lights (Lighting layer), holding Shift to pick several, and press *Add selected*. Each one appears in the *Doors, lights and cameras* list with a placeholder name. Type the name players should see, then Save. Linked controls remember their scene, so a terminal can open a door on another map. On the datapad they show colour-coded states: SEALED, OPEN, LOCKED, ON, OFF, or OFFLINE if the door or light was deleted.
 

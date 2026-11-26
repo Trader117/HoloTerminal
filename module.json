@@ -2,7 +2,7 @@
   "id": "holo-terminal",
   "title": "Holo-Terminal",
   "description": "An original sci-fi datapad for Foundry VTT: local-net terminals, a Cipher Lock slicing minigame, a bounty board and map-based markets, security cameras, Region triggers, plus SW5e character and NPC sheets. Built for Foundry v12 with dnd5e/SW5e.",
-  "version": "0.3.17",
+  "version": "0.3.19",
   "authors": [
     {
       "name": "Thomas"
@@ -40,7 +40,7 @@
   "socket": true,
   "url": "https://github.com/Trader117/HoloTerminal",
   "manifest": "https://github.com/Trader117/HoloTerminal/releases/latest/download/module.json",
-  "download": "https://github.com/Trader117/HoloTerminal/releases/download/v0.3.17/holo-terminal.zip",
+  "download": "https://github.com/Trader117/HoloTerminal/releases/download/v0.3.19/holo-terminal.zip",
   "relationships": {
     "systems": [
       {

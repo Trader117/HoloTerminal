@@ -67,7 +67,8 @@ async function onUp(ev) {
   const [region] = await canvas.scene.createEmbeddedDocuments("Region", [{
     name: `Camera ${n}`, color: game.user.color?.css ?? "#2aa3df",
     shapes: [{ type: "polygon", points: conePoints(origin, target, coneAngle()), hole: false }],
-    visibility: CONST.REGION_VISIBILITY?.LAYER ?? 0
+    visibility: CONST.REGION_VISIBILITY?.LAYER ?? 0,
+    flags: { [MODULE_ID]: { origin: { x: Math.round(origin.x), y: Math.round(origin.y) } } }
   }]);
   if (region) {
     canvas.regions?.get(region.id)?.control({ releaseOthers: true });

@@ -65,7 +65,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
       go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab, pingBody: DatapadApp.#pingBody,
-      login: DatapadApp.#login, testStart: DatapadApp.#testStart, testStop: DatapadApp.#testStop, control: DatapadApp.#control,
+      login: DatapadApp.#login, camZoom: DatapadApp.#camZoom, testStart: DatapadApp.#testStart, testStop: DatapadApp.#testStop, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
       decryptCheck: DatapadApp.#decryptCheck, decryptKey: DatapadApp.#decryptKey, decryptHack: DatapadApp.#decryptHack,
@@ -95,7 +95,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   history = [{ view: "home", id: null }]; hIndex = 0;
   view = "home"; viewId = null; tab = "messages"; denied = false; booting = true; puzzle = null; bonus = 0; game = null; #timer = null;
   /** Set when a slicing game is decrypting one entry instead of unlocking the whole terminal. */
-  hackTarget = null; justDecrypted = null;
+  hackTarget = null; justDecrypted = null; camZoom = {};
   /** Recording being watched: { id, t, playing, speed }. */
   tape = null; #tapeTimer = null;
 
@@ -196,6 +196,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.justDecrypted = null;
     }
     if (this.game === "firewall" && this.puzzle?.state === "playing") this.element.querySelector(".ht-fw-grid")?.focus();
+    Cam.fitFeeds(this.element, this.camZoom);
     const device = this.element.querySelector(".ht-device");
     if (!device || device.dataset.drag) return;
     device.dataset.drag = "1";
@@ -635,6 +636,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
   /** GM override: stop testing and skip the security again. */
   static #testStop() { Crypt.endTest(); this.denied = false; this.hackTarget = null; this.render(); }
+
+  /** Zoom a camera feed in or out around its middle (1 = whole area fits). */
+  static #camZoom(e, el) {
+    const steps = [1, 1.5, 2, 3, 4], cur = this.camZoom[el.dataset.key] ?? 1;
+    const i = Math.max(0, Math.min(steps.length - 1, steps.indexOf(cur) + Number(el.dataset.dir)));
+    this.camZoom[el.dataset.key] = steps[i];
+    Cam.fitFeeds(this.element, this.camZoom);
+  }
 
   static async #login() {
     const t = find("terminals", this.viewId);

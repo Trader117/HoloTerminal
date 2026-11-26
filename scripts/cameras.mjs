@@ -47,6 +47,77 @@ export function cameraRect(c) {
   return w > 10 && h > 10 ? { x: d.x, y: d.y, w, h } : null;
 }
 
+/* ---------- line of sight ---------- */
+/** Where the camera sits: the point saved by the cone tool, or the first corner of a polygon Region (a cone's tip). */
+export function cameraOrigin(region) {
+  const f = region?.getFlag?.(MODULE_ID, "origin") ?? region?.flags?.[MODULE_ID]?.origin;
+  if (f && Number.isFinite(f.x) && Number.isFinite(f.y)) return { x: f.x, y: f.y };
+  const poly = (region?.shapes ?? []).find((sh) => !sh.hole && sh.type === "polygon" && sh.points?.length >= 6);
+  return poly ? { x: poly.points[0], y: poly.points[1] } : null;
+}
+
+/** Wall segments that block sight (closed doors included, open doors left out). */
+function sightWalls(scene, box) {
+  const NONE = CONST.WALL_SENSE_TYPES?.NONE ?? 0, OPEN = CONST.WALL_DOOR_STATES?.OPEN ?? 1;
+  const out = [];
+  for (const w of scene.walls ?? []) {
+    if ((w.sight ?? 20) === NONE) continue;
+    if (w.door && w.ds === OPEN) continue;
+    const [x0, y0, x1, y1] = w.c ?? [];
+    if (![x0, y0, x1, y1].every(Number.isFinite)) continue;
+    if (Math.max(x0, x1) < box.x0 || Math.min(x0, x1) > box.x1 || Math.max(y0, y1) < box.y0 || Math.min(y0, y1) > box.y1) continue;
+    out.push([x0, y0, x1, y1]);
+  }
+  return out;
+}
+
+/** Distance along a ray (origin o, direction d) to segment s, or Infinity. */
+function rayHit(o, dx, dy, s) {
+  const [x0, y0, x1, y1] = s, ex = x1 - x0, ey = y1 - y0;
+  const den = dx * ey - dy * ex;
+  if (Math.abs(den) < 1e-9) return Infinity;
+  const t = ((x0 - o.x) * ey - (y0 - o.y) * ex) / den;
+  const u = ((x0 - o.x) * dy - (y0 - o.y) * dx) / den;
+  return t > 1e-6 && u >= -1e-9 && u <= 1 + 1e-9 ? t : Infinity;
+}
+
+/** Area visible from origin within radius R, as [{x, y}...] going round the origin. */
+export function visibilityPolygon(origin, walls, R) {
+  const angles = [];
+  for (let i = 0; i < 180; i++) angles.push((i / 180) * Math.PI * 2);
+  for (const [x0, y0, x1, y1] of walls) for (const [x, y] of [[x0, y0], [x1, y1]]) {
+    if (Math.hypot(x - origin.x, y - origin.y) > R * 1.5) continue;
+    const a = Math.atan2(y - origin.y, x - origin.x);
+    angles.push(a - 1e-4, a, a + 1e-4);
+  }
+  return angles.map((a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)).sort((a, b) => a - b).map((a) => {
+    const dx = Math.cos(a), dy = Math.sin(a);
+    let d = R;
+    for (const w of walls) d = Math.min(d, rayHit(origin, dx, dy, w));
+    return { x: origin.x + dx * d, y: origin.y + dy * d };
+  });
+}
+
+/** CSS clip-path polygons (relative to the feed rectangle r) for what the camera can see. */
+export function feedClips(scene, region, r) {
+  if (!region) return {};
+  const css = (pts) => `polygon(${pts.map((p) => `${Math.round(p.x - r.x)}px ${Math.round(p.y - r.y)}px`).join(", ")})`;
+  const shapes = (region.shapes ?? []).filter((sh) => !sh.hole);
+  const out = {};
+  if (shapes.length === 1 && shapes[0].type === "polygon") {
+    const p = shapes[0].points, pts = [];
+    for (let i = 0; i < p.length; i += 2) pts.push({ x: p[i], y: p[i + 1] });
+    out.clipShape = css(pts);
+  }
+  const o = cameraOrigin(region);
+  if (o) {
+    const R = Math.max(...[[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]].map(([x, y]) => Math.hypot(x - o.x, y - o.y))) + 2;
+    const walls = sightWalls(scene, { x0: o.x - R, y0: o.y - R, x1: o.x + R, y1: o.y + R });
+    if (walls.length) out.clipSight = css(visibilityPolygon(o, walls, R));
+  }
+  return out;
+}
+
 const inside = (r, x, y, w, h) => x + w > r.x && y + h > r.y && x < r.x + r.w && y < r.y + r.h;
 
 /** Visible tokens overlapping the rectangle, positioned relative to it. */
@@ -69,6 +140,7 @@ export function feedData(c) {
   const tiles = scene.tiles.filter((t) => !t.hidden && t.texture?.src && inside(r, t.x, t.y, t.width, t.height))
     .map((t) => ({ img: t.texture.src, x: t.x - r.x, y: t.y - r.y, w: t.width, h: t.height, rot: t.rotation ?? 0 }));
   return { key: cameraKey(c), label: c.label, sceneName: scene.name, w: r.w, h: r.h, scale: s, height: Math.round(r.h * s),
+    ...feedClips(scene, scene.regions?.get(c.id), r),
     bg, bgX: (dims.sceneX ?? 0) - r.x, bgY: (dims.sceneY ?? 0) - r.y, bgW: dims.sceneWidth ?? scene.width, bgH: dims.sceneHeight ?? scene.height,
     tiles, tokens: tokensIn(scene, r), recording: Recorder.isRecording(cameraKey(c)) };
 }
@@ -145,6 +217,24 @@ export function applyFrame(layer, tokens) {
   layer.querySelectorAll("[data-token]").forEach((el) => { if (!seen.has(el.dataset.token)) el.remove(); });
 }
 
+/* ---------- fitting feeds to the screen ---------- */
+const MAX_FEED_HEIGHT = 340;
+/** Scales every feed in root so the whole camera area fits, then applies each feed's zoom (zoom[key], 1 = fit). */
+export function fitFeeds(root, zoom = {}) {
+  for (const feed of root?.querySelectorAll(".ht-feed[data-w]") ?? []) {
+    const w = Number(feed.dataset.w), h = Number(feed.dataset.h), cw = feed.clientWidth || FEED_WIDTH;
+    if (!w || !h) continue;
+    const base = Math.min(cw / w, MAX_FEED_HEIGHT / h);
+    const H = Math.round(h * base);
+    const z = zoom[feed.dataset.key] ?? 1, s = base * z;
+    feed.style.height = `${H}px`;
+    const layer = feed.querySelector(".ht-feed-layer");
+    if (layer) layer.style.transform = `translate(${(cw - w * s) / 2}px, ${(H - h * s) / 2}px) scale(${s})`;
+    const zl = feed.querySelector(".ht-zoom-level");
+    if (zl) zl.textContent = z === 1 ? "FIT" : `${z}x`;
+  }
+}
+
 export const clock = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -154,6 +244,7 @@ export const clock = (ms) => {
 export function recordingFeed(rec, t) {
   const scene = game.scenes.get(rec.sceneId);
   const r = rec.rect;
+  const regionId = String(rec.cameraKey ?? "").split(":")[1];
   const s = FEED_WIDTH / r.w;
   const dims = scene?.dimensions ?? {};
   const tiles = (scene?.tiles ?? []).filter((x) => !x.hidden && x.texture?.src && inside(r, x.x, x.y, x.width, x.height))
@@ -161,5 +252,5 @@ export function recordingFeed(rec, t) {
   return { key: rec.id, label: rec.label, sceneName: scene?.name ?? "archived", w: r.w, h: r.h, scale: s, height: Math.round(r.h * s),
     bg: scene?.background?.src, bgX: (dims.sceneX ?? 0) - r.x, bgY: (dims.sceneY ?? 0) - r.y,
     bgW: dims.sceneWidth ?? scene?.width, bgH: dims.sceneHeight ?? scene?.height, tiles,
-    tokens: frameAt(rec, t)?.tokens ?? [], playback: true };
+    tokens: frameAt(rec, t)?.tokens ?? [], playback: true, ...(scene ? feedClips(scene, scene.regions?.get(regionId), r) : {}) };
 }
