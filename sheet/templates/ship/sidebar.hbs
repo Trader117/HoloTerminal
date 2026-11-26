@@ -1,0 +1,64 @@
+<aside class="holo-sidebar">
+  <div class="holo-card">
+    <img class="holo-portrait" src="{{actor.img}}" alt="{{actor.name}}" data-action="editImage" data-tooltip="Change image">
+    <div class="holo-ac-row">
+      <div class="holo-ac" data-tooltip="Armor Class{{#if acParts}} ({{acParts}}){{/if}}">{{#if editMode}}<input type="number" name="system.attributes.ac.flat" value="{{acFlat}}">{{else}}<b>{{ac}}</b>{{/if}}</div>
+    </div>
+    <div class="holo-diamonds">
+      <div class="holo-diamond"><b>{{#if speed.space}}{{speed.space}}{{else}}—{{/if}}</b><label>Speed</label></div>
+      <div class="holo-diamond holo-diamond-low"><b>{{#if speed.turn}}{{speed.turn}}{{else}}—{{/if}}</b><label>Turning</label></div>
+      <div class="holo-diamond"><b>{{#if ship.hyper}}{{ship.hyper}}{{else}}—{{/if}}</b><label>Hyperdrive</label></div>
+    </div>
+
+    <div class="holo-meter holo-meter-hp holo-hp-{{hull.level}}">
+      <label>Hull points</label>
+      <div class="holo-meter-bar">
+        <span class="holo-meter-fill" style="width:{{hull.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="system.attributes.hp.value" value="{{hull.value}}" data-delta data-current="{{hull.value}}" data-tooltip="Type -5 or +5 to adjust"><span>/</span>
+          {{#if editMode}}<input type="text" name="system.attributes.hp.max" value="{{hull.max}}" data-tooltip="Maximum hull">{{else}}<span>{{hull.max}}</span>{{/if}}</div>
+      </div>
+    </div>
+    <div class="holo-meter holo-meter-shields">
+      <label>Shield points{{#if canCommand}}{{#if shields.down}} <a class="holo-meter-link" data-action="shipShieldsFull" data-tooltip="Shields to full"><i class="fa-solid fa-rotate"></i></a>{{/if}}{{/if}}</label>
+      <div class="holo-meter-bar">
+        <span class="holo-meter-fill" style="width:{{shields.pct}}%"></span>
+        <div class="holo-meter-text"><input type="text" name="system.attributes.hp.temp" value="{{shields.value}}" data-delta data-current="{{shields.value}}" data-tooltip="Shields take damage first. Type -5 or +5 to adjust"><span>/</span>
+          {{#if editMode}}<input type="text" name="flags.holo-terminal.ship.sw5e.shieldMax" value="{{shields.max}}" data-tooltip="Shield capacity">{{else}}<span>{{#if shields.max}}{{shields.max}}{{else}}—{{/if}}</span>{{/if}}</div>
+      </div>
+    </div>
+    <div class="holo-meter holo-meter-fuel">
+      <label>Fuel</label>
+      <div class="holo-meter-bar">
+        <span class="holo-meter-fill" style="width:{{fuel.pct}}%"></span>
+        <div class="holo-meter-text">{{#if fuel.onActor}}<span>{{fuel.value}}</span>{{else}}<input type="text" name="flags.holo-terminal.ship.fuel" value="{{fuel.value}}" data-delta data-current="{{fuel.value}}" data-tooltip="Fuel units"><span>/</span>{{/if}}
+          {{#if editMode}}<input type="text" name="flags.holo-terminal.ship.sw5e.fuelCap" value="{{fuel.max}}" data-tooltip="Fuel capacity">{{else}}<span>{{#if fuel.max}}{{fuel.max}}{{else}}—{{/if}}</span>{{/if}}</div>
+      </div>
+    </div>
+
+    <div class="holo-ship-sysdmg">
+      <label>System damage</label>
+      <div class="holo-legend-pips">{{#each sysDamage.pips}}<a class="holo-pip-box {{#if on}}on{{/if}}" data-action="shipSystemDamage" data-n="{{n}}" data-tooltip="System damage {{n}}">{{n}}</a>{{/each}}</div>
+    </div>
+    {{#if ship.routing}}
+    <div class="holo-ship-routing">
+      <label>Power routing</label>
+      {{#if canCommand}}<select data-ship-routing>{{#each ship.routing.options}}<option value="{{v}}" {{#if sel}}selected{{/if}}>{{l}}</option>{{/each}}</select>
+      {{else}}<b>{{ship.routing.label}}</b>{{/if}}
+    </div>
+    {{/if}}
+  </div>
+
+  {{#if weapons.length}}
+  <div class="holo-favs">
+    <h4 class="holo-side-title"><i class="fa-solid fa-crosshairs"></i> Weapons</h4>
+    <ul class="holo-fav-list">
+      {{#each weapons}}{{#if equipped}}
+      <li class="holo-fav-item" data-item-id="{{id}}">
+        <img src="{{img}}" data-action="useItem" data-tooltip="Fire {{name}}">
+        <div class="holo-fav-text"><a class="holo-fav-name" data-action="useItem">{{name}}</a><span>{{#if roll.hit}}{{roll.hit}} hit{{else if roll.dc}}{{roll.ability}} DC {{roll.dc}}{{/if}}{{#if damage}} · {{damage}}{{/if}}</span></div>
+      </li>
+      {{/if}}{{/each}}
+    </ul>
+  </div>
+  {{/if}}
+</aside>

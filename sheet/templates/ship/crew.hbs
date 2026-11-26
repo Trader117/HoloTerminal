@@ -1,0 +1,23 @@
+<section class="tab holo-body holo-ship-crew {{tab.cssClass}}" data-group="primary" data-tab="crew">
+  <h3 class="holo-h"><span>Bridge stations</span>{{#if isGM}}<a data-action="shipStationsClear" data-tooltip="Clear every station"><i class="fa-solid fa-broom"></i></a>{{/if}}</h3>
+  <p class="holo-dim holo-small">A character at a station adds their proficiency bonus to the ship's skill checks. Stations are shared with the datapad's Bridge.</p>
+  <div class="holo-ship-stations">
+    {{#each stations}}
+    <div class="holo-ship-station {{#if crew}}holo-ship-manned{{/if}}">
+      <div class="holo-ship-station-head"><i class="fa-solid {{icon}}"></i> <b>{{label}}</b></div>
+      {{#if crew}}
+      <div class="holo-ship-crewman"><img src="{{crew.img}}" alt=""><span>{{crew.name}}<small>proficiency {{crew.prof}}</small></span>
+        {{#if canLeave}}<a data-action="shipStationLeave" data-actor-id="{{crew.id}}" data-tooltip="Leave the station"><i class="fa-solid fa-person-walking-arrow-right"></i></a>{{/if}}</div>
+      {{else}}<div class="holo-dim holo-small">Unmanned</div>{{/if}}
+      {{#if ../canSeat}}
+      <select data-ship-station="{{id}}"><option value="">{{#if crew}}Swap crew…{{else}}Assign crew…{{/if}}</option>{{#each options}}<option value="{{id}}" {{#if sel}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+      {{/if}}
+      <small class="holo-dim">{{help}}</small>
+    </div>
+    {{/each}}
+  </div>
+  {{#if passengers.length}}
+  <h3 class="holo-h">Passengers</h3>
+  <ul class="holo-ship-list">{{#each passengers}}<li class="holo-ship-row"><span class="holo-ship-main">{{name}}</span></li>{{/each}}</ul>
+  {{/if}}
+</section>

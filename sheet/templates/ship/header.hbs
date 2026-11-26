@@ -1,0 +1,30 @@
+<header class="holo-header holo-ship-header">
+  <div class="holo-ident">
+    {{#if editMode}}
+    <input class="holo-name" type="text" name="name" value="{{actor.name}}" placeholder="Ship name">
+    {{else}}
+    <h1 class="holo-name">{{actor.name}}</h1>
+    {{/if}}
+    <div class="holo-sub">
+      {{#if editMode}}
+      <select name="system.traits.size" data-tooltip="Size">{{#each sizeOptions}}<option value="{{k}}" {{#if sel}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      {{#if hasTier}}<select name="flags.holo-terminal.ship.sw5e.tier" data-tooltip="Tier: sets hull and shield dice and the AC upgrade">{{#each tierOptions}}<option value="{{t}}" {{#if sel}}selected{{/if}}>Tier {{t}}</option>{{/each}}</select>{{/if}}
+      {{else}}
+      {{#each subline}}<span>{{this}}</span>{{/each}}
+      {{/if}}
+      {{#if ship.party}}<span class="holo-ship-party"><i class="fa-solid fa-star"></i> Party ship</span>{{/if}}
+    </div>
+  </div>
+  <div class="holo-header-tools">
+    {{#if inDock}}<a class="holo-icon-btn" data-action="shipDock" data-tooltip="Open in the HoloDock"><i class="fa-solid fa-shuttle-space"></i></a>{{/if}}
+    {{#if isGM}}{{#if inDock}}<a class="holo-icon-btn {{#if ship.party}}holo-icon-on{{/if}}" data-action="shipParty" data-tooltip="{{#if ship.party}}Party ship: click to clear{{else}}Set as party ship{{/if}}"><i class="fa-{{#if ship.party}}solid{{else}}regular{{/if}} fa-star"></i></a>{{/if}}{{/if}}
+    {{#if editable}}<a class="holo-icon-btn" data-action="configurePrototypeToken" data-tooltip="Prototype token"><i class="fa-solid fa-user-circle"></i></a>
+    <a class="holo-icon-btn" data-action="configureSheet" data-tooltip="Sheet settings"><i class="fa-solid fa-gear"></i></a>
+    <a class="holo-icon-btn {{#if editMode}}holo-icon-on{{/if}}" data-action="toggleMode" data-tooltip="{{#if editMode}}Editing: click to lock{{else}}Locked: click to edit{{/if}}"><i class="fa-solid {{#if editMode}}fa-lock-open{{else}}fa-lock{{/if}}"></i></a>{{/if}}
+  </div>
+  {{#if hasTier}}
+  <div class="holo-cr-badge" data-tooltip="Starship tier">
+    <small>TIER</small><b>{{tier}}</b>{{#if ship.dice}}<span>{{ship.dice}}</span>{{/if}}
+  </div>
+  {{/if}}
+</header>

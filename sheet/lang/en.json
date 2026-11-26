@@ -10,7 +10,13 @@
       "Bio": "Bio",
       "Effects": "Effects",
       "StatBlock": "Stat Block",
-      "Notes": "Notes"
+      "Notes": "Notes",
+      "Status": "Status",
+      "Arsenal": "Arsenal",
+      "Systems": "Systems",
+      "Crew": "Crew",
+      "Cargo": "Cargo",
+      "Log": "Log"
     },
     "Theme": {
       "sw5e": "SW5e Database",
@@ -35,6 +41,7 @@
     "Empty": "Nothing here. Drag items onto the sheet.",
     "ConfirmDelete": "Delete {name}?",
     "NoPowers": "No powers known.",
-    "NpcSheetLabel": "Holo-Terminal Stat Block (SW5e NPC)"
+    "NpcSheetLabel": "Holo-Terminal Stat Block (SW5e NPC)",
+    "ShipSheetLabel": "Holo-Terminal Starship (SW5e)"
   }
 }

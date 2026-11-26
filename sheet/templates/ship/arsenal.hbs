@@ -1,0 +1,74 @@
+<section class="tab holo-body holo-ship-arsenal {{tab.cssClass}}" data-group="primary" data-tab="arsenal">
+  <h3 class="holo-h">Weapons <a data-action="createShipItem" data-kind="weapon" data-tooltip="Add a weapon"><i class="fa-solid fa-plus"></i></a></h3>
+  <ul class="holo-ship-list">
+    {{#each weapons}}
+    <li class="holo-item" data-item-id="{{id}}" draggable="true"><div class="holo-item-row holo-ship-row">
+      <img src="{{img}}" data-action="useItem" data-tooltip="Fire {{name}}">
+      <div class="holo-ship-main"><a class="holo-item-name" data-action="expandItem">{{name}}</a><small>{{#if mount}}{{mount}} weapon{{/if}}{{#if range}} · {{range}}{{/if}}</small></div>
+      <span class="holo-ship-roll">{{#if roll.hit}}<b>{{roll.hit}}</b> hit{{else if roll.dc}}<b>DC {{roll.dc}}</b> {{roll.ability}}{{/if}}</span>
+      <span class="holo-ship-dmg">{{damage}}</span>
+      <span class="holo-controls">
+        <button type="button" class="holo-ship-fire" data-action="useItem"><i class="fa-solid fa-burst"></i> Fire</button>
+        {{#if equippable}}<a data-action="toggleEquip" class="holo-equip {{#if equipped}}holo-equip-on{{/if}}" data-tooltip="{{#if equipped}}Mounted: click to unmount{{else}}Mount{{/if}}"><i class="fa-solid fa-shield-halved"></i></a>{{/if}}
+        <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+        <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+      </span>
+    </div></li>
+    {{else}}<li class="holo-dim holo-empty">No weapons. Drag starship weapons onto the sheet.</li>{{/each}}
+  </ul>
+
+  {{#if ammo.length}}
+  <h3 class="holo-h">Ordnance &amp; ammunition</h3>
+  <ul class="holo-ship-list">
+    {{#each ammo}}
+    <li class="holo-item" data-item-id="{{id}}" draggable="true"><div class="holo-item-row holo-ship-row">
+      <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+      <div class="holo-ship-main"><a class="holo-item-name" data-action="expandItem">{{name}}</a><small>{{#if range}}{{range}}{{/if}}</small></div>
+      <span class="holo-ship-roll">{{#if roll.hit}}<b>{{roll.hit}}</b> hit{{else if roll.dc}}<b>DC {{roll.dc}}</b> {{roll.ability}}{{/if}}</span>
+      <span class="holo-ship-dmg">{{damage}}</span>
+      <span class="holo-controls">
+        <span class="holo-ship-qty"><input type="text" data-item-field="system.quantity" value="{{quantity}}" data-tooltip="Quantity"></span>
+        <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+        <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+      </span>
+    </div></li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  {{#each actionGroups}}
+  <h3 class="holo-h"><span><i class="fa-solid {{icon}}"></i> {{label}}</span> <a data-action="createShipItem" data-kind="action" data-subtype="{{key}}" data-tooltip="Add an action"><i class="fa-solid fa-plus"></i></a></h3>
+  <ul class="holo-ship-list holo-ship-actions-list">
+    {{#each items}}
+    <li class="holo-item" data-item-id="{{id}}" draggable="true"><div class="holo-item-row holo-ship-row">
+      <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+      <div class="holo-ship-main"><a class="holo-item-name" data-action="expandItem">{{name}}</a><small>{{activation}}</small></div>
+      <span class="holo-controls">
+        {{#if uses}}<span class="holo-ship-qty"><input type="text" data-item-field="system.uses.value" value="{{uses.value}}"><span class="holo-dim">/ {{uses.max}}</span></span>{{/if}}
+        <button type="button" data-action="useItem">Use</button>
+        <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+        <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+      </span>
+    </div></li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <h3 class="holo-h">Starship actions <a data-action="createShipItem" data-kind="action" data-tooltip="Add an action"><i class="fa-solid fa-plus"></i></a></h3>
+  <p class="holo-dim holo-empty">No starship actions. Imported ships come with them; drag them in from the SW5E starship actions compendium.</p>
+  {{/each}}
+
+  <h3 class="holo-h">Ship features <a data-action="createShipItem" data-kind="feature" data-tooltip="Add a feature"><i class="fa-solid fa-plus"></i></a></h3>
+  <ul class="holo-ship-list">
+    {{#each features}}
+    <li class="holo-item" data-item-id="{{id}}" draggable="true"><div class="holo-item-row holo-ship-row">
+      <img src="{{img}}" data-action="useItem" data-tooltip="Use {{name}}">
+      <div class="holo-ship-main"><a class="holo-item-name" data-action="expandItem">{{name}}</a><small>{{activation}}{{#if recovery}} · {{recovery}}{{/if}}</small></div>
+      <span class="holo-controls">
+        {{#if uses}}<span class="holo-ship-qty"><input type="text" data-item-field="system.uses.value" value="{{uses.value}}"><span class="holo-dim">/ {{uses.max}}</span></span>{{/if}}
+        <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+        <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+      </span>
+    </div></li>
+    {{else}}<li class="holo-dim holo-empty">No features.</li>{{/each}}
+  </ul>
+</section>

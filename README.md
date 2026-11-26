@@ -227,6 +227,17 @@ An optional NPC sheet on the same datapad tablet as the character sheet. Pick **
 - **Edit** (padlock): name, alignment, CR (1/8 works), HP max and formula, AC, ability scores, legendary maximums, plus buttons for dnd5e's own armor, speed, senses, type and trait editors. The **+** beside each section adds a new trait or action of that kind.
 - **Powers**, **Gear**, **Effects** and **Notes** tabs work as on the character sheet.
 
+## Starship sheet
+Every dnd5e vehicle now opens on a starship sheet on the same datapad tablet as the character and NPC sheets, in the SW5e Database colours, with the bottom keys switching tabs. It is built for ships made with **Import ship** and works on any vehicle. To go back to dnd5e's vehicle sheet, pick it in the vehicle's sheet settings (gear button).
+
+- **Sidebar**: portrait, AC (tooltip shows armor, Dex and tier upgrade), speed, turning and hyperdrive class, hull, shield and fuel bars (type -5 or +5; shields are temporary hit points, so damage takes them first), system damage pips, power routing, and a quick list of mounted weapons.
+- **Status**: ability scores and saves, stat tiles (AC and DR, speed, hull and shield dice, cargo, fuel price, mod slots), the starship skills (click to roll; a character holding a bridge station adds their proficiency), and refuel, **Plot a jump** and **HoloDock** buttons. A plain vehicle gets a **Make it a starship** button that adds the Starships of the Galaxy numbers for its size.
+- **Arsenal**: weapons with to-hit and damage and a **Fire** button, ordnance with quantities, pilot, crew and passenger actions, and ship features.
+- **Systems**: armor, shields, reactor, power coupling and hyperdrive with their key numbers, and modifications grouped by type with grade, slots used and suites (red when over the limit).
+- **Crew**: the five bridge stations, shared with the datapad's Bridge. Owners and the GM can assign or swap crew; anyone can leave their own station.
+- **Cargo**: the hold with a capacity bar, load and unload, plus the ship's location and captain's log.
+- **Edit** (padlock): name, size and tier (changing either recalculates the hull and shield dice and the tier AC upgrade), hull and shield maximums, fuel capacity, AC, ability scores, space and turning speed, DR, hyperdrive override, cargo capacity, fuel price, mod slots and suites.
+
 ## Macro / Region API
 ```js
 const api = game.modules.get("holo-terminal").api;
