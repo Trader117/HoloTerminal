@@ -7,7 +7,7 @@
     {{#each items}}
       <tr class="{{#if soldOut}}ht-dim{{/if}}">
         <td>{{#if img}}<img src="{{img}}" alt="" width="28" height="28">{{/if}}</td>
-        <td>{{name}}</td>
+        <td>{{name}}{{#if ship}} <span class="ht-tag">Starship</span>{{/if}}</td>
         <td>{{#if infinite}}&infin;{{else}}{{stock}}{{/if}}</td>
         <td>{{price}} cr</td>
         <td><button type="button" class="ht-primary" data-action="buy" data-index="{{index}}" {{#unless affordable}}disabled{{/unless}}>{{#if soldOut}}Sold out{{else}}Buy{{/if}}</button></td>

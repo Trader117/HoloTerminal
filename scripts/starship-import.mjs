@@ -10,7 +10,7 @@ export const SHIP_FOLDER = "HoloDock Ships";
 
 /** Starships of the Galaxy size table. Hull and shield dice: tier-0 count, dice added per tier, die size. */
 export const SIZES = {
-  tiny: { label: "Tiny", die: 4, t0: 1, perTier: 1, fuelCap: 5, fuelCost: 25, food: 0, modSlots: 10, suites: [0, 0], modCost: 1 },
+  tiny: { label: "Tiny", die: 4, t0: 1, perTier: 1, fuelCap: 5, fuelCost: 25, food: 0, modSlots: 10, suites: [0, 0], modCost: 0.5 },
   sm:   { label: "Small", die: 6, t0: 3, perTier: 1, fuelCap: 10, fuelCost: 50, food: 10, modSlots: 20, suites: [-1, 1], modCost: 1 },
   med:  { label: "Medium", die: 8, t0: 5, perTier: 1, fuelCap: 30, fuelCost: 100, food: 120, modSlots: 30, suites: [3, 1], modCost: 2 },
   lg:   { label: "Large", die: 10, t0: 7, perTier: 1, fuelCap: 300, fuelCost: 1000, food: 240000, modSlots: 50, suites: [3, 2], modCost: 5 },
@@ -136,7 +136,7 @@ export function entryFromRaw(raw) {
   };
 }
 
-async function shipFolder() {
+export async function shipFolder() {
   return game.folders.find((f) => f.type === "Actor" && f.name === SHIP_FOLDER)
     ?? Folder.create({ name: SHIP_FOLDER, type: "Actor", color: "#2aa3df" });
 }

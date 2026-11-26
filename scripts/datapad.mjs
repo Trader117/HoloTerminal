@@ -36,12 +36,12 @@ import * as News from "./news.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const T = (v) => `modules/${MODULE_ID}/templates/views/${v}.hbs`;
-export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "bridge", "shipyard", "news"];
+export const VIEWS = ["home", "network", "terminal", "slice", "bounties", "shops", "shop", "salvage", "scanner", "holodock", "comms", "trade", "missions", "contacts", "bank", "bridge", "shipyard", "news", "hold"];
 export const PARTIAL_PATHS = VIEWS.map(T);
 /** Shared partials, registered under a short name. */
 export const NAMED_PARTIALS = { cryptEntry: T("crypt-entry"), camFeed: T("cam-feed"), camerasTab: T("cameras-tab") };
 const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote Node", slice: "Intrusion Suite",
-  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "Starship", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", bridge: "Starship", shipyard: "Starship", news: "HoloNet News" };
+  bounties: "Contracts", shops: "Markets", shop: "Vendor", salvage: "Field Recovery", scanner: "Sensor Suite", holodock: "Starship", comms: "HoloNet Comms", trade: "Trade Exchange", missions: "Mission Log", contacts: "Contacts", bank: "Credit Account", bridge: "Starship", shipyard: "Starship", news: "HoloNet News", hold: "Starship" };
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
@@ -78,10 +78,11 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       galaxy: () => GalaxyMapApp.instance.render(true),
       scanPulse: DatapadApp.#scanPulse, scanMark: DatapadApp.#scanMark, scanRecharge: DatapadApp.#scanRecharge,
       dockRefuel: DatapadApp.#dockRefuel, dockCargoAdd: DatapadApp.#dockCargoAdd, dockCargoRemove: DatapadApp.#dockCargoRemove,
-      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet, dockSkill: DatapadApp.#dockSkill,
+      dockParty: DatapadApp.#dockParty, dockSheet: DatapadApp.#dockSheet, dockSkill: DatapadApp.#dockSkill, dockImport: DatapadApp.#dockImport,
+      shipSell: DatapadApp.#shipSell, holdStow: DatapadApp.#holdStow, holdUnload: DatapadApp.#holdUnload,
       commsSend: DatapadApp.#commsSend, commsOpen: DatapadApp.#commsOpen,
       newsPost: DatapadApp.#newsPost, newsApprove: DatapadApp.#newsApprove, newsDelete: DatapadApp.#newsDelete,
-      yardRepair: DatapadApp.#yardRepair, yardBuy: DatapadApp.#yardBuy, yardTab: DatapadApp.#yardTab,
+      yardRepair: DatapadApp.#yardRepair, yardBuy: DatapadApp.#yardBuy, yardTab: DatapadApp.#yardTab, yardSell: DatapadApp.#yardSell, yardMode: DatapadApp.#yardMode,
       bridgeView: DatapadApp.#bridgeView, bridgeClaim: DatapadApp.#bridgeClaim, bridgeUse: DatapadApp.#bridgeUse, bridgeRoute: DatapadApp.#bridgeRoute,
       bridgeClear: DatapadApp.#bridgeClear,
       bankSend: DatapadApp.#bankSend, bankGrant: DatapadApp.#bankGrant,
@@ -104,7 +105,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on(News.NEWS_HOOK, () => this.rendered && ["news", "home"].includes(this.view) && this.render());
     Hooks.on(Bank.BANK_HOOK, () => this.rendered && this.view === "bank" && this.render());
     Hooks.on(Comms.COMMS_HOOK, () => this.rendered && ["comms", "home"].includes(this.view) && this.render());
-    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade", "bridge", "shipyard"].includes(this.view) && this.render());
+    Hooks.on(Dock.DOCK_HOOK, () => this.rendered && ["holodock", "trade", "bridge", "shipyard", "hold"].includes(this.view) && this.render());
     Hooks.on(PULSE_HOOK, () => this.rendered && this.view === "scanner" && this.render());
     for (const h of ["updateWall", "updateAmbientLight", "canvasReady", "controlToken", "updateActor", "updateToken",
       "createItem", "deleteItem", "updateItem", "updateDrawing", "updateRegion", "updateTile", "createToken", "deleteToken"])
@@ -152,9 +153,11 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
     super._onRender?.(context, options);
-    const yq = this.element.querySelector("input[name=yard-q]");
-    if (yq) yq.addEventListener("input", foundry.utils.debounce((ev) => { this.yardQuery = ev.target.value; this.render().then(() => {
-      const n = this.element.querySelector("input[name=yard-q]"); n?.focus(); n?.setSelectionRange(n.value.length, n.value.length); }); }, 300));
+    for (const [field, name] of [["yardQuery", "yard-q"], ["holdQuery", "hold-q"]]) {
+      const box = this.element.querySelector(`input[name=${name}]`);
+      if (box) box.addEventListener("input", foundry.utils.debounce((ev) => { this[field] = ev.target.value; this.render().then(() => {
+        const n = this.element.querySelector(`input[name=${name}]`); n?.focus(); n?.setSelectionRange(n.value.length, n.value.length); }); }, 300));
+    }
     if (this.view === "comms" && this.viewId) {
       const body = this.element.querySelector(".ht-body"); if (body) body.scrollTop = body.scrollHeight;
       this.element.querySelector("[name=comms-text]")?.addEventListener("keydown", (ev) => {
@@ -432,19 +435,56 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return { title: "HoloNet", items, isGM: game.user.isGM, queue: game.user.isGM ? News.pending() : [], tags: News.TAGS };
   }
 
-  yardCat = "weapons"; yardQuery = "";
-  async _ctx_shipyard() {
+  yardCat = "weapons"; yardQuery = ""; yardMode = "buy";
+  async _ctx_shipyard(ctx, actor) {
     const ship = Dock.partyShip();
     if (!ship) return { title: "Shipyard", noShip: "No party ship. The GM can set one from the Fleet tab." };
     const planet = await Trade.dockedPlanet();
     if (!planet) return { title: "Shipyard", noShip: `${ship.name} isn't docked at a known world. Move it on the galaxy map.` };
-    const rep = Yard.repairs(ship), cat = await Yard.loadCatalog();
-    const q = this.yardQuery.trim().toLowerCase();
-    const all = (cat[this.yardCat] ?? []).filter((r) => !q || r.name.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q));
-    const rows = all.slice(0, 40).map((r) => ({ ...r, price: Yard.priceFor(r, ship, this.yardCat) }));
-    return { title: "Shipyard", planet, shipName: ship.name, ship: rep.info, rep, rows, more: Math.max(0, all.length - 40), query: this.yardQuery,
-      noPacks: !Object.values(cat).some((l) => l.length),
-      cats: Object.entries(Yard.CATEGORIES).map(([id, c]) => ({ id, label: c.label, active: id === this.yardCat })), catLabel: Yard.CATEGORIES[this.yardCat].label.toLowerCase() };
+    const rep = Yard.repairs(ship), lim = Yard.limits(ship);
+    const out = { title: "Shipyard", planet, shipName: ship.name, ship: rep.info, rep, lim, mode: this.yardMode,
+      payerName: actor?.name, payerCredits: actor ? getCredits(actor) : null,
+      modes: [["buy", "fa-cart-shopping", "Buy parts"], ["sell", "fa-hand-holding-dollar", "Sell parts"], ["repair", "fa-wrench", "Repairs"]]
+        .map(([id, icon, label]) => ({ id, icon, label, active: id === this.yardMode })) };
+    if (this.yardMode === "buy") {
+      const cat = await Yard.loadCatalog(), q = this.yardQuery.trim().toLowerCase();
+      const all = (cat[this.yardCat] ?? []).filter((r) => !q || r.name.toLowerCase().includes(q) || String(r.sub).toLowerCase().includes(q));
+      const current = (sys) => ship.items.filter((i) => i.type === "equipment" && i.system?.type?.value === sys).map((i) => i.name).join(", ");
+      out.rows = all.slice(0, 40).map((r) => ({ key: r.key, name: r.name, img: r.img, sub: r.sub, grade: r.grade, prereq: r.prereq,
+        price: Yard.priceFor(r, ship), blocked: Yard.blocker(r, ship, lim),
+        dc: r.cat === "modifications" ? Yard.installDC(r.grade, lim.tier) : null,
+        replaces: r.cat === "equipment" && Yard.SINGLE_SYSTEMS[r.system] ? current(r.system) : "" }));
+      out.more = Math.max(0, all.length - 40); out.query = this.yardQuery;
+      out.cats = Object.entries(Yard.CATEGORIES).map(([id, c]) => ({ id, label: c.label, active: id === this.yardCat }));
+      out.catLabel = Yard.CATEGORIES[this.yardCat].label.toLowerCase();
+      if (this.yardCat === "modifications") out.modNote = `${lim.used}${lim.slots !== null ? ` of ${lim.slots}` : ""} modification slots used, ${lim.suites}${lim.suiteMax !== null ? ` of ${lim.suiteMax}` : ""} suites. Price is the SotG category cost times the ship size's modifier; the install DC is for the tier ${lim.tier} ship.`;
+      else if (this.yardCat === "equipment") out.modNote = "A ship has one armor, shield, reactor, power coupling and hyperdrive. Buying a new one trades the old one in.";
+    } else if (this.yardMode === "sell") {
+      out.parts = await Yard.installed(ship);
+      out.resalePct = Math.round((Number(game.settings.get(MODULE_ID, "yardResale")) || 0) * 100);
+    }
+    return out;
+  }
+
+  holdQuery = "";
+  /** The ship whose hold is open: the one picked, else the party ship. */
+  #holdShip() { return game.actors.get(this.viewId) ?? Dock.partyShip(); }
+  _ctx_hold(ctx, actor) {
+    const ship = this.#holdShip();
+    if (!ship || !Dock.isShip(ship)) return { title: "Cargo hold", noShip: "No party ship. The GM can set one from the Fleet tab." };
+    const info = Dock.shipInfo(ship), canWork = game.user.isGM || info.party || ship.isOwner;
+    const cargo = info.cargo.map((c) => ({ ...c, item: !!c.data, multi: (Number(c.qty) || 1) > 1, stowedBy: c.data ? c.from : "", from: c.data ? "" : c.from }));
+    const out = { title: ship.name, shipName: ship.name, cargo, used: info.cargoUsed, cap: info.cargoCap, canWork,
+      pct: info.cargoCap ? Math.min(100, Math.round((info.cargoUsed / info.cargoCap) * 100)) : 0, actorName: actor?.name, query: this.holdQuery };
+    if (actor && canWork && actor.isOwner) {
+      const q = this.holdQuery.trim().toLowerCase();
+      const all = actor.items.filter((i) => Dock.STOWABLE.includes(i.type) && (!q || i.name.toLowerCase().includes(q)))
+        .sort((x, y) => (x.system.equipped ? 1 : 0) - (y.system.equipped ? 1 : 0) || x.name.localeCompare(y.name));
+      out.gear = all.slice(0, 40).map((i) => ({ id: i.id, name: i.name, img: i.img, qty: i.system.quantity, multi: (Number(i.system.quantity) || 1) > 1,
+        tons: Dock.itemTons(i) || "", equipped: !!i.system.equipped }));
+      out.more = Math.max(0, all.length - 40);
+    } else if (actor && !actor.isOwner) out.actorName = null;
+    return out;
   }
 
   bridgeStation = null;
@@ -509,27 +549,32 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       canTrade: game.user.isGM || info.party || ship.isOwner };
   }
 
-  /** One Starship app: status, bridge, shipyard and the fleet list share a tab bar. */
+  /** One Starship app: overview, shipyard, cargo hold, bridge and the fleet list share a tab bar. */
   #shipTabs() {
-    if (!["holodock", "bridge", "shipyard"].includes(this.view)) return null;
+    if (!["holodock", "bridge", "shipyard", "hold"].includes(this.view)) return null;
     const party = Dock.partyShip()?.id ?? null;
     const onParty = this.view === "holodock" && this.viewId && this.viewId === party;
+    const holdId = this.view === "hold" ? this.viewId || party : party;
     const tabs = [
-      party && { view: "holodock", id: party, icon: "fa-gauge-high", label: "Status", active: onParty },
-      party && { view: "bridge", icon: "fa-users-gear", label: "Bridge", active: this.view === "bridge" },
+      party && { view: "holodock", id: party, icon: "fa-gauge-high", label: "Ship", active: onParty },
       party && { view: "shipyard", icon: "fa-screwdriver-wrench", label: "Shipyard", active: this.view === "shipyard" },
+      holdId && { view: "hold", id: holdId, icon: "fa-boxes-stacked", label: "Cargo", active: this.view === "hold" },
+      party && { view: "bridge", icon: "fa-users-gear", label: "Bridge", active: this.view === "bridge" },
       { view: "holodock", id: "", icon: "fa-list", label: "Fleet", active: this.view === "holodock" && !onParty }
     ].filter(Boolean);
     return tabs.length > 1 ? tabs : null;
   }
 
-  _ctx_holodock() {
+  /** HoloDock: the fleet list, or one ship's services (fuel, shipyard, cargo, sale). Stats live on the ship sheet. */
+  _ctx_holodock(ctx, actor) {
     if (!this.viewId) return { title: "HoloDock", ships: Dock.shipActors().map((a) => Dock.shipInfo(a)) };
     const a = game.actors.get(this.viewId);
     if (!a || !Dock.shipActors().includes(a)) return { title: "NO SIGNAL", ships: [] };
     const ship = Dock.shipInfo(a);
     const room = ship.fuel.max ? Math.max(0, ship.fuel.max - ship.fuel.value) : 0;
-    return { title: ship.name, ship, locked: !ship.observer, canCommand: game.user.isGM || ship.party || ship.owner, fillCost: room * ship.fuel.price };
+    return { title: ship.name, ship, locked: !ship.observer, canCommand: game.user.isGM || ship.party || ship.owner, fillCost: room * ship.fuel.price,
+      lim: Yard.limits(a), worth: Dock.shipValue(a), canSheet: a.testUserPermission(game.user, "OBSERVER"),
+      canSell: game.user.isGM || a.isOwner, payerName: actor?.name, payerCredits: actor ? getCredits(actor) : null };
   }
 
   _ctx_scanner(ctx, actor) {
@@ -562,7 +607,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const items = (s.items ?? []).map((it, index) => {
       const price = Math.round((it.price ?? 0) * (s.markup ?? 1));
       const soldOut = it.stock === 0;
-      return { ...it, index, price, soldOut, infinite: it.stock == null || it.stock < 0,
+      return { ...it, index, price, soldOut, infinite: it.stock == null || it.stock < 0, ship: it.kind === "ship",
         affordable: !soldOut && ctx.credits !== null && ctx.credits >= price };
     });
     return { title: s.name, shop: s, items };
@@ -648,11 +693,19 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async #yardRepair(e, el) { await requestGM("yardRepair", { kind: el.dataset.kind, points: Number(el.dataset.points) || 0, payerId: activeActor()?.id }); }
   static async #yardBuy(e, el) {
-    const row = el.closest("li"), name = row?.querySelector("span")?.firstChild?.textContent?.trim() ?? "this", price = row?.querySelector(".ht-yard-price")?.textContent ?? "";
-    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Buy upgrade" }, content: `<p>Buy ${Handlebars.escapeExpression(name)} for ${Handlebars.escapeExpression(price)} and install it on the party ship?</p>` });
-    if (ok) await requestGM("yardBuy", { uuid: el.dataset.uuid, cat: this.yardCat, payerId: activeActor()?.id });
+    const esc = Handlebars.escapeExpression, payer = activeActor();
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Buy upgrade" },
+      content: `<p>Buy ${esc(el.dataset.name)} for ${esc(el.dataset.price)} cr${payer && !game.user.isGM ? ` (paid by ${esc(payer.name)})` : ""} and install it on the party ship?</p>` });
+    if (ok) await requestGM("yardBuy", { key: el.dataset.key, payerId: payer?.id });
+  }
+  static async #yardSell(e, el) {
+    const esc = Handlebars.escapeExpression, payer = activeActor();
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Sell part" },
+      content: `<p>Sell ${esc(el.dataset.name)} for ${esc(el.dataset.price)} cr${payer ? ` to ${esc(payer.name)}` : ""}? It comes off the party ship.</p>` });
+    if (ok) await requestGM("yardSell", { itemId: el.dataset.id, payerId: payer?.id, qty: 1 });
   }
   static #yardTab(e, el) { this.yardCat = el.dataset.cat; this.yardQuery = ""; this.render(); }
+  static #yardMode(e, el) { this.yardMode = el.dataset.mode; this.render(); }
 
   static #bridgeView(e, el) { this.bridgeStation = el.dataset.station; this.render(); }
   static async #bridgeClaim(e, el) { await requestGM("bridgeClaim", { actorId: activeActor()?.id, station: el.dataset.station || null }); }
@@ -701,9 +754,30 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #dockCargoAdd() {
     const q = (n) => this.element.querySelector(`[name="dock-cargo-${n}"]`)?.value;
     if (!q("name")?.trim()) return ui.notifications.warn("Name the cargo first.");
-    await requestGM("dockCargo", { shipId: this.viewId, op: "add", item: { name: q("name").trim(), qty: q("qty"), tons: q("tons") } });
+    await requestGM("dockCargo", { shipId: this.#holdShip()?.id, op: "add", item: { name: q("name").trim(), qty: q("qty"), tons: q("tons") } });
   }
-  static async #dockCargoRemove(e, el) { await requestGM("dockCargo", { shipId: this.viewId, op: "remove", cargoId: el.dataset.id }); }
+  static async #dockCargoRemove(e, el) { await requestGM("dockCargo", { shipId: this.#holdShip()?.id, op: "remove", cargoId: el.dataset.id }); }
+  static async #holdStow(e, el) {
+    const actor = activeActor(); if (!actor) return ui.notifications.warn("Select or assign a character first.");
+    await requestGM("dockStow", { shipId: this.#holdShip()?.id, actorId: actor.id, itemId: el.dataset.id, qty: Number(el.dataset.qty) || 0 });
+  }
+  static async #holdUnload(e, el) {
+    const actor = activeActor(); if (!actor) return ui.notifications.warn("Select or assign a character first.");
+    await requestGM("dockUnload", { shipId: this.#holdShip()?.id, cargoId: el.dataset.id, actorId: actor.id, qty: Number(el.dataset.qty) || 0 });
+  }
+  static async #shipSell(e, el) {
+    const ship = game.actors.get(this.viewId), payer = activeActor(), esc = Handlebars.escapeExpression;
+    if (!ship) return;
+    const ok = await foundry.applications.api.DialogV2.confirm({ window: { title: "Sell ship" },
+      content: `<p>Sell the <b>${esc(ship.name)}</b> for ${esc(el.dataset.resale)} cr${payer ? `, paid to ${esc(payer.name)}` : ""}?</p><p>The crew loses access to it. Unload the cargo hold first: anything left aboard goes with the ship.</p>` });
+    if (ok) { await requestGM("shipSell", { shipId: ship.id, payerId: payer?.id }); this.#navigate("holodock", null); this.render(); }
+  }
+  static async #dockImport() {
+    if (!game.user.isGM) return;
+    const { importDialog } = await import("./starship-import.mjs");
+    const a = await importDialog();
+    if (a) { this.#navigate("holodock", a.id); this.render(); }
+  }
   static async #dockParty(e, el) { if (game.user.isGM) await Dock.setPartyShip(el.dataset.id); }
   static #dockSheet() { game.actors.get(this.viewId)?.sheet?.render(true); }
   /** Starship skill check: d20 + the ship's ability modifier + the proficiency bonus of the character rolling, if they hold a bridge station. */

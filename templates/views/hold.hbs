@@ -1,0 +1,38 @@
+{{#if noShip}}<p class="ht-dim">{{noShip}}</p>
+{{else}}
+<div class="ht-trade-head">
+  <div><small>Cargo hold</small><b>{{shipName}}</b><span class="ht-dock-meta">{{used}}{{#if cap}} / {{cap}}{{/if}} t used</span></div>
+  <div><small>Loading from</small><b>{{#if actorName}}{{actorName}}{{else}}—{{/if}}</b><span class="ht-dock-meta">{{#if actorName}}select a token to switch{{else}}select or assign a character{{/if}}</span></div>
+</div>
+{{#if cap}}<div class="ht-charge ht-hold-bar"><span style="width:{{pct}}%"></span></div>{{/if}}
+
+<h3 class="ht-dock-h">In the hold</h3>
+<ul class="ht-bridge-list">
+  {{#each cargo}}<li>{{#if img}}<img src="{{img}}" alt="">{{else}}<i class="fas {{#if good}}fa-scale-balanced{{else}}fa-box{{/if}} ht-hold-ico"></i>{{/if}}
+    <span>{{name}}<small>&times;{{qty}}{{#if tons}} &middot; {{tons}} t each{{/if}}{{#if good}} &middot; trade goods{{#if from}} from {{from}}{{/if}}{{/if}}{{#if stowedBy}} &middot; stowed by {{stowedBy}}{{/if}}</small></span>
+    {{#if ../canWork}}
+      {{#if item}}{{#if ../actorName}}<button type="button" data-action="holdUnload" data-id="{{id}}" data-qty="1">Take 1</button>{{#if multi}}<button type="button" data-action="holdUnload" data-id="{{id}}" data-qty="0">Take all</button>{{/if}}{{/if}}
+      {{else if good}}<button type="button" data-action="go" data-view="trade" title="Sell trade goods on the Trade Exchange">Trade</button>
+      {{else}}<button type="button" class="ht-icon-btn" data-action="dockCargoRemove" data-id="{{id}}" title="Unload"><i class="fas fa-xmark"></i></button>{{/if}}
+    {{/if}}</li>
+  {{else}}<li class="ht-dim">The hold is empty.</li>{{/each}}
+</ul>
+
+{{#if canWork}}
+{{#if actorName}}
+<h3 class="ht-dock-h">{{actorName}}'s gear</h3>
+<input class="ht-yard-search" name="hold-q" type="search" placeholder="Search gear..." value="{{query}}">
+<ul class="ht-bridge-list">
+  {{#each gear}}<li><img src="{{img}}" alt=""><span>{{name}}<small>{{#if qty}}&times;{{qty}}{{/if}}{{#if tons}} &middot; {{tons}} t each{{/if}}{{#if equipped}} &middot; equipped{{/if}}</small></span>
+    <button type="button" data-action="holdStow" data-id="{{id}}" data-qty="1">Stow{{#if multi}} 1{{/if}}</button>{{#if multi}}<button type="button" data-action="holdStow" data-id="{{id}}" data-qty="0">Stow all</button>{{/if}}</li>
+  {{else}}<li class="ht-dim">Nothing to stow.</li>{{/each}}
+</ul>
+{{#if more}}<p class="ht-dim">{{more}} more. Search to narrow it down.</p>{{/if}}
+{{/if}}
+<h3 class="ht-dock-h">Log other cargo</h3>
+<div class="ht-dock-add">
+  <input name="dock-cargo-name" type="text" placeholder="Cargo"><input name="dock-cargo-qty" type="number" min="1" value="1" title="Quantity"><input name="dock-cargo-tons" type="number" min="0" step="0.1" placeholder="t" title="Tons each">
+  <button type="button" data-action="dockCargoAdd"><i class="fas fa-plus"></i> Load</button>
+</div>
+{{/if}}
+{{/if}}

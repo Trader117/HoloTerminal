@@ -102,15 +102,19 @@ The datapad's **Comms** tile is an in-character inbox for the active character, 
 - **Holocalls:** pick a caller (an NPC or an unknown caller), tick the players to call and start the call. Each player sees a floating blue hologram of the caller's portrait. Type lines into the call window to speak as the caller; *End call* closes it for everyone.
 - **Settings:** an optional sound when a message arrives.
 
-## Starship app (HoloDock, bridge and shipyard)
-The datapad's **Starship** tile opens the party ship, with tabs for **Status** (the HoloDock screen), **Bridge**, **Shipyard** and **Fleet**. The Fleet tab lists the crew's ships. SW5e starship actors appear on their own; the GM can add any other actor (a vehicle or NPC) from the console's **Ships** tab.
+## Starship app (HoloDock, shipyard and cargo)
+The datapad's **Starship** tile opens the party ship, with tabs for **Ship**, **Shipyard**, **Cargo**, **Bridge** and **Fleet**. The HoloDock is where the crew spends credits on a ship; its stats live on the [starship sheet](#starship-sheet), which the **Ship sheet** button opens. SW5e starship actors appear on their own; the GM can add any other actor from the console's **Ships** tab, or use **Import ship** on the Fleet tab.
 
-- **Ship status:** hull, shields and fuel bars, hyperdrive class, system damage, power routing, cargo and deployed crew (pilot, crew and passengers from the SW5e sheet). The values are read straight from the starship actor, so damage taken in combat shows at once.
-- **Hyperdrive class** comes from the ship's *Hyperdrive, Class X* item (the best equipped one, ignoring backups). **Fuel capacity**, **cargo capacity** and **fuel price** come from the ship's size item (Tiny to Gargantuan). The GM can override any of these, set shield capacity, a location and a log in the Ships tab (pen button).
-- **Party ship:** star a ship in the Ships tab (or use *Set as party ship* on its datapad screen). Every player can see it. It names the galaxy map's ship marker and sets the default hyperdrive class for routes.
-- **Who sees what:** players see the party ship and any ship they have at least Limited rights on. Observer lets them read its systems. Owner (or the party ship) lets them buy fuel with the active character's credits, change power routing and load or unload cargo.
+- **Ship:** hull, shields and fuel at a glance, mod slots and suites used, cargo, the ship's value, and buttons for the ship sheet, Shipyard, Cargo hold, Trade and **Plot a jump**. The **fuel depot** sells fuel at the ship size's price (or fills the tanks), paid from the active character's credits.
+- **Selling a ship:** an owner can sell a ship for the shipyard's resale share of its value (50% by default). The seller's character gets the credits, the players lose access, and the GM keeps the actor (in case of buyer's remorse). A ship's value is what it was bought for, or what the GM types on the sheet in edit mode.
+- **Buying a ship:** ships are sold in **Markets**. In the market editor, pick any of the 87 Drake's Shipyard starships from the list (each sale builds a fresh copy), or drop a ship actor onto it, and set a price. The buyer's players own the new ship and it joins the HoloDock; the GM sets it as the party ship if the crew will fly it.
+- **Party ship:** star a ship in the Ships tab (or use *Set as party ship* on its HoloDock screen). Every player can see it. It names the galaxy map's ship marker and sets the default hyperdrive class for routes.
+- **Who sees what:** players see the party ship and any ship they have at least Limited rights on. Observer lets them open its sheet. Owner (or the party ship) lets them buy fuel, use the shipyard and load cargo.
 - **Jumps:** with a route plotted on the galaxy map, the nav computer shows the fuel the party ship needs. The GM's **Make the jump** button moves the ship marker to the destination, burns the fuel, updates the ship's location and posts the arrival to chat.
-- **Settings:** fuel per day in hyperspace (default 1, or 0 to turn fuel use off) and a fallback fuel price for ships without an SW5e size item.
+- **Settings:** fuel per day in hyperspace (default 1, or 0 to turn fuel use off) and a fallback fuel price for ships without an SW5e size.
+
+### Cargo hold
+The **Cargo** tab loads gear between the active character's inventory and the ship. **Stow** moves an item (or the whole stack) into the hold, where it keeps everything about the item, and **Take** puts it back into whichever character is active, stacking with what they carry. Weight counts against the ship's cargo capacity (dnd5e weight in pounds, 2,000 lb to the ton). Trade goods bought on the Trade Exchange sit in the same hold, and the GM can still log other cargo by name and tonnage.
 
 ### Importing SW5e starships (Foundry v12)
 The SW5E module for Foundry v12 (1.2.5) ships its starships as a "starship" actor type that neither it nor dnd5e 4.x defines, so they can't be used. **Import ship** in the console's **Ships** tab builds a working ship instead:
@@ -123,7 +127,7 @@ The SW5E module for Foundry v12 (1.2.5) ships its starships as a "starship" acto
 - **HoloDock** shows the tier, AC and damage reduction, speed and turning speed, hull and shield dice, fuel (capacity and price by size), cargo, power routing and system damage. Owners can roll any **starship skill** from the ship's screen: d20 + the ship's ability modifier, plus the rolling character's proficiency bonus when they hold a bridge station.
 - dnd5e has no fields for tier, space speed, shield capacity, fuel or system damage, so those live in HoloTerminal's flag on the ship. Change system damage from the ship's pen button in the Ships tab.
 - Not automated: damage reduction (shown, but subtract it yourself), power dice and shield regeneration each round. Weapons attack with the ship's Dexterity, without crew proficiency.
-- `tools/build-starships.py` rebuilds `data/starships.json` from a copy of the SW5e Database.
+- `tools/build-starships.py` rebuilds `data/starships.json` and the Shipyard catalog `data/shipyard.json` from a copy of the SW5e Database.
 
 ## Trade runs
 Every world prices twelve kinds of cargo (foodstuffs, water, ore, metals, fuel, textiles, droid parts, electronics, medical supplies, luxury goods, and the restricted weapons and spice). Prices come from the world's terrain, climate and class and from how far it is from the Core, so desert worlds want water and the Core sells electronics cheaply.
@@ -162,11 +166,13 @@ The **Bridge** tab of the Starship app is for starship combat on the party ship.
 - Players who own the ship use the actions straight from the datapad. Otherwise the order goes to chat for the GM to resolve.
 
 ## Shipyard
-Open it from the **Shipyard** tab of the Starship app or with `api.openShipyard()`. It works wherever the party ship is docked on the galaxy map.
+Open it from the **Shipyard** tab of the Starship app or with `api.openShipyard()`. It works wherever the party ship is docked on the galaxy map, and the active character pays.
 
+- **Buy parts:** weapons, systems (armor, shields, reactors, power couplings, hyperdrives), ammunition and all 257 SW5e modifications, from a catalog built from the SW5e Database (plus any SW5e compendium items that load in this version). Weapons, systems and ammunition use their list price. Modifications use the Starships of the Galaxy category cost (Engineering and Operation 3,500, Suite 5,000, Universal 4,000, Weapon 3,000 cr) times the ship size's modification cost modifier (Tiny ×0.5 up to Gargantuan ×500), and show their grade and the SotG install DC for the ship's tier.
+- **Limits:** a modification can't be bought once the ship's mod slots are full, and a suite can't be bought past the ship's maximum suites (the GM can override). A ship has one armor, shield, reactor, power coupling and hyperdrive: buying a new one trades the old one in.
+- **Sell parts:** anything bought or fitted can be sold back for the resale share of what it is worth (50% by default). Ammunition sells one at a time.
 - **Repairs:** restore hull points, recharge shields and clear system damage. Prices per point are module settings (25, 10 and 500 cr by default).
-- **Upgrades:** browse and search the SW5e starship weapons, equipment and modifications compendiums. Buying one installs a copy on the party ship. Weapons and equipment use their list price; modifications (which have none in SW5e) cost a set amount per grade times the ship size's modification multiplier. A price multiplier setting adjusts everything.
-- The active character pays; every purchase goes to the ledger and is whispered to the GM.
+- Settings: a price multiplier, the resale share, and the price of a modification with no category. Every purchase and sale goes to the ledger and is whispered to the GM.
 
 ## HoloNet news
 

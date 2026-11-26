@@ -3,6 +3,8 @@
 Usage:  python tools/build-starships.py <path to SW5e-database>/data/Starships
 
 Reads (never writes) drakesShipyard.json and starshipModification.json from that folder.
+Also writes data/shipyard.json, the Shipyard's parts catalog: every starship weapon, system and ammunition item
+found on the shipyard's ships, plus all of the database's starship modifications.
 Items that repeat across ships (the starship actions, common mods) are stored once in "items" and
 each ship lists the indexes it carries, which keeps the file small. HoloDock bakes each ship into a
 dnd5e 4.x vehicle actor at import time (scripts/starship-import.mjs)."""
@@ -21,6 +23,11 @@ ALIAS = {"commssuppressor": "communicationssuppressor", "tibanagas": "tibannagas
 
 def mod_lookup(name):
     """Finds a mod's category and grade, allowing for the shipyard's other ways of naming the same mod."""
+    k = mod_key(name)
+    return mod_info[k] if k else None
+
+def mod_key(name):
+    """The database's key for a mod name as the shipyard spells it, or None."""
     base = re.sub(r"\bMark\b", "Mk", name)
     tries = [name, base, re.sub(r",\s*(Premium|Prototype|Advanced|Standard|Basic)$", "", base)]
     words = base.split()
@@ -28,7 +35,7 @@ def mod_lookup(name):
     for t in tries:
         n = norm(t)
         for a, b in ALIAS.items(): n = n.replace(a, b)
-        if n in mod_info: return mod_info[n]
+        if n in mod_info: return n
     return None
 
 def clean(o):
@@ -68,4 +75,37 @@ for s in ships:
 
 out.write_text(json.dumps({"source": "SW5e Database, Drake's Shipyard", "ships": out_ships, "items": items},
                           separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+# ---------- shipyard catalog ----------
+SYSTEMS = {"starship", "ssshield", "reactor", "powerc", "hyper"}
+ROMAN = {"I", "II", "III", "IV", "V", "VI"}
+def title(name):
+    """'AMPHIBIOUS SYSTEMS' -> 'Amphibious Systems', keeping Mk II and similar."""
+    return " ".join(w if w in ROMAN else (w[:1].upper() + w[1:].lower()) for w in name.split(" "))
+def paras(text):
+    return "".join(f"<p>{p.strip()}</p>" for p in re.split(r"\n\s*\n|\r?\n", text or "") if p.strip())
+
+parts = {"weapons": {}, "equipment": {}, "ammo": {}, "modifications": {}}
+for it in items:
+    t, sub = it["type"], (it["system"].get("type") or {}).get("value") or ""
+    cat = ("weapons" if t == "weapon" and "(starship)" in sub else "equipment" if t == "equipment" and sub in SYSTEMS
+           else "ammo" if t == "consumable" and sub == "ammo" else "modifications" if t == "loot" and it.get("flags") else None)
+    if cat: parts[cat].setdefault((mod_key(it["name"]) if cat == "modifications" else None) or norm(it["name"]), it)
+for m in mods:
+    key = norm(m["name"])
+    known = next((v for k, v in parts["modifications"].items() if k == key), None)
+    pre = [p for p in (m.get("prerequisites") or []) if p]
+    info = {"category": m.get("type") or "Universal", "grade": m.get("grade") or 0}
+    if pre: info["prereq"] = ", ".join(pre)
+    if known:
+        known["flags"]["holo-terminal"]["mod"].update(info)
+        if not (known["system"].get("description") or {}).get("value"): known["system"]["description"] = {"value": paras(m.get("content"))}
+        continue
+    parts["modifications"][key] = {"name": title(m["name"]), "type": "loot",
+        "system": {"description": {"value": paras(m.get("content"))}, "quantity": 1, "identified": True, "source": {"custom": m.get("contentSource") or "SotG"}},
+        "flags": {"holo-terminal": {"mod": info}}}
+yard = {k: sorted(v.values(), key=lambda i: i["name"]) for k, v in parts.items()}
+yout = out.parent / "shipyard.json"
+yout.write_text(json.dumps({"source": "SW5e Database (Drake's Shipyard, starship modifications)", **yard}, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+print("shipyard:", {k: len(v) for k, v in yard.items()}, f"({yout.stat().st_size // 1024} KB)")
+
 print(f"{len(out_ships)} ships, {len(items)} unique items -> {out} ({out.stat().st_size // 1024} KB)")

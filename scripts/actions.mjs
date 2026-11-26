@@ -1,4 +1,6 @@
-import { registerHandler, find, upsert, notifyUser, getCredits, setCredits } from "./store.mjs";
+import { MODULE_ID, registerHandler, find, upsert, notifyUser, getCredits, setCredits } from "./store.mjs";
+import * as ShipImport from "./starship-import.mjs";
+import { record } from "./bank.mjs";
 
 const ownsActor = (user, actor) => actor?.testUserPermission(user, "OWNER");
 const gmWhisper = (content) => ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients("GM") });
@@ -73,6 +75,8 @@ export function registerActions() {
     const credits = getCredits(actor);
     if (credits < price) throw new Error(`${actor.name} needs ${price} credits but has ${credits}.`);
 
+    if (entry.kind === "ship") return buyShip({ shop, entry, actor, user, price, credits });
+
     let data = entry.data ? foundry.utils.deepClone(entry.data) : null; // imported shops carry the item inline
     if (!data) {
       const source = entry.uuid ? await fromUuid(entry.uuid) : null;
@@ -89,4 +93,33 @@ export function registerActions() {
     ChatMessage.create({ content: `<b>${actor.name}</b> bought <i>${entry.name}</i> from ${shop.name} for ${price} credits.`,
       speaker: ChatMessage.getSpeaker({ actor }) });
   });
+}
+
+/** A starship from a market: a fresh copy of a Drake's Shipyard ship, or of a ship actor the GM dropped in the editor.
+ *  The buyer's players own it, it joins the HoloDock, and it remembers what it cost so it can be sold back. */
+async function buyShip({ shop, entry, actor, user, price, credits }) {
+  let data = null;
+  if (entry.catalog) {
+    const cat = await ShipImport.loadCatalog(), e = cat.ships.find((s) => s.name === entry.catalog);
+    if (e) data = ShipImport.buildActor(e, e.items.map((n) => cat.items[n]));
+  } else if (entry.uuid) {
+    const src = await fromUuid(entry.uuid);
+    if (src?.documentName === "Actor") { data = src.toObject(); delete data._id; delete data.folder; }
+  }
+  if (!data) throw new Error(`${entry.name} is no longer available. Ask the GM to re-add it.`);
+  const owners = game.users.filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER"));
+  data.ownership = { default: 0, ...Object.fromEntries(owners.map((u) => [u.id, 3])) };
+  data.folder = (await ShipImport.shipFolder())?.id;
+  foundry.utils.setProperty(data, `flags.${MODULE_ID}.ship.enabled`, true);
+  foundry.utils.setProperty(data, `flags.${MODULE_ID}.ship.value`, price);
+  foundry.utils.setProperty(data, `flags.${MODULE_ID}.ship.boughtBy`, actor.name);
+  for (const k of ["cargo", "stations", "soldBy", "location"]) delete data.flags?.[MODULE_ID]?.ship?.[k];   // a fresh ship: empty hold, no crew
+  const ship = await Actor.create(data);
+  await setCredits(actor, credits - price);
+  await record({ from: actor, to: shop.name, amount: price, memo: `bought ${ship.name}` });
+  if (entry.stock > 0) { entry.stock -= 1; await upsert("shops", shop); }
+  notifyUser(user.id, "info", `${actor.name} bought the ${ship.name} for ${price} credits. It's in the HoloDock.`);
+  ChatMessage.create({ content: `<b>${actor.name}</b> bought the starship <i>${ship.name}</i> from ${shop.name} for ${price} credits.`,
+    speaker: ChatMessage.getSpeaker({ actor }) });
+  gmWhisper(`<p>The <b>${ship.name}</b> is a new actor in the ${ShipImport.SHIP_FOLDER} folder. Set it as the party ship from the HoloDock's Fleet tab if the crew will fly it.</p>`);
 }
