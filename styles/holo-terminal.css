@@ -840,3 +840,11 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-cone-panel label { display: flex; align-items: center; gap: 6px; color: var(--ht-strong); }
 .ht-cone-panel input[type=range] { width: 120px; accent-color: var(--ht-blue); }
 .ht-cone-panel output { min-width: 36px; color: var(--ht-gold-text); }
+
+/* camera feeds: what the camera can't see (outside its cone, behind walls) is dark */
+.ht-feed-clip { position: absolute; inset: 0; }
+.ht-feed-layer { background: #02070c; }
+.ht-feed-zoom { position: absolute; right: 6px; bottom: 6px; z-index: 3; display: flex; align-items: center; gap: 2px; opacity: .55; transition: opacity .15s; }
+.ht-feed:hover .ht-feed-zoom { opacity: 1; }
+.ht-screen:where(:not(.holo-screen)) .ht-feed-zoom button { padding: 1px 6px; font-size: 10px; background: rgba(1, 10, 18, .8); border-color: rgba(42, 163, 223, .5); }
+.ht-feed-zoom .ht-zoom-level { min-width: 28px; text-align: center; font: 700 10px Consolas, monospace; color: #dff3ff; text-shadow: 0 0 3px #000; }
