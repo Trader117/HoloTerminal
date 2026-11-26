@@ -824,3 +824,19 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-dock-skill { gap: 6px; margin: 6px 0; } .ht-dock-skill select { flex: 1; min-width: 0; }
 .ht-screen .ht-dock-skill select { background: var(--ht-band-1); color: var(--ht-strong); border: 1px solid var(--ht-line); border-radius: 3px; height: 26px; }
 .ht-sc-dialog.ht-ship-import { grid-template-columns: 1fr; }
+
+/* GM "test as player" strip on a terminal */
+.ht-test-bar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 5px 8px; border: 1px solid var(--ht-gold); border-radius: var(--ht-radius);
+  background: rgba(230, 154, 40, .12); color: var(--ht-gold-text); font-size: 12px; }
+.ht-test-bar > i { color: var(--ht-gold); } .ht-test-bar > span { flex: 1; }
+.ht-test-bar.ht-test-off { border-color: var(--ht-line); background: none; color: var(--ht-muted); }
+
+/* Camera cone tool panel (Regions layer) */
+.ht-cone-panel { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px; border: 1px solid var(--ht-line); border-top: 3px solid var(--ht-blue); border-radius: var(--ht-radius);
+  background: var(--ht-panel); color: var(--ht-text); font: 13px var(--ht-font-body); box-shadow: 0 4px 16px rgba(0, 0, 0, .5); pointer-events: auto; }
+.ht-cone-panel b { color: var(--ht-red); font-family: var(--ht-font-display); text-transform: uppercase; letter-spacing: 1px; }
+.ht-cone-panel span { color: var(--ht-muted); }
+.ht-cone-panel label { display: flex; align-items: center; gap: 6px; color: var(--ht-strong); }
+.ht-cone-panel input[type=range] { width: 120px; accent-color: var(--ht-blue); }
+.ht-cone-panel output { min-width: 36px; color: var(--ht-gold-text); }

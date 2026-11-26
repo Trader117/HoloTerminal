@@ -3,6 +3,7 @@ import { registerActions } from "./actions.mjs";
 import { DatapadApp, PARTIAL_PATHS, NAMED_PARTIALS } from "./datapad.mjs";
 import { ConsoleApp } from "./admin.mjs";
 import { registerRegionBehavior } from "./regions.mjs";
+import { registerConeSetting, addConeTool } from "./cone.mjs";
 import { registerScannerSettings, registerSignatureBehavior } from "./scanner.mjs";
 import { initScanSocket, openScanner, runScan } from "./scan-wheel.mjs";
 import { registerGalaxySettings } from "./galaxy.mjs";
@@ -19,14 +20,15 @@ import { GalaxyMapApp } from "./galaxy-app.mjs";
 import { registerLootSetting, registerLootHandlers, registerLootHud } from "./loot.mjs";
 
 const loadTpl = (paths) => (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)(paths);
-const datapad = (view, id) => DatapadApp.instance.show(view, id);
+const datapad = (view, id, opts) => DatapadApp.instance.show(view, id, opts);
 const resolve = (kind, ref) => find(kind, ref) ?? findByName(kind, ref);
 
 Hooks.once("init", () => {
   registerSettings();
+  registerConeSetting();
   registerLootSetting();
   registerLootHud();
-  registerRegionBehavior((view, id) => (view === "galaxy" ? GalaxyMapApp.instance.render(true) : datapad(view, id)));
+  registerRegionBehavior((view, id, opts) => (view === "galaxy" ? GalaxyMapApp.instance.render(true) : datapad(view, id, opts)));
   registerScannerSettings();
   registerGalaxySettings();
   registerDockSettings();
@@ -100,6 +102,7 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {
+  addConeTool(controls);
   const pad = { name: "ht-datapad", title: "Datapad", icon: "fas fa-tablet-screen-button", button: true };
   const gm = { name: "ht-console", title: "Holo-Terminal GM Console", icon: "fas fa-terminal", button: true };
   const openPad = () => datapad();

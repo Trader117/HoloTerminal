@@ -45,11 +45,14 @@ const KICKER = { home: "Command Deck", network: "Local Net", terminal: "Remote N
 const PARENT = { terminal: "network", slice: "terminal", shop: "shops" };
 
 function activeActor() {
+  if (Crypt.test.on && Crypt.test.actor) return Crypt.test.actor;
   return canvas.tokens?.controlled[0]?.actor ?? game.user.character
     ?? game.actors.find((a) => a.type === "character" && a.isOwner && !game.user.isGM) ?? null;
 }
-const unlockedIds = () => new Set(game.user.getFlag(MODULE_ID, "unlocked") ?? []);
-async function unlock(id) { const s = unlockedIds(); s.add(id); await game.user.setFlag(MODULE_ID, "unlocked", [...s]); }
+const unlockedIds = () => Crypt.unlockedIds();
+const unlock = (id) => Crypt.unlock(id);
+/** True for a GM who isn't testing as a player: they skip every lock. */
+const gmBypass = () => game.user.isGM && !Crypt.test.on;
 
 export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #instance;
@@ -62,7 +65,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
       go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab, pingBody: DatapadApp.#pingBody,
-      login: DatapadApp.#login, control: DatapadApp.#control,
+      login: DatapadApp.#login, testStart: DatapadApp.#testStart, testStop: DatapadApp.#testStop, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
       decryptCheck: DatapadApp.#decryptCheck, decryptKey: DatapadApp.#decryptKey, decryptHack: DatapadApp.#decryptHack,
@@ -109,7 +112,9 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Opens the datapad on a given view (e.g. "terminal", id). */
-  show(view = "home", id = null) {
+  show(view = "home", id = null, { testActor } = {}) {
+    if (testActor && game.user.isGM) { Crypt.startTest(testActor); this.denied = false; }
+    else if (Crypt.test.on) Crypt.endTest();
     if (view !== this.view || id !== this.viewId) this.#navigate(view, id);
     if (!this.rendered) this.booting = true;
     return this.render({ force: true });
@@ -217,7 +222,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return placeFrameless(this, position);
   }
 
-  _onClose(options) { super._onClose(options); this.booting = true; this.#stopTimer(); this.#stopTape(true); }
+  _onClose(options) { super._onClose(options); Crypt.endTest(); this.booting = true; this.#stopTimer(); this.#stopTape(true); }
 
   #stopTimer() { if (this.#timer) clearInterval(this.#timer); this.#timer = null; }
   #startTimer() {
@@ -292,7 +297,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _ctx_terminal() {
     const t = find("terminals", this.viewId);
     if (!t) return { title: "NO SIGNAL", missing: true };
-    const locked = !game.user.isGM && !!(t.password || t.slice) && !unlockedIds().has(t.id);
+    const locked = !gmBypass() && !!(t.password || t.slice) && !unlockedIds().has(t.id);
     const cams = (t.controls ?? []).map((c, i) => ({ ...c, index: i })).filter((c) => c.type === "camera");
     const state = (c) => {
       const scene = game.scenes.get(c.scene) ?? canvas.scene;
@@ -313,6 +318,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
     return {
       title: t.name, terminal: t, theme: t.theme ?? "cyan", locked, denied: this.denied,
+      testing: Crypt.test.on, testName: Crypt.test.actor?.name ?? "a player", canTest: game.user.isGM && !Crypt.test.on && !!(t.password || t.slice || [...(t.messages ?? []), ...(t.files ?? [])].some((e) => e.encrypted)),
       hasPassword: !!t.password, slice: t.slice, tab: this.tab,
       messages: await this.#cryptEntries(t, "messages", (m) => `${m.from} ${m.subject}`),
       files: await this.#cryptEntries(t, "files", (f) => f.name),
@@ -576,6 +582,14 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const h = this.history[++this.hIndex]; this.#navigate(h.view, h.id, false); this.render();
   }
   static #tab(e, el) { this.tab = el.dataset.tab; this.render(); }
+
+  /** GM: see this terminal as a player would (locks, encryption), without saving any progress. */
+  static #testStart() {
+    const actor = canvas.tokens?.controlled[0]?.actor ?? game.actors.find((a) => a.type === "character" && a.hasPlayerOwner) ?? null;
+    Crypt.startTest(actor); this.denied = false; this.render();
+  }
+  /** GM override: stop testing and skip the security again. */
+  static #testStop() { Crypt.endTest(); this.denied = false; this.hackTarget = null; this.render(); }
 
   static async #login() {
     const t = find("terminals", this.viewId);

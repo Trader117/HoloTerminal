@@ -30,7 +30,7 @@ export function registerRegionBehavior(openDatapad) {
         target: new StringField({ required: true, blank: false, initial: "home", choices: targetChoices,
           label: "Open", hint: "What the datapad opens on when a token walks in." }),
         playersOnly: new BooleanField({ initial: true, label: "Players only",
-          hint: "Ignore tokens the GM moves, so dragging NPCs around doesn't pop the datapad." }),
+          hint: "Ignore NPC tokens the GM moves, so dragging NPCs around doesn't pop the datapad. When the GM moves a player's token in, the datapad opens in test mode: you see the locks and encryption as that player would." }),
         once: new BooleanField({ initial: false, label: "Only once per player",
           hint: "Each player gets it the first time only. Clear by toggling this off and on." })
       };
@@ -41,8 +41,11 @@ export function registerRegionBehavior(openDatapad) {
     static async #onTokenEnter(event) {
       const user = event.user;
       if (user !== game.user) return; // only the client of the player who moved the token reacts
-      if (this.playersOnly && user.isGM) return;
-      if (this.once) {
+      // A GM walking a player's token in is testing the trigger: open it as that player would see it.
+      const actor = event.data?.token?.actor ?? null;
+      const testActor = user.isGM && actor?.hasPlayerOwner ? actor : null;
+      if (this.playersOnly && user.isGM && !testActor) return;
+      if (this.once && !testActor) {
         // Players can't update the behaviour, so each player remembers it on their own user.
         const mine = user.getFlag(MODULE_ID, "regionsSeen") ?? [];
         if (mine.includes(this.parent.uuid)) return;
@@ -50,9 +53,10 @@ export function registerRegionBehavior(openDatapad) {
       }
       const [view, id] = this.target.split(":");
       // a single terminal or market that has since been deleted falls back to its list
-      if (view === "terminal" && !list("terminals").some((t) => t.id === id)) return openDatapad("network", null);
-      if (view === "shop" && !list("shops").some((s) => s.id === id)) return openDatapad("shops", null);
-      openDatapad(view, id ?? null);
+      const opts = testActor ? { testActor } : {};
+      if (view === "terminal" && !list("terminals").some((t) => t.id === id)) return openDatapad("network", null, opts);
+      if (view === "shop" && !list("shops").some((s) => s.id === id)) return openDatapad("shops", null, opts);
+      openDatapad(view, id ?? null, opts);
     }
 
     _onUpdate(changed, options, userId) {
