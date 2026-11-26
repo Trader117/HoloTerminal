@@ -83,7 +83,7 @@ export class HoloStarshipSheet extends HoloDossierSheet {
     const actor = this.actor, sys = actor.system, attr = sys.attributes ?? {};
     const flag = actor.getFlag(MODULE_ID, "ship") ?? {}, ss = flag.sw5e ?? {};
     const info = Dock.shipInfo(actor);
-    ctx.ship = { ...info, hyperOverride: flag.hyperdrive ?? "" };
+    ctx.ship = { ...info, hyperOverride: flag.hyperdrive ?? "", value: flag.value ?? "" };
     ctx.ss = ss;
     ctx.inDock = Dock.isShip(actor);
     ctx.isGM = game.user.isGM;

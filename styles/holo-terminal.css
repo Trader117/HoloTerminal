@@ -840,3 +840,15 @@ table.ht-trade { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ht-cone-panel label { display: flex; align-items: center; gap: 6px; color: var(--ht-strong); }
 .ht-cone-panel input[type=range] { width: 120px; accent-color: var(--ht-blue); }
 .ht-cone-panel output { min-width: 36px; color: var(--ht-gold-text); }
+
+/* HoloDock services: shipyard modes, cargo loading, ships in markets */
+.ht-small { font-size: 11px; }
+.ht-yard-cats { margin: 0 0 6px; }
+.ht-yard-cats button { font-size: 11px; padding: 2px 8px; }
+.ht-yard-blocked span { opacity: .75; }
+.ht-yard-blocked em { display: block; font-style: normal; color: var(--ht-red); }
+.ht-screen .ht-bridge-list button { padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.ht-screen .ht-bridge-list button[disabled] { opacity: .45; cursor: not-allowed; }
+.ht-hold-bar { height: 8px; margin: -2px 0 8px; --sig: #e8b04a; }
+.ht-hold-ico { flex: 0 0 28px; width: 28px; text-align: center; color: var(--ht-blue); }
+.ht-shop-ships { gap: 6px; margin: 6px 0 2px; } .ht-shop-ships select { flex: 1; }

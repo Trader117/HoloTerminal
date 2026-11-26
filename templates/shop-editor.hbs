@@ -20,7 +20,14 @@
     </div>
   </div>
 
-  <div class="ht-drop">Drag Items or a folder of Items here from the sidebar or a compendium to stock the shelves.</div>
+  <div class="ht-drop">Drag Items or a folder of Items here from the sidebar or a compendium to stock the shelves. Drop a ship actor to sell that ship.</div>
+  {{#if catalogShips.length}}
+  <div class="ht-inline ht-shop-ships">
+    <select name="catalogShip"><option value="">Sell a Drake's Shipyard starship…</option>{{#each catalogShips}}<option value="{{name}}">{{name}} (tier {{tier}})</option>{{/each}}</select>
+    <button type="button" data-action="addShip"><i class="fas fa-shuttle-space"></i> Add ship</button>
+  </div>
+  <p class="ht-dim">Starships have no list price in the SW5e data, so set one below. Each sale builds a fresh copy for the buyer.</p>
+  {{/if}}
 
   <div class="ht-shop-items">
     <table class="ht-shop">
@@ -29,7 +36,7 @@
       {{#each items}}
         <tr data-index="{{index}}">
           <td>{{#if img}}<img src="{{img}}" alt="" width="26" height="26">{{/if}}</td>
-          <td>{{name}}{{#if missing}} <i class="fas fa-triangle-exclamation" title="Source item missing"></i>{{/if}}</td>
+          <td>{{name}}{{#if ship}} <span class="ht-tag">Starship</span>{{/if}}{{#if missing}} <i class="fas fa-triangle-exclamation" title="Source item missing"></i>{{/if}}</td>
           <td><input type="number" name="price" min="0" value="{{price}}" class="ht-num"></td>
           <td>{{sell}} cr</td>
           <td><input type="text" name="stock" value="{{#unless unlimited}}{{stock}}{{/unless}}" placeholder="&infin;" class="ht-num" title="Leave blank for unlimited"></td>

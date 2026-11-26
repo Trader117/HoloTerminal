@@ -143,6 +143,22 @@ export async function markShip(a, enabled = true) { await saveFlag(a, { ...flagO
 
 export async function editCargo(a, fn) { const f = flagOf(a); f.cargo = fn(f.cargo ?? []); await saveFlag(a, f); }
 
+/** Weight of one of this item in tons (dnd5e 4.x keeps weight as { value, units }). */
+export function itemTons(item) {
+  const w = item?.system?.weight, v = Number(typeof w === "object" ? w?.value : w) || 0;
+  const units = (typeof w === "object" && w?.units) || "lb";
+  const t = units === "tn" ? v : units === "kg" ? v / 1000 : units === "Mg" ? v : v / 2000;
+  return Math.round(t * 10000) / 10000;
+}
+/** Items a character can stow in a ship's hold. */
+export const STOWABLE = ["weapon", "equipment", "consumable", "tool", "loot", "container", "backpack"];
+export const canWorkShip = (user, ship) => user.isGM || ship === partyShip() || ship.testUserPermission(user, "OWNER");
+/** What a ship sells for: the resale share of the price it was bought for (or the value the GM set on the sheet). */
+export function shipValue(a) {
+  const v = num(flagOf(a).value) ?? 0;
+  return { value: v, resale: Math.floor(v * (Number(game.settings.get(MODULE_ID, "yardResale")) || 0)) };
+}
+
 /** GM-side handlers, so players can buy fuel or stow cargo on ships they don't own outright (the party ship). */
 export function registerDockHandlers() {
   registerHandler("dockRefuel", async ({ shipId, payerId, units }, user) => {
@@ -172,6 +188,62 @@ export function registerDockHandlers() {
       if (op === "remove") return list.filter((c) => c.id !== cargoId);
       return list;
     });
+  });
+  /** Moves items from a character's inventory into the ship's hold, keeping the item so it can be unloaded again. */
+  registerHandler("dockStow", async ({ shipId, actorId, itemId, qty }, user) => {
+    const ship = game.actors.get(shipId), actor = game.actors.get(actorId), item = actor?.items.get(itemId);
+    if (!ship || !item || !STOWABLE.includes(item.type)) return;
+    if (!canWorkShip(user, ship) || !actor.testUserPermission(user, "OWNER")) return notifyUser(user.id, "warn", "You can't load that.");
+    const have = Number(item.system.quantity) || 1, n = Math.min(have, Math.max(1, Math.floor(Number(qty) || have)));
+    const info = shipInfo(ship), tons = itemTons(item);
+    if (!user.isGM && info.cargoCap && info.cargoUsed + tons * n > info.cargoCap + 1e-9)
+      return notifyUser(user.id, "warn", `${ship.name}'s hold has ${Math.max(0, Math.round((info.cargoCap - info.cargoUsed) * 100) / 100)} t free.`);
+    const data = item.toObject(); delete data._id;
+    if ("quantity" in data.system) data.system.quantity = 1;
+    if ("equipped" in data.system) data.system.equipped = false;
+    await editCargo(ship, (list) => {
+      const same = list.find((c) => c.data && c.name === item.name && c.data.type === item.type);
+      if (same) same.qty = (Number(same.qty) || 1) + n;
+      else list.push({ id: foundry.utils.randomID(), name: item.name, img: item.img, qty: n, tons, data, from: actor.name });
+      return list;
+    });
+    if (n >= have) await item.delete(); else await item.update({ "system.quantity": have - n });
+    notifyUser(user.id, "info", `${actor.name} loaded ${n > 1 ? `${n}× ` : ""}${item.name} onto ${ship.name}.`);
+  });
+  /** Takes stowed items out of the hold and into a character's inventory. */
+  registerHandler("dockUnload", async ({ shipId, cargoId, actorId, qty }, user) => {
+    const ship = game.actors.get(shipId), actor = game.actors.get(actorId);
+    const entry = (flagOf(ship).cargo ?? []).find((c) => c.id === cargoId);
+    if (!ship || !actor || !entry?.data) return;
+    if (!canWorkShip(user, ship) || !actor.testUserPermission(user, "OWNER")) return notifyUser(user.id, "warn", "You can't unload that.");
+    const have = Number(entry.qty) || 1, n = Math.min(have, Math.max(1, Math.floor(Number(qty) || have)));
+    const data = foundry.utils.deepClone(entry.data);
+    const stack = "quantity" in (data.system ?? {}) ? actor.items.find((i) => i.name === data.name && i.type === data.type && "quantity" in i.system) : null;
+    if (stack) await stack.update({ "system.quantity": (Number(stack.system.quantity) || 0) + n });
+    else if ("quantity" in (data.system ?? {})) { data.system.quantity = n; await actor.createEmbeddedDocuments("Item", [data]); }
+    else await actor.createEmbeddedDocuments("Item", Array.from({ length: n }, () => foundry.utils.deepClone(data)));
+    await editCargo(ship, (list) => n >= have ? list.filter((c) => c.id !== cargoId) : list.map((c) => (c.id === cargoId ? { ...c, qty: have - n } : c)));
+    notifyUser(user.id, "info", `${actor.name} took ${n > 1 ? `${n}× ` : ""}${entry.name} from ${ship.name}.`);
+  });
+  /** Sells a ship back to the shipyard: the seller gets the resale value and the players lose access (the GM keeps the actor). */
+  registerHandler("shipSell", async ({ shipId, payerId }, user) => {
+    const ship = game.actors.get(shipId), payer = game.actors.get(payerId);
+    if (!ship || !isShip(ship)) return;
+    if (!(user.isGM || ship.testUserPermission(user, "OWNER"))) return notifyUser(user.id, "warn", "Only the ship's owner can sell it.");
+    if (!user.isGM && !payer?.testUserPermission(user, "OWNER")) return notifyUser(user.id, "warn", "Pick your character first: the credits go to them.");
+    const { resale } = shipValue(ship);
+    if (!resale) return notifyUser(user.id, "warn", `${ship.name} has no value set. The GM can set one on its sheet.`);
+    if (partyShip() === ship) await setPartyShip("");
+    const ownership = { default: 0 };
+    for (const u of game.users) if (u.isGM) ownership[u.id] = 3;
+    await ship.update({ ownership, [`flags.${MODULE_ID}.${FLAG}.enabled`]: false, [`flags.${MODULE_ID}.${FLAG}.soldBy`]: payer?.name ?? user.name });
+    if (payer) {
+      await setCredits(payer, getCredits(payer) + resale);
+      await record({ from: "Shipyard", to: payer, amount: resale, memo: `sold ${ship.name}` });
+    }
+    notifyUser(user.id, "info", `${ship.name} sold for ${resale} cr${payer ? ` to ${payer.name}` : ""}.`);
+    ChatMessage.create({ content: `<p><i class="fas fa-shuttle-space"></i> <b>${Handlebars.escapeExpression(ship.name)}</b> was sold for ${resale} cr.</p>`,
+      whisper: game.users.filter((u) => u.isGM).map((u) => u.id) });
   });
   registerHandler("dockRouting", async ({ shipId, routing }, user) => {
     const ship = game.actors.get(shipId);

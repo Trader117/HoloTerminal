@@ -1,4 +1,5 @@
 import { MODULE_ID, find, upsert, list, itemPrice } from "./store.mjs";
+import { loadCatalog as loadShips } from "./starship-import.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const getDragData = (event) =>
@@ -11,7 +12,7 @@ export class ShopEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["ht-app"], window: { title: "Edit market", icon: "fas fa-store", resizable: true },
     position: { width: 620, height: 720 },
     actions: { save: ShopEditorApp.#save, cancel: ShopEditorApp.#cancel, removeItem: ShopEditorApp.#removeItem,
-      pickImage: ShopEditorApp.#pickImage, thisScene: ShopEditorApp.#thisScene }
+      pickImage: ShopEditorApp.#pickImage, thisScene: ShopEditorApp.#thisScene, addShip: ShopEditorApp.#addShip }
   };
   static PARTS = { main: { template: `modules/${MODULE_ID}/templates/shop-editor.hbs`, scrollable: [".ht-shop-items"] } };
 
@@ -24,12 +25,14 @@ export class ShopEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext() {
     const d = this.doc;
+    const ships = (await loadShips()).ships ?? [];
     const chosen = new Set(d.scenes ?? []);
     return {
       doc: d, everywhere: !chosen.size, markupPct: Math.round((d.markup ?? 1) * 100),
       scenes: game.scenes.contents.map((s) => ({ id: s.id, name: s.name, checked: chosen.has(s.id), current: s.id === canvas.scene?.id })),
-      items: (d.items ?? []).map((it, index) => ({ ...it, index, unlimited: it.stock == null || it.stock < 0,
-        sell: Math.round((it.price ?? 0) * (d.markup ?? 1)), missing: !it.uuid && !it.data }))
+      items: (d.items ?? []).map((it, index) => ({ ...it, index, unlimited: it.stock == null || it.stock < 0, ship: it.kind === "ship",
+        sell: Math.round((it.price ?? 0) * (d.markup ?? 1)), missing: !it.uuid && !it.data && !it.catalog })),
+      catalogShips: ships.map((s) => ({ name: s.name, tier: s.tier, size: s.size }))
     };
   }
 
@@ -76,13 +79,26 @@ export class ShopEditorApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.#sync();
     const add = (item) => this.doc.items.push({ name: item.name, uuid: item.uuid, img: item.img, price: itemPrice(item), stock: -1 });
     if (data?.type === "Item") { const item = await fromUuid(data.uuid); if (item) add(item); }
+    else if (data?.type === "Actor") {
+      const a = await fromUuid(data.uuid);
+      if (!a || !["vehicle", "starship"].includes(a.type)) return ui.notifications.warn("Only ships (vehicle or starship actors) can be sold in a market.");
+      this.doc.items.push({ kind: "ship", name: a.name, uuid: a.uuid, img: a.img, price: Number(a.getFlag(MODULE_ID, "ship")?.value) || 0, stock: 1 });
+    }
     else if (data?.type === "Folder") {
       const folder = await fromUuid(data.uuid);
       for (const item of folder?.contents ?? []) if (item.documentName === "Item") add(item);
-    } else return ui.notifications.warn("Drop Items (or a folder of Items) here.");
+    } else return ui.notifications.warn("Drop Items, a folder of Items, or a ship actor here.");
     this.render();
   }
 
+  /** Lists one of the bundled Drake's Shipyard ships for sale; each purchase builds a fresh copy. */
+  static #addShip() {
+    this.#sync();
+    const name = this.element.querySelector("[name=catalogShip]")?.value;
+    if (!name) return ui.notifications.warn("Pick a ship first.");
+    this.doc.items.push({ kind: "ship", catalog: name, name, img: "icons/svg/target.svg", price: 0, stock: -1 });
+    this.render();
+  }
   static #removeItem(e, el) { this.#sync(); this.doc.items.splice(Number(el.dataset.index), 1); this.render(); }
   static #thisScene() {
     this.#sync();

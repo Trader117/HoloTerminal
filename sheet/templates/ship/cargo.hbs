@@ -5,7 +5,7 @@
     {{#each cargo}}
     <li class="holo-ship-row"><span class="holo-ship-qty-tag">&times;{{qty}}</span>
       <div class="holo-ship-main"><span>{{name}}</span><small>{{#if good}}trade goods{{#if from}} from {{from}}{{/if}}{{else}}{{#if tons}}{{tons}} t each{{/if}}{{/if}}</small></div>
-      {{#if ../canCommand}}<span class="holo-controls"><a data-action="shipCargoRemove" data-id="{{id}}" data-tooltip="Unload"><i class="fa-solid fa-xmark"></i></a></span>{{/if}}
+      {{#if ../canCommand}}<span class="holo-controls"><a data-action="shipCargoRemove" data-id="{{id}}" data-tooltip="{{#if data}}Throw it out (take it into your gear from the datapad's Cargo tab instead){{else}}Unload{{/if}}"><i class="fa-solid fa-xmark"></i></a></span>{{/if}}
     </li>
     {{else}}<li class="holo-dim holo-empty">The hold is empty.</li>{{/each}}
   </ul>
