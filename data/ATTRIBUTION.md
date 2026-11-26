@@ -24,3 +24,8 @@ Star Wars and related names are trademarks of Lucasfilm Ltd. This is a fan proje
 modifications, copied from the SW5e Database's `data/Starships/drakesShipyard.json` (mod categories and grades from
 `starshipModification.json`) by `tools/build-starships.py`. The rules text is SW5e content (Starships of the Galaxy and
 Drake's Shipyard, sw5e.com). The SW5e Database itself is not changed.
+
+`shipyard.json` is the Shipyard's parts catalog, built by the same script: the starship weapons, systems and ammunition
+found on those ships, and all 257 starship modifications from `starshipModification.json` (category, grade,
+prerequisites and rules text). Modification prices follow the SotG "Modification Category Base Cost" and "Starship
+Size Modification Cost" tables in the database's `referenceTable.json`.

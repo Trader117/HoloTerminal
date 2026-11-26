@@ -113,6 +113,7 @@ async function buyShip({ shop, entry, actor, user, price, credits }) {
   foundry.utils.setProperty(data, `flags.${MODULE_ID}.ship.enabled`, true);
   foundry.utils.setProperty(data, `flags.${MODULE_ID}.ship.value`, price);
   foundry.utils.setProperty(data, `flags.${MODULE_ID}.ship.boughtBy`, actor.name);
+  for (const k of ["cargo", "stations", "soldBy", "location"]) delete data.flags?.[MODULE_ID]?.ship?.[k];   // a fresh ship: empty hold, no crew
   const ship = await Actor.create(data);
   await setCredits(actor, credits - price);
   await record({ from: actor, to: shop.name, amount: price, memo: `bought ${ship.name}` });
