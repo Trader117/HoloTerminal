@@ -1,3 +1,7 @@
+{{#if testing}}<div class="ht-test-bar"><i class="fas fa-user-secret"></i><span>Testing as <b>{{testName}}</b>. Nothing you unlock here is saved.</span>
+  <button type="button" data-action="testStop" title="Stop testing and skip the security as GM"><i class="fas fa-unlock"></i> GM override</button></div>
+{{else if canTest}}<div class="ht-test-bar ht-test-off"><span>You see everything as GM.</span>
+  <button type="button" data-action="testStart" title="See the locks and encryption as a player would (uses the selected token)"><i class="fas fa-user-secret"></i> Test as player</button></div>{{/if}}
 {{#if missing}}<p>Connection lost.</p>
 {{else if locked}}
   <div class="ht-login">
