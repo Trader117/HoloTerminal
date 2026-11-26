@@ -1,11 +1,19 @@
-<div class="ht-feed{{#if playback}} ht-feed-tape{{/if}}" style="height: {{height}}px">
+<div class="ht-feed{{#if playback}} ht-feed-tape{{/if}}" data-key="{{key}}" data-w="{{w}}" data-h="{{h}}" style="height: {{height}}px">
   <div class="ht-feed-layer" style="width: {{w}}px; height: {{h}}px; transform: scale({{scale}})">
+    <div class="ht-feed-clip"{{#if clipShape}} style="clip-path: {{clipShape}}"{{/if}}>
+    <div class="ht-feed-clip"{{#if clipSight}} style="clip-path: {{clipSight}}"{{/if}}>
     {{#if bg}}<img class="ht-feed-bg" src="{{bg}}" alt="" style="left: {{bgX}}px; top: {{bgY}}px; width: {{bgW}}px; height: {{bgH}}px">{{/if}}
     {{#each tiles}}<img class="ht-feed-tile" src="{{img}}" alt="" style="left: {{x}}px; top: {{y}}px; width: {{w}}px; height: {{h}}px; transform: rotate({{rot}}deg)">{{/each}}
     <div class="ht-feed-tokens">{{#each tokens}}<img class="ht-feed-token" data-token="{{id}}" src="{{img}}" alt="{{name}}" style="left: {{x}}px; top: {{y}}px; width: {{w}}px; height: {{h}}px; transform: rotate({{rot}}deg)">{{/each}}</div>
+    </div></div>
   </div>
   <div class="ht-feed-hud">
     <span class="ht-feed-label">{{label}}</span>
     {{#if playback}}<span class="ht-feed-tag">PLAYBACK</span>{{else if recording}}<span class="ht-feed-rec">&#9679; REC</span>{{else}}<span class="ht-feed-live">&#9679; LIVE</span>{{/if}}
+  </div>
+  <div class="ht-feed-zoom">
+    <button type="button" data-action="camZoom" data-key="{{key}}" data-dir="-1" title="Zoom out"><i class="fas fa-minus"></i></button>
+    <span class="ht-zoom-level">FIT</span>
+    <button type="button" data-action="camZoom" data-key="{{key}}" data-dir="1" title="Zoom in"><i class="fas fa-plus"></i></button>
   </div>
 </div>
