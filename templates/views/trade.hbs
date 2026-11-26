@@ -9,9 +9,9 @@
   <tbody>
   {{#each goods}}
   <tr class="{{#if restricted}}restricted{{/if}}">
-    <td><span class="ht-trade-name">{{name}}</span>{{#if tag}}<small class="ht-trade-tag {{tagTone}}">{{tag}}</small>{{/if}}</td>
-    <td class="num">{{#if stocked}}{{buy}}{{else}}<span class="ht-dim">--</span>{{/if}}</td>
-    <td class="num">{{sell}}</td>
+    <td><span class="ht-trade-name">{{name}}</span>{{#if cheap}}<small class="ht-trade-tag good" title="{{pct}}% against the galactic average: buy here">cheap</small>{{/if}}{{#if wanted}}<small class="ht-trade-tag gold" title="+{{pct}}% against the galactic average: sell here">wanted</small>{{/if}}{{#if restricted}}<small class="ht-trade-tag red" title="Contraband in most places. It pays more, but buying or selling it may draw attention, and the sale makes the HoloNet news. The GM decides the risk.">restricted</small>{{/if}}</td>
+    <td class="num{{#if cheap}} ht-price-cheap{{/if}}">{{#if stocked}}{{buy}}{{else}}<span class="ht-dim" title="Not sold here">--</span>{{/if}}</td>
+    <td class="num{{#if wanted}} ht-price-wanted{{/if}}">{{sell}}</td>
     <td class="num">{{#if held}}{{held}} t{{#if paidTxt}}<small>{{paidTxt}}</small>{{/if}}{{/if}}</td>
     <td class="ht-trade-btns">
       {{#if ../canTrade}}
@@ -23,6 +23,6 @@
   {{/each}}
   </tbody>
 </table>
-<p class="ht-dim ht-trade-help">Prices are credits per ton. Buy where a good is cheap (green), sell where it's wanted (gold). Your active character pays and is paid.</p>
+<p class="ht-dim ht-trade-help">Prices are credits per ton. Green buy prices are cheaper than the galactic average, gold sell prices are above it: buy green, sell gold. "--" means the world doesn't sell that good, but it will still buy it. Restricted goods are contraband: they pay more, and the GM decides the risk. Your active character pays and is paid.</p>
 {{#if isGM}}<div class="ht-row"><button type="button" data-action="tradeShift" title="New prices on every world"><i class="fas fa-shuffle"></i> Shift markets</button></div>{{/if}}
 {{/if}}
