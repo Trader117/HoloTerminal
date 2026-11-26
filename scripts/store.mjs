@@ -12,9 +12,8 @@ export function registerSettings() {
     });
   }
   game.settings.register(MODULE_ID, "creditsPath", {
-    name: "Credits field", hint: "Actor data path holding credits. SW5e: system.currency.gc. dnd5e: system.currency.gp.",
-    scope: "world", config: true, type: String,
-    default: game.system.id === "sw5e" ? "system.currency.gc" : "system.currency.gp"
+    name: "Credits field", hint: "Actor data path holding credits. Leave on 'auto' to use SW5e credits (system.currency.gc) when the actor has them, else gold (system.currency.gp).",
+    scope: "world", config: true, type: String, default: "auto"
   });
   game.settings.register(MODULE_ID, "sliceSkill", {
     name: "Slicing skill", hint: "Skill key rolled to boost slicing attempts. SW5e Technology is 'tec'.",
@@ -56,12 +55,22 @@ export function onScene(entry, sceneId = canvas.scene?.id) {
 }
 
 /* ---------- credits ---------- */
+/** Where this actor keeps its credits. The setting wins when the actor actually has that field; otherwise
+ *  SW5e credits (gc, also with sw5e-module on dnd5e), a custom "cr" currency, then dnd5e gold. */
+export function creditsPath(actor) {
+  const has = (p) => foundry.utils.getProperty(actor ?? {}, p) !== undefined;
+  const set = String(game.settings.get(MODULE_ID, "creditsPath") ?? "").trim();
+  // the old default was gold; an SW5e actor's credits live in gc, so prefer that over a gp setting
+  if (set === "system.currency.gp" && has("system.currency.gc")) return "system.currency.gc";
+  if (set && set !== "auto" && has(set)) return set;
+  return ["system.currency.gc", "system.currency.cr", "system.currency.gp"].find(has) ?? (set && set !== "auto" ? set : "system.currency.gp");
+}
 export function getCredits(actor) {
-  const v = foundry.utils.getProperty(actor ?? {}, game.settings.get(MODULE_ID, "creditsPath"));
+  const v = foundry.utils.getProperty(actor ?? {}, creditsPath(actor));
   return Number(typeof v === "object" ? v?.value : v) || 0;
 }
 export async function setCredits(actor, amount) {
-  const path = game.settings.get(MODULE_ID, "creditsPath");
+  const path = creditsPath(actor);
   const cur = foundry.utils.getProperty(actor, path);
   await actor.update({ [typeof cur === "object" && cur !== null ? `${path}.value` : path]: Math.max(0, amount) });
 }
