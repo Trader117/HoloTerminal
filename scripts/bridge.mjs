@@ -46,21 +46,25 @@ export async function useItem(ship, itemId, who) {
 }
 
 export function registerBridgeHandlers() {
-  registerHandler("bridgeClaim", async ({ actorId, station }, user) => {
-    const ship = Dock.partyShip(), actor = game.actors.get(actorId);
+  registerHandler("bridgeClaim", async ({ actorId, station, shipId }, user) => {
+    const ship = shipId ? game.actors.get(shipId) : Dock.partyShip(), actor = game.actors.get(actorId);
     if (!ship || !actor || (station && !BY_ID.has(station))) return;
-    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return;
+    // a player seats their own character; the ship's owner (or the GM) can seat anyone
+    const shipBoss = user.isGM || ship.testUserPermission(user, "OWNER");
+    if (!shipBoss && !actor.testUserPermission(user, "OWNER")) return;
     const flag = foundry.utils.deepClone(ship.getFlag(MODULE_ID, "ship") ?? {}), s = flag.stations ?? {};
-    for (const k of Object.keys(s)) if (s[k] === actorId) delete s[k];
+    const gone = Object.keys(s).filter((k) => s[k] === actorId);
+    for (const k of gone) delete s[k];
     if (station) {
-      if (s[station] && s[station] !== actorId && !user.isGM) return notifyUser(user.id, "warn", `${game.actors.get(s[station])?.name ?? "Someone"} already has that station.`);
+      if (s[station] && s[station] !== actorId && !shipBoss) return notifyUser(user.id, "warn", `${game.actors.get(s[station])?.name ?? "Someone"} already has that station.`);
       s[station] = actorId;
     }
-    flag.stations = s;
-    await Dock.saveFlag(ship, flag);
+    // a flag update merges, so a station someone left has to be deleted explicitly
+    const path = `flags.${MODULE_ID}.ship.stations`;
+    await ship.update({ [path]: s, ...Object.fromEntries(gone.filter((k) => k !== station).map((k) => [`${path}.-=${k}`, null])) });
   });
-  registerHandler("bridgeClear", async (p, user) => {
-    const ship = Dock.partyShip(); if (!user.isGM || !ship) return;
-    await Dock.saveFlag(ship, { ...(ship.getFlag(MODULE_ID, "ship") ?? {}), stations: {} });
+  registerHandler("bridgeClear", async ({ shipId } = {}, user) => {
+    const ship = shipId ? game.actors.get(shipId) : Dock.partyShip(); if (!user.isGM || !ship) return;
+    await ship.update({ [`flags.${MODULE_ID}.ship.-=stations`]: null });
   });
 }

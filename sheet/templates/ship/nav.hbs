@@ -1,0 +1,9 @@
+<div class="ht-controls holo-controls">
+  <nav class="ht-keys holo-tabs tabs" data-group="primary">
+    {{#each tabs}}
+    <button type="button" class="ht-key {{cssClass}}" data-action="holoTab" data-group="primary" data-tab="{{id}}" data-tooltip="{{localize label}}"><i class="{{icon}}"></i><span>{{localize label}}</span></button>
+    {{/each}}
+  </nav>
+  <div class="ht-readout" data-tooltip="Hull and shields">{{hull.value}}<small>hull</small>{{#if shields.has}} {{shields.value}}<small>shld</small>{{/if}}</div>
+  <button type="button" class="ht-key ht-power" data-action="closeSheet"><i class="fa-solid fa-power-off"></i><span>Close</span></button>
+</div>

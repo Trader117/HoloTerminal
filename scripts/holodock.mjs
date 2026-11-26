@@ -108,7 +108,7 @@ export function shipInfo(a, user = game.user) {
     dice: num(ss.hullDice) ? `${ss.hullDice}d${ss.hullDie}` : null, skills,
     hull: bar(hp.value, hp.max, "hull"),
     shields: shieldMax || num(hp.temp) ? bar(hp.temp, shieldMax ?? hp.temp, "shields") : null,
-    fuel: { ...bar(fu.value, fu.max, "fuel"), price: fu.price },
+    fuel: { ...bar(fu.value, fu.max, "fuel"), price: fu.price, onActor: fu.onActor },
     hyper: hyperClass(a),
     systemDamage: num(at.systemDamage) ?? (ss.size ? num(f.systemDamage) ?? 0 : null),
     routing: routing !== undefined ? { value: routing, label: ROUTING[routing] ?? routing,
@@ -116,6 +116,17 @@ export function shipInfo(a, user = game.user) {
     crew: crewOf(a), cargo, cargoUsed: Math.round(cargoUsed * 100) / 100, cargoCap: num(f.cargoCap) ?? num(ss.cargoCap) ?? num(size?.system?.cargoCap),
     location: f.location ?? "", notes: f.notes ?? ""
   };
+}
+
+/** Starship skill check: d20 + the ship's ability modifier, plus the roller's proficiency bonus if they hold a bridge station on this ship. */
+export async function rollShipSkill(ship, key, who = null) {
+  const sk = SKILLS[key]; if (!ship || !sk) return null;
+  const crew = who && Object.values(flagOf(ship).stations ?? {}).includes(who.id);
+  const prof = crew ? Number(who.system?.attributes?.prof) || 0 : 0;
+  const roll = await new Roll("1d20 + @mod + @prof", { mod: ship.system?.abilities?.[sk.ability]?.mod ?? 0, prof }).evaluate();
+  await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: ship }),
+    flavor: `${sk.label} (${game.i18n.localize(CONFIG.DND5E?.abilities?.[sk.ability]?.label ?? sk.ability)}) check${crew ? `, ${who.name} crewing` : ""}` });
+  return roll;
 }
 
 /* ---------- changes ---------- */

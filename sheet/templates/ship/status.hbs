@@ -1,0 +1,57 @@
+<section class="tab holo-body holo-ship-status {{tab.cssClass}}" data-group="primary" data-tab="status">
+  {{#unless inDock}}
+  <div class="holo-ship-banner">
+    <span>This vehicle isn't in the HoloDock yet, so it has no tier, fuel or starship numbers.</span>
+    {{#if editable}}<button type="button" data-action="shipEnable"><i class="fa-solid fa-shuttle-space"></i> Make it a starship</button>{{/if}}
+  </div>
+  {{/unless}}
+
+  <div class="holo-abilities">
+    {{#each abilities}}
+    <div class="holo-ability" data-ability="{{key}}">
+      <a class="holo-abbr" data-action="rollAbility" data-tooltip="{{label}} check">{{abbr}}</a>
+      <b class="holo-mod" data-action="rollAbility" data-tooltip="{{label}} check">{{mod}}</b>
+      {{#if ../editMode}}<input type="number" class="holo-score" name="system.abilities.{{key}}.value" value="{{value}}">{{else}}<span class="holo-score">{{value}}</span>{{/if}}
+      <a class="holo-npc-save" data-action="rollSave" data-tooltip="{{label}} saving throw">Save {{save}}</a>
+    </div>
+    {{/each}}
+  </div>
+
+  <div class="holo-ship-tiles">
+    {{#each tiles}}<div class="holo-ship-tile" {{#if tip}}data-tooltip="{{tip}}"{{/if}}><small>{{label}}</small><b>{{value}}{{#if extra}} <span class="holo-dim">{{extra}}</span>{{/if}}</b></div>{{/each}}
+  </div>
+
+  {{#if editMode}}{{#if inDock}}
+  <h3 class="holo-h">Starship numbers</h3>
+  <div class="holo-ship-edit">
+    <label>Space speed <input type="number" name="flags.holo-terminal.ship.sw5e.space" value="{{ss.space}}"></label>
+    <label>Turning speed <input type="number" name="flags.holo-terminal.ship.sw5e.turn" value="{{ss.turn}}"></label>
+    <label>Damage reduction <input type="number" name="flags.holo-terminal.ship.sw5e.dr" value="{{ss.dr}}"></label>
+    <label>Hyperdrive override <input type="number" step="0.25" name="flags.holo-terminal.ship.hyperdrive" value="{{ship.hyperOverride}}" placeholder="{{ship.hyper}}"></label>
+    <label>Cargo capacity (t) <input type="number" name="flags.holo-terminal.ship.sw5e.cargoCap" value="{{ss.cargoCap}}"></label>
+    <label>Fuel price (cr) <input type="number" name="flags.holo-terminal.ship.sw5e.fuelCost" value="{{ss.fuelCost}}"></label>
+    <label>Mod slots <input type="number" name="flags.holo-terminal.ship.sw5e.modSlots" value="{{ss.modSlots}}"></label>
+    <label>Max suites <input type="number" name="flags.holo-terminal.ship.sw5e.suites" value="{{ss.suites}}"></label>
+  </div>
+  {{/if}}{{/if}}
+
+  <h3 class="holo-h">Starship skills <span class="holo-dim holo-small">{{#if skillWho}}{{skillWho}} crewing: proficiency {{crewProf}} added{{else}}ship's ability modifier; take a station on the Crew tab to add your proficiency{{/if}}</span></h3>
+  <ul class="holo-skills holo-ship-skills">
+    {{#each shipSkills}}
+    <li data-skill="{{key}}" data-action="shipSkill" data-tooltip="Roll {{label}}"><span class="holo-abil">{{ability}}</span><span class="holo-skill-name">{{label}}</span><b>{{total}}</b></li>
+    {{/each}}
+  </ul>
+
+  {{#if inDock}}
+  <h3 class="holo-h">Navigation</h3>
+  <div class="holo-ship-actions">
+    {{#if location}}<span class="holo-ship-loc"><i class="fa-solid fa-location-dot"></i> {{location}}</span>{{/if}}
+    {{#if canCommand}}
+    <button type="button" data-action="shipRefuel" data-units="1" {{#if fuel.max}}{{#if (eq fuel.value fuel.max)}}disabled{{/if}}{{/if}}><i class="fa-solid fa-gas-pump"></i> {{#if isGM}}Add 1 fuel{{else}}Buy 1 fuel{{/if}}</button>
+    {{#if fuel.max}}<button type="button" data-action="shipRefuel" data-units="fill" {{#if (eq fuel.value fuel.max)}}disabled{{/if}}><i class="fa-solid fa-gas-pump"></i> Fill tanks</button>{{/if}}
+    {{/if}}
+    <button type="button" data-action="shipJump"><i class="fa-solid fa-earth-americas"></i> Plot a jump</button>
+    <button type="button" data-action="shipDock"><i class="fa-solid fa-shuttle-space"></i> HoloDock</button>
+  </div>
+  {{/if}}
+</section>

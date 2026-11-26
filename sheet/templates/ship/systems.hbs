@@ -1,0 +1,43 @@
+<section class="tab holo-body holo-ship-systems {{tab.cssClass}}" data-group="primary" data-tab="systems">
+  <h3 class="holo-h">Ship systems <a data-action="createShipItem" data-kind="equipment" data-tooltip="Add a system"><i class="fa-solid fa-plus"></i></a></h3>
+  {{#each systems}}
+  <div class="holo-ship-group"><span class="holo-ship-group-label">{{label}}</span>
+    <ul class="holo-ship-list">
+      {{#each items}}
+      <li class="holo-item" data-item-id="{{id}}" draggable="true"><div class="holo-item-row holo-ship-row">
+        <img src="{{img}}" data-action="expandItem">
+        <div class="holo-ship-main"><a class="holo-item-name" data-action="expandItem">{{name}}</a><small>{{stats}}</small></div>
+        <span class="holo-controls">
+          {{#if equippable}}<a data-action="toggleEquip" class="holo-equip {{#if equipped}}holo-equip-on{{/if}}" data-tooltip="{{#if equipped}}Installed: click to switch off{{else}}Install{{/if}}"><i class="fa-solid fa-power-off"></i></a>{{/if}}
+          <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+          <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+        </span>
+      </div></li>
+      {{/each}}
+    </ul>
+  </div>
+  {{else}}<p class="holo-dim holo-empty">No armor, shields, reactor, power coupling or hyperdrive installed.</p>{{/each}}
+
+  <h3 class="holo-h"><span>Modifications</span>
+    <span class="holo-ship-count {{#if modCount.over}}holo-ship-over{{/if}}">{{modCount.used}}{{#if modCount.slots}} / {{modCount.slots}} slots{{/if}}
+      · <span class="{{#if modCount.suitesOver}}holo-ship-over{{/if}}">{{modCount.suites}}{{#if modCount.suiteMax}} / {{modCount.suiteMax}}{{/if}} suites</span>
+      <a data-action="createShipItem" data-kind="mod" data-tooltip="Add a modification"><i class="fa-solid fa-plus"></i></a></span>
+  </h3>
+  {{#each modGroups}}
+  <div class="holo-ship-group"><span class="holo-ship-group-label">{{label}}</span>
+    <ul class="holo-ship-list holo-ship-mods">
+      {{#each items}}
+      <li class="holo-item" data-item-id="{{id}}" draggable="true"><div class="holo-item-row holo-ship-row">
+        <img src="{{img}}" data-action="expandItem">
+        <div class="holo-ship-main"><a class="holo-item-name" data-action="expandItem">{{name}}</a></div>
+        {{#if grade}}<span class="holo-badge" data-tooltip="Grade {{grade}}">G{{grade}}</span>{{/if}}
+        <span class="holo-controls">
+          <a data-action="editItem" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></a>
+          <a data-action="deleteItem" class="holo-edit-only" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></a>
+        </span>
+      </div></li>
+      {{/each}}
+    </ul>
+  </div>
+  {{else}}<p class="holo-dim holo-empty">No modifications. Buy them at the Shipyard, or drag them onto the sheet.</p>{{/each}}
+</section>
