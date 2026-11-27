@@ -170,8 +170,6 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editTraits: HoloDossierSheet.#onEditTraits,
       holoTab: HoloDossierSheet.#onTab,
       closeSheet: HoloDossierSheet.#onCloseSheet,
-      levelChange: HoloDossierSheet.#onLevelChange,
-      levelUp: HoloDossierSheet.#onLevelUp,
       configureSheet: HoloDossierSheet.#onConfigureSheet,
       configurePrototypeToken: HoloDossierSheet.#onConfigureToken
     }
@@ -242,8 +240,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // dnd5e "Leveling mode": "noxp" is level advancement without XP, so the XP ring goes and level-up is manual
     ctx.noXP = game.settings.settings.has("dnd5e.levelingMode") && game.settings.get("dnd5e", "levelingMode") === "noxp";
     const maxLevel = num(C.maxLevel, 20);
-    ctx.canLevelUp = ctx.editable && ctx.level < maxLevel && (actor.itemTypes.class ?? []).length > 0
-      && (ctx.noXP || (ctx.xp.max > 0 && ctx.xp.value >= ctx.xp.max));
+
     ctx.alignment = sys.details?.alignment ?? "";
 
     /* vitals */
@@ -332,8 +329,13 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.classCards = classes.map((c) => {
       const sub = subclasses.find((x) => x.system.classIdentifier === c.system.identifier);
       const levels = num(c.system.levels, 1);
-      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels,
-        canUp: ctx.editable && ctx.level < maxLevel, canDown: ctx.editable && levels > 1 };
+      // stock dnd5e level selector: every level 1..max, labelled with the change, beyond the cap disabled
+      const room = maxLevel - ctx.level;
+      const levelOptions = Array.from({ length: maxLevel }, (_, i) => {
+        const delta = i + 1 - levels;
+        return { delta, label: delta ? `${i + 1} (${delta > 0 ? "+" : ""}${delta})` : `${i + 1}`, selected: !delta, disabled: delta > room };
+      });
+      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels, levelOptions };
     });
 
     /* conditions */
@@ -582,6 +584,16 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
       input.addEventListener("focus", () => input.select());
     });
+    // class level selectors (Features), like the stock sheet's
+    el.querySelectorAll("select.holo-level-select").forEach((select) => {
+      select.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        const item = this.actor.items.get(select.closest("[data-item-id]")?.dataset.itemId);
+        const delta = Number(select.value);
+        select.value = "0";
+        if (item?.type === "class") HoloDossierSheet.#changeLevel.call(this, item, delta);
+      });
+    });
     // inline item fields (quantity, uses) edit the item, not the actor
     el.querySelectorAll("input[data-item-field]").forEach((input) => {
       input.addEventListener("change", async (ev) => {
@@ -686,17 +698,6 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
   static #onCloseSheet() { return this.close(); }
 
-  /** Level-up badge: with one class it levels that class, with several it opens the class cards on Features. */
-  static #onLevelUp(event, target) {
-    const classes = this.actor.itemTypes.class ?? [];
-    if (classes.length === 1) return HoloDossierSheet.#changeLevel.call(this, classes[0], 1);
-    this.changeTab("features", "primary", { event });
-    this.element.querySelectorAll('.ht-key[data-group="primary"]').forEach((k) => k.classList.toggle("active", k.dataset.tab === "features"));
-  }
-  static #onLevelChange(event, target) {
-    const item = HoloDossierSheet.#item.call(this, target);
-    if (item?.type === "class") return HoloDossierSheet.#changeLevel.call(this, item, Number(target.dataset.delta) || 0);
-  }
   /** Same flow as the stock dnd5e level selector: run advancements when there are any, else just set the level. */
   static async #changeLevel(classItem, delta) {
     if (!delta || !this.isEditable) return;

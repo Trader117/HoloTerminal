@@ -4,11 +4,11 @@
     <div class="holo-id-card holo-class-card" data-item-id="{{id}}">
       <img src="{{img}}" data-action="editItem">{{#if subImg}}<img src="{{subImg}}">{{/if}}
       <div><a class="holo-id-name" data-action="editItem">{{name}}</a><span>{{sub}}</span></div>
-      <span class="holo-class-level">
-        {{#if canDown}}<a class="holo-lvl-btn holo-edit-only" data-action="levelChange" data-delta="-1" data-tooltip="Level down"><i class="fa-solid fa-minus"></i></a>{{/if}}
-        <b>{{levels}}</b>
-        {{#if canUp}}<a class="holo-lvl-btn" data-action="levelChange" data-delta="1" data-tooltip="Level up {{name}}"><i class="fa-solid fa-plus"></i></a>{{/if}}
-      </span>
+      {{#if @root.editable}}
+      <select class="holo-level-select" data-tooltip="Change level">
+        {{#each levelOptions}}<option value="{{delta}}"{{#if selected}} selected{{/if}}{{#if disabled}} disabled{{/if}}>{{label}}</option>{{/each}}
+      </select>
+      {{else}}<b class="holo-class-level">{{levels}}</b>{{/if}}
     </div>
     {{/each}}
   </div>

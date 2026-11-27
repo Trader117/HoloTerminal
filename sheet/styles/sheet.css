@@ -100,9 +100,6 @@ input.holo-name { background:transparent !important; border:none !important; bor
 .holo-level-ring .fill { fill:none; stroke:var(--hs-rule); stroke-linecap:round; }
 .holo-level-badge span { position:relative; font:700 28px var(--hs-display); color:var(--hs-strong); }
 .holo-noxp .holo-level-ring .track { stroke:var(--hs-rule); }
-.holo-level-up { position:absolute; right:-4px; bottom:-4px; width:24px; height:24px; display:grid; place-items:center; border-radius:50%;
-  background:var(--hs-bar); color:#1a1206 !important; font-size:12px; box-shadow:0 0 0 2px var(--hs-bg), 0 0 10px color-mix(in srgb, var(--hs-bar) 60%, transparent); }
-.holo-level-up:hover { filter:brightness(1.15); }
 
 /* ---------- sidebar ---------- */
 .holo-sidebar { overflow-y:auto; padding:.8rem .7rem 1rem; background:var(--hs-bg); border-right:1px solid var(--hs-line); display:flex; flex-direction:column; gap:.8rem; }
@@ -273,10 +270,10 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
 .holo-class-cards { display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem; margin-bottom:.9rem; }
 .holo-class-card { min-width:240px; }
 .holo-class-card img + img { margin-left:-4px; }
-.holo-class-level { display:flex; align-items:center; gap:.35rem; margin-left:.6rem; }
-.holo-class-level b { font:700 22px var(--hs-display); color:var(--hs-strong); min-width:1.2em; text-align:center; }
-.holo-lvl-btn { width:22px; height:22px; display:grid; place-items:center; border:1px solid var(--hs-line); border-radius:5px; font-size:11px; background:var(--hs-bg); }
-.holo-lvl-btn:hover { border-color:var(--hs-bar); color:var(--hs-bar) !important; }
+.holo-class-level { font:700 22px var(--hs-display); color:var(--hs-strong); margin-left:.6rem; }
+.holo-level-select { flex:none; width:auto; margin-left:.6rem; height:32px; padding:0 .3rem; font:700 18px var(--hs-display); color:var(--hs-strong); background:var(--hs-bg); border:1px solid var(--hs-line); border-radius:5px; cursor:pointer; }
+.holo-level-select:hover, .holo-level-select:focus { border-color:var(--hs-bar); outline:none; }
+.holo-level-select option { background:#0e1216; color:var(--hs-text); font-size:14px; }
 
 /* ---------- effects ---------- */
 .holo-switch { display:inline-block; width:26px; height:14px; border-radius:7px; background:var(--hs-line); position:relative; vertical-align:middle; }
