@@ -127,6 +127,20 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 .ht-themed > .window-header :is(a, button, .header-button, .header-control) { color: var(--ht-muted); white-space: nowrap; font-size: 12px; }
 .ht-themed > .window-header :is(a, button, .header-button, .header-control):hover { color: var(--ht-red); text-shadow: none; }
 .ht-themed > .window-header .window-icon { color: var(--ht-blue); }
+/* header buttons (PopOut!, Sheet, Close): icon and label on one line; dnd5e's sheet header otherwise stacks them */
+.ht-themed > .window-header :is(a.header-button, a.popout, .header-button) {
+  display: inline-flex !important; flex-direction: row; align-items: center; gap: 4px; margin-top: 0; line-height: 1;
+  flex: none; width: auto !important; min-width: max-content; overflow: visible; margin-inline: 4px;
+}
+.ht-themed > .window-header :is(a.header-button, .header-button) i { margin: 0; font-size: 12px; color: inherit; }
+/* dnd5e sheets draw header buttons as small round icons, so labels like "PopOut!" spill over the next button
+   (stock dnd5e does this too): show the icon only */
+.ht-themed.dnd5e2 > .window-header :is(a.header-button, .header-button) {
+  width: 22px !important; height: 22px; min-width: 0; aspect-ratio: 1; justify-content: center; gap: 0;
+  font-size: 0; border-radius: 50%; background: var(--ht-panel-2); border: 1px solid var(--ht-line); margin-inline: 2px;
+}
+.ht-themed.dnd5e2 > .window-header :is(a.header-button, .header-button):hover { border-color: var(--ht-red); }
+.ht-themed.dnd5e2 > .window-header :is(a.header-button, .header-button) i { font-size: 11px; }
 .ht-themed > .window-content {
   background: radial-gradient(120% 60% at 50% 0%, rgba(42, 163, 223, .07), transparent 70%), var(--ht-bg) !important;
   color: var(--ht-text);
