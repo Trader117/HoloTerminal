@@ -143,6 +143,15 @@
 .ht-current .ht-glyph { border-color: var(--ht-blue); }
 .ht-score { margin-left: 10px; font: 700 12px var(--ht-font-display); text-transform: uppercase; letter-spacing: .5px; }
 .ht-lock { color: var(--ht-good); } .ht-drift { color: var(--ht-gold); }
+.ht-glyph.ht-g-lock { background: color-mix(in srgb, var(--ht-good) 30%, var(--ht-panel-2)); border-color: var(--ht-good); }
+.ht-glyph.ht-g-drift { background: color-mix(in srgb, var(--ht-gold) 28%, var(--ht-panel-2)); border-color: var(--ht-gold); }
+.ht-glyph.ht-g-miss { opacity: .45; }
+.ht-revealed { box-shadow: 0 0 6px var(--ht-good); }
+.ht-legend { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--ht-muted); flex-wrap: wrap; justify-content: center; }
+.ht-legend .ht-glyph { width: 1.6em; font-size: 11px; padding: 1px 0; }
+.ht-reveal-note { color: var(--ht-good); margin: 0; }
+.ht-alarm-note { color: var(--ht-red); font-weight: 700; margin: 0; animation: ht-blink 1s steps(1) infinite; }
+.ht-screen .ht-glyph-btn.ht-ruled-out { opacity: .35; text-decoration: line-through; }
 .ht-pad { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
 .ht-screen .ht-glyph-btn { font-size: 18px; width: 2.4em; padding: 4px 0; }
 

@@ -34,6 +34,12 @@ export function registerActions() {
     gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "sliced into" : "<b>failed</b> to slice"} ${t?.name ?? "a terminal"}${game ? ` (${game})` : ""}.`);
   });
 
+  registerHandler("sliceAlarm", async ({ terminalId, label, actorName, game, pushed }, user) => {
+    const t = find("terminals", terminalId), who = `<b>${actorName ?? user.name}</b>`, what = label ? `<i>${label}</i> on ${t?.name ?? "a terminal"}` : t?.name ?? "a terminal";
+    gmWhisper(pushed ? `&#128680; ${who} is forcing through the alarm on ${what}. Security is alerted.`
+      : `&#128680; <b>Alarm tripped:</b> ${who} ran out of tries on ${what}${game ? ` (${game})` : ""}. They can push on or back out.`);
+  });
+
   registerHandler("decryptResult", async ({ terminalId, label, success, how, actorName }, user) => {
     const t = find("terminals", terminalId);
     gmWhisper(`<b>${actorName ?? user.name}</b> ${success ? "decrypted" : "<b>failed</b> to decrypt"} <i>${label}</i> on ${t?.name ?? "a terminal"}${how ? ` (${how})` : ""}.`);
