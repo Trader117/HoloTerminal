@@ -120,16 +120,19 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
   color: var(--ht-strong);
 }
 .ht-themed > .window-header .window-title {
-  color: var(--ht-red); font-family: var(--ht-font-display); font-weight: 700;
-  text-transform: uppercase; letter-spacing: .6px;
+  color: var(--ht-red); font-family: var(--ht-font-display); font-weight: 700; font-size: 13px;
+  text-transform: uppercase; letter-spacing: .3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
-.ht-themed > .window-header :is(a, button, .header-button, .header-control) { color: var(--ht-muted); }
+.ht-themed > .window-header :is(a, button, .header-button, .header-control) { color: var(--ht-muted); white-space: nowrap; font-size: 12px; }
 .ht-themed > .window-header :is(a, button, .header-button, .header-control):hover { color: var(--ht-red); text-shadow: none; }
 .ht-themed > .window-header .window-icon { color: var(--ht-blue); }
 .ht-themed > .window-content {
   background: radial-gradient(120% 60% at 50% 0%, rgba(42, 163, 223, .07), transparent 70%), var(--ht-bg) !important;
   color: var(--ht-text);
+  font-size: 13px; overflow-wrap: break-word;
 }
+.ht-themed .window-content :is(.form-group > label, .form-fields, .form-group > *) { min-width: 0; }
 .ht-themed .window-resizable-handle, .ht-themed .window-resize-handle { filter: invert(1) hue-rotate(180deg); opacity: .5; background-color: transparent; border-color: var(--ht-line); }
 .ht-themed.minimized { background: var(--ht-panel) !important; }
 
@@ -172,7 +175,7 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 .ht-themed :is(input, textarea).uninput:not(:focus):not(:hover) { background: transparent; border-color: transparent; }
 .ht-themed fieldset { border: 1px solid var(--ht-line); border-radius: var(--ht-radius); background: rgba(20, 26, 32, .55); }
 .ht-themed fieldset > legend {
-  color: var(--ht-red); font: 700 12px var(--ht-font-display); text-transform: uppercase; letter-spacing: .6px;
+  color: var(--ht-red); font: 700 11px var(--ht-font-display); text-transform: uppercase; letter-spacing: .3px;
   background: none; border: 0; padding: 0 6px;
 }
 /* stock checkbox widgets (v12 AppV2, dnd5e slide toggles) */
@@ -184,7 +187,9 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 .ht-themed :is(button, .button, a.button, .dialog-button):not(.header-control):not(.header-button):not(.unbutton):not(.icon):not([data-action="toggleControls"]) {
   background: var(--ht-panel-2); color: var(--ht-text);
   border: 1px solid var(--ht-line); border-radius: 4px; box-shadow: none; text-shadow: none;
-  font-family: var(--ht-font-display); font-weight: 600; letter-spacing: .3px;
+  font-family: var(--ht-font-body); font-size: 12px; font-weight: 600; letter-spacing: 0;
+  line-height: 1.2; min-height: var(--form-field-height, 26px); height: auto; padding: 3px 8px;
+  white-space: normal; overflow-wrap: break-word; min-width: 0;
 }
 .ht-themed :is(button, .button, a.button, .dialog-button):not(.header-control):not(.header-button):not(.unbutton):not(.icon):hover:not(:disabled) {
   background: var(--ht-band-2); color: var(--ht-strong); border-color: var(--ht-red); box-shadow: none;
@@ -241,6 +246,7 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 /* info notes (Long Rest text etc.) */
 .ht-themed .window-content :is(.notification, .note, p.note, .info-note) {
   background: rgba(42, 163, 223, .1); border: 1px solid var(--ht-blue); border-left-width: 3px; color: var(--ht-text); text-shadow: none;
+  padding: 6px 10px; box-sizing: border-box; max-width: 100%; overflow-wrap: break-word;
 }
 .ht-themed .window-content .notification.warning, .ht-themed .window-content .note.warning { background: rgba(255, 159, 67, .1); border-color: var(--ht-warn); }
 .ht-themed .window-content .notification.error { background: rgba(255, 81, 70, .1); border-color: var(--ht-red); }
@@ -250,7 +256,10 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 .ht-themed.dnd5e2.sheet.item .sheet-header { padding-bottom: 6px; border-bottom: 2px solid var(--ht-gold); }
 .ht-themed.dnd5e2.sheet.item .sheet-header .document-name {
   color: var(--ht-red); font-family: var(--ht-font-display); font-weight: 700; letter-spacing: .3px;
-  font-size: 24px; text-overflow: ellipsis;
+  font-size: 20px; text-overflow: ellipsis; min-width: 0; text-align: center;
+}
+/* feats and other items with no weight/price leave the right column empty: give its width to the name */
+.ht-themed.dnd5e2.sheet.item .sheet-header > .right:not(:has(*)) { display: none;
 }
 .ht-themed.dnd5e2.sheet.item .sheet-header .item-image {
   border: 3px solid var(--ht-gold); border-radius: 10px; box-shadow: 0 0 0 1px #07090b, 0 0 12px rgba(230, 154, 40, .25);
@@ -258,7 +267,7 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 }
 .ht-themed.dnd5e2.sheet.item .sheet-header .subtitles { color: var(--ht-muted); }
 .ht-themed.dnd5e2.sheet.item .sheet-header .common-fields { color: var(--ht-muted); }
-.ht-themed.dnd5e2.sheet.item nav.tabs .item { color: var(--ht-muted); font-family: var(--ht-font-display); box-shadow: none; }
+.ht-themed.dnd5e2.sheet.item nav.tabs .item { color: var(--ht-muted); font-family: var(--ht-font-display); font-size: 11px; letter-spacing: 0; box-shadow: none; flex: 1 1 auto; white-space: nowrap; }
 .ht-themed.dnd5e2.sheet.item nav.tabs .item.active { color: var(--ht-red); box-shadow: none; }
 .ht-themed.dnd5e2.sheet.item nav.tabs .item.active > span { border-bottom: 3px solid var(--ht-blue); }
 /* stat-block blocks (spell / power details, item info) read as the gold SW5e stat-block */
@@ -284,7 +293,8 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
   border-top: 2px solid var(--ht-blue);
 }
 .ht-themed.dnd5e2.application:not(.minimized) > .window-header :is(h1, h2) {
-  color: var(--ht-red); font-family: var(--ht-font-display); text-transform: uppercase; letter-spacing: .8px;
+  color: var(--ht-red); font-family: var(--ht-font-display); letter-spacing: .3px;
+  padding-inline: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ht-themed.dnd5e2.application:not(.minimized) > .window-header h2 { color: var(--ht-muted); text-transform: none; letter-spacing: 0; }
 .ht-themed.dnd5e2.application:not(.minimized) > .window-header .window-icon { color: var(--ht-blue); --icon-fill: var(--ht-blue); }
@@ -309,7 +319,7 @@ body.ht-ui-windows #menu {
   border-top: 3px solid var(--ht-blue); border-radius: var(--ht-radius);
 }
 body.ht-ui-windows #menu li, body.ht-ui-windows #menu .menu-item {
-  color: var(--ht-text); font-family: var(--ht-font-display); text-transform: uppercase; letter-spacing: .5px;
+  color: var(--ht-text); font-family: var(--ht-font-display); letter-spacing: .2px;
   border-color: var(--ht-line);
 }
 body.ht-ui-windows #menu li:hover, body.ht-ui-windows #menu .menu-item:hover {
