@@ -3,11 +3,16 @@
     <p class="ht-big">{{gameName}}</p>
     <p class="ht-dim">Difficulty: {{difficulty}}</p>
     <p>{{rules}}</p>
+    {{#if lockout}}
+      <p class="ht-denied">SECURITY LOCKOUT</p>
+      <p>The system is locked down after the last intrusion. Try again in {{lockout}}s.</p>
+    {{else}}
     <p>Run a slicing check (DC {{dc}}) first for {{boostText}}. Failing it costs you some.</p>
     <div class="ht-row">
       <button type="button" class="ht-primary" data-action="sliceBoost">Run slicing check</button>
       <button type="button" data-action="sliceBegin">Go in cold</button>
     </div>
+    {{/if}}
   </div>
 {{else}}
   <div class="ht-hack-bar">
@@ -17,14 +22,20 @@
 
   {{#if (eq game "cipher")}}
   <div class="ht-cipher">
-    {{#each puzzle.guesses}}
-      <div class="ht-guess">{{#each glyphs}}<span class="ht-glyph">{{this}}</span>{{/each}}
+    {{#if playing}}
+    {{#if revealedCount}}<p class="ht-reveal-note">Slicing check exposed {{revealedText}}, already locked in.</p>{{/if}}
+    {{#if penalty}}<p class="ht-dim">Your slicing check tripped a countermeasure: one fewer attempt.</p>{{/if}}
+    {{#if alarmOn}}<p class="ht-alarm-note">&#128680; ALARM ACTIVE &middot; security is on its way</p>{{/if}}
+    <div class="ht-legend"><span class="ht-glyph ht-g-lock">&#9670;</span> right slot <span class="ht-glyph ht-g-drift">&#9670;</span> wrong slot <span class="ht-glyph ht-g-miss">&#9670;</span> not in code</div>
+    {{/if}}
+    {{#each guesses}}
+      <div class="ht-guess">{{#each cells}}<span class="ht-glyph ht-g-{{mark}}">{{glyph}}</span>{{/each}}
         <span class="ht-score"><span class="ht-lock">LOCK {{locked}}</span> &middot; <span class="ht-drift">DRIFT {{drift}}</span></span></div>
     {{/each}}
     {{#if playing}}
-      <div class="ht-guess ht-current">{{#each slots}}<span class="ht-glyph">{{this}}</span>{{/each}}</div>
+      <div class="ht-guess ht-current">{{#each slots}}<span class="ht-glyph{{#if revealed}} ht-g-lock ht-revealed{{/if}}"{{#if revealed}} title="Revealed by your slicing check"{{/if}}>{{glyph}}</span>{{/each}}</div>
       <p class="ht-dim">{{remaining}} attempts left</p>
-      <div class="ht-pad">{{#each puzzle.pool}}<button type="button" class="ht-glyph-btn" data-action="glyph" data-glyph="{{this}}">{{this}}</button>{{/each}}</div>
+      <div class="ht-pad">{{#each pad}}<button type="button" class="ht-glyph-btn{{#if out}} ht-ruled-out{{/if}}" data-action="glyph" data-glyph="{{glyph}}"{{#if out}} title="Not in the code"{{/if}}>{{glyph}}</button>{{/each}}</div>
       <div class="ht-row"><button type="button" data-action="glyphBack">&#9003; Clear</button><button type="button" data-action="transmit" class="ht-primary">Transmit</button></div>
     {{/if}}
   </div>
@@ -79,9 +90,17 @@
     <div class="ht-login"><p class="ht-big ht-granted">{{#if decrypting}}DECRYPTED{{else}}ACCESS GRANTED{{/if}}</p>
       <button type="button" class="ht-primary" data-action="go" data-view="terminal" data-id="{{viewId}}">{{#if decrypting}}Read it{{else}}Enter{{/if}}</button></div>
   {{/if}}
+  {{#if alarm}}
+    <div class="ht-login"><p class="ht-big ht-denied">&#128680; ALARM TRIPPED</p>
+      <p>You're out of attempts and security knows someone is in the system. Force it for {{alarmAttempts}} more tries, or back out now before the lockout.</p>
+      <div class="ht-row"><button type="button" class="ht-primary" data-action="slicePush">Force it (+{{alarmAttempts}} tries)</button>
+        <button type="button" data-action="sliceAbort">Back out</button></div></div>
+  {{/if}}
   {{#if lost}}
     <div class="ht-login"><p class="ht-big ht-denied">LOCKOUT &middot; INTRUSION LOGGED</p>
       {{#if (eq game "cipher")}}<p>Code was: {{#each puzzle.code}}{{this}}{{/each}}</p>{{/if}}
-      <button type="button" data-action="back">Disconnect</button></div>
+      {{#if lockout}}<p class="ht-dim">Security lockout: you can try again in {{lockout}}s.</p>{{/if}}
+      <div class="ht-row">{{#unless lockout}}<button type="button" class="ht-primary" data-action="sliceRetry">Try again</button>{{/unless}}
+        <button type="button" data-action="back">Disconnect</button></div></div>
   {{/if}}
 {{/if}}

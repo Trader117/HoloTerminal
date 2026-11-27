@@ -41,12 +41,12 @@ Bounties: *Complete & pay* splits `reward` between the hunters who took the cont
 
 ## Slicing games
 A locked terminal can be sliced instead of using its access code. Set the terminal's `slice.game` to pick the game, or use `random` to roll a different one each attempt:
-- **Cipher Lock** (`cipher`): crack a hidden glyph code. Each guess shows LOCK (right glyph, right slot) and DRIFT (right glyph, wrong slot).
+- **Cipher Lock** (`cipher`): crack a hidden glyph code. After each guess every glyph is coloured: green LOCK (right glyph, right slot), gold DRIFT (in the code, wrong slot) or grey (not in the code), and ruled-out glyphs dim on the keypad. Easy is 3 glyphs from 4 symbols, Normal 4 from 5, Hard 5 from 6, Elite 5 from 8. Running out of tries trips an alarm (the GM is whispered): the slicer can force it for 3 more tries or back out. Failing after forcing it locks the terminal for 30 seconds before they can try again.
 - **Circuit Reroute** (`circuit`): click tiles to rotate them until power runs from the source on the left to the core on the right, against the clock.
 - **Signal Tuning** (`signal`): turn frequency, amplitude and phase dials until your wave sits on the intercepted one, then lock in. A wrong lock costs 5 seconds.
 - **Firewall Run** (`firewall`): move a probe to the data core. Trace sentinels step along their lines after every move, and the cells they'll reach next glow red. Arrow keys work.
 
-Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and number of sentinels. Before starting, a player can roll the slicing skill against the terminal's DC. Success gives +1, plus 1 more for every 5 over the DC (up to +3), and a failure gives -1. Each point is an attempt (Cipher), 15 seconds (Circuit), 10 seconds (Signal) or 3 moves (Firewall). The GM gets a whisper naming the game for every success and failure.
+Difficulty (`easy`, `normal`, `hard`, `elite`) sets the board size, timer and number of sentinels. Before starting, a player can roll the slicing skill against the terminal's DC. Success gives +1, plus 1 more for every 5 over the DC (up to +3), and a failure gives -1. For Cipher Lock each point reveals one glyph of the code in place (never the whole code), and a failure costs one attempt. Otherwise each point is 15 seconds (Circuit), 10 seconds (Signal) or 3 moves (Firewall). The GM gets a whisper naming the game for every success and failure.
 
 ## Security cameras
 1. On the Regions layer, draw a Region over the area a camera should watch. Any shape works; the feed shows the box around it. Players never see Regions. Naming the Region names the camera.

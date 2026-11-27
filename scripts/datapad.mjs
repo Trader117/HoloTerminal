@@ -1,14 +1,14 @@
 import { placeFrameless } from "./frameless.mjs";
 import { MODULE_ID, CHANGED_HOOK, list, find, onScene, requestGM, getCredits, remove, upsert } from "./store.mjs";
-import { newPuzzle, submit, bonusFromRoll } from "./slicing.mjs";
+import { newPuzzle, submit, bonusFromRoll, addGlyph, removeGlyph, pushThrough, ruledOut, ALARM_ATTEMPTS } from "./slicing.mjs";
 import * as Circuit from "./hacks/circuit.mjs";
 import * as Signal from "./hacks/signal.mjs";
 import * as Firewall from "./hacks/firewall.mjs";
 
 /* Slicing games a terminal can use. "random" picks one each attempt. */
 export const HACKS = {
-  cipher: { name: "Cipher Lock", rules: "Crack the hidden glyph code. LOCK means right glyph, right slot. DRIFT means right glyph, wrong slot.",
-    boost: "extra attempts", make: (d, b) => newPuzzle(d, b) },
+  cipher: { name: "Cipher Lock", rules: "Crack the hidden glyph code. After each guess every glyph lights up: green LOCK is the right glyph in the right slot, gold DRIFT is in the code but in another slot, grey is not in the code. Glyphs ruled out dim on the keypad.",
+    boost: "revealed glyphs (beat the DC by 5 or 10 to reveal more)", make: (d, b) => newPuzzle(d, b) },
   circuit: { name: "Circuit Reroute", rules: "Click tiles to rotate them and route power from the source on the left to the core on the right before time runs out.",
     boost: "extra time", make: (d, b) => Circuit.newCircuit(d, b), timed: true },
   signal: { name: "Signal Tuning", rules: "Turn the frequency, amplitude and phase dials until your carrier (blue) sits exactly on the intercepted signal (red), then lock in. A wrong lock costs 5 seconds.",
@@ -51,6 +51,8 @@ function activeActor() {
 }
 const unlockedIds = () => Crypt.unlockedIds();
 const unlock = (id) => Crypt.unlock(id);
+/* Slicing lockouts after a failed Cipher Lock, by terminal or encrypted entry: id -> time it clears. */
+const LOCKOUTS = new Map();
 /** True for a GM who isn't testing as a player: they skip every lock. */
 const gmBypass = () => game.user.isGM && !Crypt.test.on;
 
@@ -67,7 +69,8 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab, pingBody: DatapadApp.#pingBody,
       login: DatapadApp.#login, camZoom: DatapadApp.#camZoom, testStart: DatapadApp.#testStart, testStop: DatapadApp.#testStop, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
-      glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit,
+      glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit, slicePush: DatapadApp.#slicePush,
+      sliceAbort: DatapadApp.#sliceAbort, sliceRetry: DatapadApp.#sliceRetry,
       decryptCheck: DatapadApp.#decryptCheck, decryptKey: DatapadApp.#decryptKey, decryptHack: DatapadApp.#decryptHack,
       camRecord: DatapadApp.#camRecord, camStop: DatapadApp.#camStop, recPlay: DatapadApp.#recPlay, recToggle: DatapadApp.#recToggle,
       recSpeed: DatapadApp.#recSpeed, recClose: DatapadApp.#recClose, recShare: DatapadApp.#recShare, recDelete: DatapadApp.#recDelete,
@@ -240,9 +243,24 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (p.time <= 0) { p.state = "lost"; this.#finishHack(); }
     }, 1000);
   }
+  /** Where a lockout is remembered: the encrypted entry being decrypted, or the terminal. */
+  #lockKey() { return this.hackTarget?.key ?? this.viewId; }
+  /** Seconds left on a lockout here, and a re-render queued for when it clears. */
+  #lockoutLeft() {
+    const left = Math.ceil(((LOCKOUTS.get(this.#lockKey()) ?? 0) - Date.now()) / 1000);
+    if (left > 0) { clearTimeout(this.#lockTimer); this.#lockTimer = setTimeout(() => this.rendered && this.render(), left * 1000 + 50); }
+    return Math.max(0, left);
+  }
+  #lockTimer = null;
+
   /** Reports the result once a game ends and unlocks the terminal on a win. */
   async #finishHack() {
     this.#stopTimer();
+    if (this.puzzle?.state === "alarm") {
+      requestGM("sliceAlarm", { terminalId: this.viewId, label: this.hackTarget?.label, actorName: activeActor()?.name, game: HACKS[this.game]?.name });
+      return this.render();
+    }
+    if (this.puzzle?.lockedUntil) LOCKOUTS.set(this.#lockKey(), this.puzzle.lockedUntil);
     const success = this.puzzle?.state === "won";
     const target = this.hackTarget;
     if (target) {
@@ -361,11 +379,20 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       title: this.hackTarget ? `Decrypt: ${this.hackTarget.label}` : t?.name ?? "?", theme: "green", decrypting: !!this.hackTarget, difficulty: cfg.difficulty ?? "normal", dc: cfg.dc ?? 15,
       game, gameName: info?.name ?? "Unknown system", rules: info?.rules ?? "The security system is shifting. You won't know which countermeasure you face until you're in.",
       boostText: info?.boost ?? "an edge", timed: !!info?.timed, bonus: this.bonus, puzzle: p, ready: !p,
-      playing: p?.state === "playing", won: p?.state === "won", lost: p?.state === "lost", time: p?.time, timeLow: p?.time <= 10,
+      playing: p?.state === "playing", won: p?.state === "won", lost: p?.state === "lost", alarm: p?.state === "alarm", time: p?.time, timeLow: p?.time <= 10,
     };
+    const lockout = this.#lockoutLeft();
+    Object.assign(ctx, { lockout, alarmAttempts: ALARM_ATTEMPTS });
     if (!p) return ctx;
-    if (game === "cipher") Object.assign(ctx, {
-      slots: Array.from({ length: p.length }, (_, i) => p.current[i] ?? "_"), remaining: p.attempts - p.guesses.length });
+    if (game === "cipher") {
+      const out = ruledOut(p), shown = Object.keys(p.revealed ?? {}).length;
+      Object.assign(ctx, {
+        slots: p.current.map((g, i) => ({ glyph: g ?? "_", revealed: i in (p.revealed ?? {}) })),
+        guesses: p.guesses.map((g) => ({ ...g, cells: g.glyphs.map((glyph, i) => ({ glyph, mark: g.marks?.[i] ?? "miss" })) })),
+        pad: p.pool.map((glyph) => ({ glyph, out: out.has(glyph) })),
+        remaining: p.attempts - p.guesses.length, revealedCount: shown, revealedText: shown === 1 ? "1 glyph" : `${shown} glyphs`,
+        penalty: this.bonus < 0, alarmOn: p.alarm });
+    }
     if (game === "circuit") {
       const lit = Circuit.powered(p);
       Object.assign(ctx, { size: p.size, sourceRow: Math.floor(p.source / p.size) + 1, sinkRow: Math.floor(p.sink / p.size) + 1,
@@ -658,6 +685,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #sliceBoost() {
+    if (this.#lockoutLeft()) return;
     const cfg = this.hackTarget?.cfg ?? find("terminals", this.viewId)?.slice ?? {};
     const total = await rollSkill(activeActor(), game.settings.get(MODULE_ID, "sliceSkill"));
     if (total === null) return;
@@ -665,6 +693,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     DatapadApp.#sliceBegin.call(this);
   }
   static #sliceBegin() {
+    if (this.#lockoutLeft()) return;
     const cfg = this.hackTarget?.cfg ?? find("terminals", this.viewId)?.slice ?? {};
     let game = cfg.game && HACKS[cfg.game] ? cfg.game : "cipher";
     if (cfg.game === "random") { const keys = Object.keys(HACKS); game = keys[Math.floor(Math.random() * keys.length)]; }
@@ -897,11 +926,19 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.puzzle.state !== "playing") return this.#finishHack();
     this.render();
   }
-  static #glyph(e, el) {
+  static #glyph(e, el) { addGlyph(this.puzzle, el.dataset.glyph); this.render(); }
+  static #glyphBack() { removeGlyph(this.puzzle); this.render(); }
+  /** After the alarm trips: keep slicing with a few more attempts. */
+  static #slicePush() {
     const p = this.puzzle;
-    if (p?.state === "playing" && p.current.length < p.length) { p.current.push(el.dataset.glyph); this.render(); }
+    if (p?.state !== "alarm") return;
+    pushThrough(p);
+    requestGM("sliceAlarm", { terminalId: this.viewId, label: this.hackTarget?.label, actorName: activeActor()?.name, pushed: true });
+    this.render();
   }
-  static #glyphBack() { this.puzzle?.current.pop(); this.render(); }
+  /** After the alarm trips: give up now. Counts as a failed slice, without the lockout. */
+  static #sliceAbort() { if (this.puzzle?.state === "alarm") { this.puzzle.state = "lost"; this.#finishHack(); } }
+  static #sliceRetry() { if (this.#lockoutLeft()) return; this.puzzle = null; this.game = null; this.render(); }
   static async #transmit() {
     const p = submit(this.puzzle);
     if (p.state !== "playing") return this.#finishHack();
