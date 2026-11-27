@@ -55,7 +55,8 @@ export class HoloPowerPicker extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static DEFAULT_OPTIONS = {
-    classes: ["holo-sheet", "holo-picker", "holo-theme-sw5e"],
+    // ht-themed: the Holo-Terminal window theme (styles/foundry-theme.css) frames it like Foundry's other windows
+    classes: ["holo-picker", "ht-themed"],
     position: { width: 560, height: 680 },
     window: { resizable: true, icon: "fa-solid fa-atom" },
     actions: { learn: HoloPowerPicker.#onLearn, skip: HoloPowerPicker.#onSkip, preview: HoloPowerPicker.#onPreview }
