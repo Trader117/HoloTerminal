@@ -2,6 +2,7 @@
  * Holo-Terminal Dossier: an original SW5e character sheet for Foundry VTT v12 and v13.
  * Works with the dnd5e system (4.x / 5.x) plus sw5e-module, and degrades gracefully without the module.
  */
+import { HoloPowerPicker, powerAllowance } from "./power-picker.mjs";
 const MODULE_ID = "holo-terminal"; // the sheet ships inside the Holo-Terminal module
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -170,6 +171,7 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editTraits: HoloDossierSheet.#onEditTraits,
       holoTab: HoloDossierSheet.#onTab,
       closeSheet: HoloDossierSheet.#onCloseSheet,
+      learnPowers: HoloDossierSheet.#onLearnPowers,
       configureSheet: HoloDossierSheet.#onConfigureSheet,
       configurePrototypeToken: HoloDossierSheet.#onConfigureToken
     }
@@ -397,9 +399,13 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.techSchools = schoolInfo("tech", TECH_SCHOOLS);
     // only show the casting a character actually uses: points to spend or powers of that kind
     const usesForce = ctx.force.max > 0 || ctx.forcePowers.length > 0, usesTech = ctx.tech.max > 0 || ctx.techPowers.length > 0;
+    const knownOf = (t) => {
+      const a = powerAllowance(actor, t);
+      return { text: a.max === null ? `${a.value}` : `${a.value} / ${a.max}`, short: !!a.remaining };
+    };
     ctx.castCards = [
-      usesForce && ctx.forceSchools.length && { label: "Forcecasting", cls: "holo-force", points: ctx.force, schools: ctx.forceSchools },
-      usesTech && ctx.techSchools.length && { label: "Techcasting", cls: "holo-tech", points: ctx.tech, schools: ctx.techSchools }
+      usesForce && ctx.forceSchools.length && { label: "Forcecasting", cls: "holo-force", cast: "force", points: ctx.force, schools: ctx.forceSchools, known: knownOf("force") },
+      usesTech && ctx.techSchools.length && { label: "Techcasting", cls: "holo-tech", cast: "tech", points: ctx.tech, schools: ctx.techSchools, known: knownOf("tech") }
     ].filter(Boolean);
     ctx.powerCount = spells.length;
 
@@ -697,22 +703,40 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element.querySelectorAll(`.ht-key[data-group="${group}"]`).forEach((k) => k.classList.toggle("active", k.dataset.tab === target.dataset.tab));
   }
   static #onCloseSheet() { return this.close(); }
+  static #onLearnPowers(event, target) { return HoloPowerPicker.open(this.actor, target.dataset.cast); }
+
+  /**
+   * After a level-up, open the power picker for each cast type the character is short on.
+   * With no powers-known figure (older sw5e-module) it opens for casters only when this sheet just levelled them.
+   */
+  _offerPowers() {
+    const leveling = this._levelingUp;
+    this._levelingUp = false;
+    if (!this.isEditable) return;
+    for (const t of ["force", "tech"]) {
+      const a = powerAllowance(this.actor, t);
+      if (!a.caster || !a.maxLevel && a.max === null) continue;
+      if (a.remaining > 0 || (a.remaining === null && leveling)) HoloPowerPicker.open(this.actor, t);
+    }
+  }
 
   /** Same flow as the stock dnd5e level selector: run advancements when there are any, else just set the level. */
   static async #changeLevel(classItem, delta) {
     if (!delta || !this.isEditable) return;
+    this._levelingUp = delta > 0;
     const sys = globalThis.dnd5e?.applications?.advancement ?? {};
     const disabled = game.settings.settings.has("dnd5e.disableAdvancements") && game.settings.get("dnd5e", "disableAdvancements");
     if (!disabled && sys.AdvancementManager) {
       const manager = sys.AdvancementManager.forLevelChange(this.actor, classItem.id, delta);
       if (manager?.steps?.length) {
-        if (delta > 0) return manager.render(true);
+        if (delta > 0) return manager.render(true); // the advancementManagerComplete hook offers powers
         try {
           if (await sys.AdvancementConfirmationDialog?.forLevelDown(classItem)) return manager.render(true);
         } catch(err) { return; }
       }
     }
-    return classItem.update({ "system.levels": num(classItem.system.levels, 1) + delta });
+    await classItem.update({ "system.levels": num(classItem.system.levels, 1) + delta });
+    if (delta > 0) this._offerPowers();
   }
   /* the frameless tablet has no window header, so its Sheet and Token buttons live in the sheet header */
   static #onConfigureSheet() {
@@ -862,6 +886,12 @@ Hooks.once("init", () => {
   else Actors.registerSheet(`${MODULE_ID}-sheet`, HoloDossierSheet, sheetOpts);
 
   registerPartial("holo-terminal.sheet-row", TPL("_row"));
+});
+
+// dnd5e level-ups (dropdown or a dropped class) finish here; SW5e classes never ask for powers, so offer them
+Hooks.on("dnd5e.advancementManagerComplete", (manager) => {
+  const sheet = manager.actor?.sheet;
+  if (sheet instanceof HoloDossierSheet && sheet.rendered) sheet._offerPowers();
 });
 
 /* shared with the NPC sheet (npc-sheet.mjs) */

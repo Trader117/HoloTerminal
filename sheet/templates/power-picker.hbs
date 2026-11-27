@@ -1,0 +1,35 @@
+<div class="holo-picker-body">
+  <header class="holo-picker-head holo-{{castType}}">
+    <h2>Learn {{label}} Powers</h2>
+    <p class="holo-picker-note"><i class="fa-solid fa-circle-info"></i> {{limitText}}</p>
+  </header>
+  <div class="holo-picker-tools">
+    <div class="holo-search-row"><i class="fa-solid fa-magnifying-glass"></i><input class="holo-picker-search" type="search" placeholder="Search powers"></div>
+    <div class="holo-picker-chips">
+      <button type="button" class="holo-picker-chip active" data-level="all">All</button>
+      {{#each levels}}<button type="button" class="holo-picker-chip" data-level="{{level}}">{{label}}</button>{{/each}}
+    </div>
+  </div>
+  <div class="holo-picker-list">
+    {{#if empty}}<p class="holo-dim holo-empty">No {{label}} powers found in your compendiums that this character can learn yet.</p>{{/if}}
+    {{#each levels}}
+    <fieldset class="holo-picker-level" data-level="{{level}}">
+      <legend>{{label}}{{#if level}} level{{/if}}</legend>
+      {{#each powers}}
+      <label class="holo-picker-row" data-name="{{search}}" data-uuid="{{uuid}}">
+        <input class="holo-pick" type="checkbox" value="{{uuid}}">
+        <img src="{{img}}" alt="">
+        <span class="holo-picker-name">{{name}}</span>
+        <span class="holo-badge holo-school-{{school}}">{{schoolLabel}}</span>
+        <a class="holo-picker-info" data-action="preview" data-tooltip="Read description"><i class="fa-solid fa-circle-info"></i></a>
+      </label>
+      {{/each}}
+    </fieldset>
+    {{/each}}
+  </div>
+  <footer class="holo-picker-foot">
+    <span class="holo-picker-count"></span>
+    <button type="button" data-action="skip">Later</button>
+    <button type="button" class="holo-picker-learn default" data-action="learn" disabled><i class="fa-solid fa-check"></i> Learn</button>
+  </footer>
+</div>

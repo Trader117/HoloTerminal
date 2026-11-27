@@ -5,6 +5,8 @@
       <div class="holo-cast-head"><span>{{label}}</span><b>{{points.value}} / {{points.max}}</b></div>
       <table><thead><tr><th></th><th>Ability</th><th>Attack</th><th>Power DC</th></tr></thead>
         <tbody>{{#each schools}}<tr><td class="holo-school-{{key}}">{{label}}</td><td>{{mod}} <small>{{attr}}</small></td><td>{{attack}}</td><td>{{dc}}</td></tr>{{/each}}</tbody></table>
+      <div class="holo-cast-known{{#if known.short}} holo-short{{/if}}"><span>Powers known <b>{{known.text}}</b></span>
+        {{#if @root.editable}}<a class="holo-learn-btn" data-action="learnPowers" data-cast="{{cast}}"><i class="fa-solid fa-plus"></i> Learn powers</a>{{/if}}</div>
     </div>
     {{/each}}
   </div>

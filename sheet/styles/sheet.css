@@ -2,7 +2,7 @@
    Default look follows the SW5e Database app: dark slate panels, red display headings,
    blue rules, banded rows and the orange stat-block bar. Holo themes remain as alternates.
    Colours read the module's shared --ht-* variables first, with the Database values as fallbacks. */
-.holo-sheet {
+.holo-sheet, .holo-picker {
   --hs-bg: var(--ht-bg, #0e1216);
   --hs-panel: var(--ht-panel, #141a20);
   --hs-panel2: var(--ht-panel-2, #1b232b);
@@ -452,3 +452,52 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
 .holo-ship-cargo-add button { flex:none; width:auto; }
 .holo-ship-log { white-space:pre-wrap; }
 @media (max-width: 640px) { .holo-ship-skills { columns:1; } .holo-ship-roll, .holo-ship-dmg { display:none; } }
+
+/* ---------- powers known + power picker ---------- */
+.holo-cast-known { display:flex; justify-content:space-between; align-items:center; gap:.5rem; padding:5px 10px 7px; border-top:1px solid var(--hs-line); font-size:12px; color:var(--hs-muted); }
+.holo-cast-known b { font:700 14px var(--hs-display); color:var(--hs-strong); margin-left:.25rem; }
+.holo-cast-known.holo-short b { color:var(--hs-bar); }
+.holo-learn-btn { font:700 11px var(--hs-display); text-transform:uppercase; letter-spacing:.4px; padding:3px 8px; border:1px solid var(--hs-line); border-radius:5px; background:var(--hs-bg); }
+.holo-short .holo-learn-btn { border-color:var(--hs-bar); color:var(--hs-bar); }
+.holo-learn-btn:hover { border-color:var(--hs-rule); }
+
+/* The picker follows the Foundry window theme (styles/foundry-theme.css): flat navy window, blue top edge,
+   red titles, fieldset groups with red legends, blue for the completing action. The rules below are fallbacks
+   that make it look the same when that theme is off. */
+.holo-picker.application { min-width:0; min-height:0; background:radial-gradient(120% 50% at 50% 0%, rgba(42,163,223,.09), transparent 70%), var(--ht-bg, #0e1216);
+  border:1px solid #07090b; border-top:2px solid var(--ht-blue, #2aa3df); border-radius:var(--ht-radius, 6px); }
+.holo-picker > .window-header { background:none; border-bottom:0; color:var(--hs-strong); }
+.holo-picker > .window-header .window-title { color:var(--hs-head); font:700 13px var(--hs-display); text-transform:uppercase; letter-spacing:.3px; }
+.holo-picker > .window-header :is(a, button) { color:var(--hs-muted); }
+.holo-picker .window-content { padding:0; background:transparent !important; color:var(--hs-text); font:13px/1.4 var(--hs-body); }
+.holo-picker-body { display:flex; flex-direction:column; height:100%; min-height:0; }
+.holo-picker-head { padding:.2rem 1rem .5rem; text-align:center; }
+.holo-picker .holo-picker-head h2 { margin:0 0 .5rem; border:none; font:700 24px var(--hs-display); color:var(--hs-head); text-transform:uppercase; letter-spacing:.5px; }
+.holo-picker-note { margin:0; padding:.45rem .7rem; text-align:left; border:1px solid var(--hs-rule); border-radius:4px; background:color-mix(in srgb, var(--hs-rule) 10%, transparent); color:var(--hs-text); }
+.holo-picker-note i { color:var(--hs-rule); margin-right:.3rem; }
+.holo-picker-tools { padding:.3rem 1rem .2rem; display:flex; flex-direction:column; gap:.35rem; }
+.holo-picker .holo-search-row { margin:0; height:32px; background:#0a0e12; border-radius:4px; }
+.holo-picker .holo-picker-search { flex:1; height:28px; border:none !important; background:transparent !important; box-shadow:none !important; color:var(--hs-text); font-size:13px; }
+.holo-picker-chips { display:flex; flex-wrap:wrap; gap:.9rem; padding:0 .2rem; border-bottom:1px solid var(--hs-line); }
+.holo-picker .holo-picker-chip { min-height:0 !important; height:auto !important; padding:4px 0 5px !important; margin:0; font:700 11px var(--hs-display) !important; text-transform:uppercase; letter-spacing:.4px;
+  color:var(--hs-muted) !important; background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; cursor:pointer; }
+.holo-picker .holo-picker-chip:hover { color:var(--hs-strong) !important; }
+.holo-picker .holo-picker-chip.active { color:var(--hs-head) !important; box-shadow:inset 0 -2px 0 var(--hs-rule) !important; }
+.holo-picker-list { flex:1; min-height:0; overflow-y:auto; padding:.2rem 1rem .6rem; }
+.holo-picker fieldset.holo-picker-level { margin:.5rem 0 0; padding:.1rem .5rem .3rem; border:1px solid var(--hs-line); border-radius:var(--ht-radius, 6px); background:rgba(20,26,32,.55); }
+.holo-picker fieldset.holo-picker-level > legend { padding:0 6px; color:var(--hs-head); font:700 11px var(--hs-display); text-transform:uppercase; letter-spacing:.3px; }
+.holo-picker-row { display:flex; align-items:center; gap:.6rem; padding:4px 4px; border-bottom:1px solid var(--hs-line); cursor:pointer; }
+.holo-picker-row:last-child { border-bottom:0; }
+.holo-picker-row:hover { background:color-mix(in srgb, var(--hs-rule) 8%, transparent); }
+.holo-picker-row:has(input:checked) { background:color-mix(in srgb, var(--hs-rule) 12%, transparent); box-shadow:inset 2px 0 0 var(--hs-rule); }
+.holo-picker-row:has(input:disabled:not(:checked)) { opacity:.45; cursor:default; }
+.holo-picker-row input { margin:0; flex:none; width:16px; height:16px; accent-color:var(--hs-rule); }
+.holo-picker-row img { width:28px; height:28px; border-radius:4px; border:1px solid var(--hs-line); flex:none; }
+.holo-picker-name { flex:1; min-width:0; font-weight:600; color:var(--hs-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.holo-picker-info { color:var(--hs-muted); padding:0 2px; }
+.holo-picker-foot { display:flex; align-items:center; gap:.5rem; padding:.6rem 1rem; border-top:1px solid var(--hs-line); }
+.holo-picker-count { flex:1; color:var(--hs-muted); font:700 12px var(--hs-display); text-transform:uppercase; letter-spacing:.4px; }
+.holo-picker .holo-picker-foot button { flex:none; width:auto; min-height:28px; padding:3px 14px; font:600 12px var(--hs-body); color:var(--hs-text);
+  background:var(--hs-panel2); border:1px solid var(--hs-line); border-radius:4px; cursor:pointer; }
+.holo-picker .holo-picker-foot .holo-picker-learn { border-color:var(--hs-rule) !important; box-shadow:inset 0 -2px 0 var(--hs-rule) !important; }
+.holo-picker .holo-picker-learn[disabled] { opacity:.45; cursor:default; }
