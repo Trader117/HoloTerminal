@@ -501,3 +501,10 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
   background:var(--hs-panel2); border:1px solid var(--hs-line); border-radius:4px; cursor:pointer; }
 .holo-picker .holo-picker-foot .holo-picker-learn { border-color:var(--hs-rule) !important; box-shadow:inset 0 -2px 0 var(--hs-rule) !important; }
 .holo-picker .holo-picker-learn[disabled] { opacity:.45; cursor:default; }
+/* Foundry v12 makes every button in an ApplicationV2 a full-width flex box: keep the level tabs in one row */
+.holo-picker .holo-picker-chips > .holo-picker-chip { display:inline-block !important; flex:0 0 auto !important; width:auto !important; max-width:none; }
+/* Foundry v12 draws its own checkbox with ::before/::after icons (a solid square, then a loose tick): use the native box */
+.holo-picker .holo-picker-row input.holo-pick { appearance:auto !important; -webkit-appearance:checkbox !important; position:static; display:inline-block;
+  width:16px !important; height:16px !important; margin:0 !important; padding:0; background:none !important; border:0 !important; box-shadow:none !important;
+  font-size:inherit; accent-color:var(--hs-rule); cursor:pointer; }
+.holo-picker .holo-picker-row input.holo-pick::before, .holo-picker .holo-picker-row input.holo-pick::after { content:none !important; display:none !important; }
