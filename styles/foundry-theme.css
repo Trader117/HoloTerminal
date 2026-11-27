@@ -1,0 +1,395 @@
+/* Holo-Terminal look for Foundry's own windows, dnd5e's sheets and dialogs, and (optionally) the rest of the UI.
+   scripts/foundry-theme.mjs tags each eligible window with .ht-themed, and sets body.ht-ui-windows / body.ht-ui-full
+   for the parts that aren't windows. Colours come from styles/theme.css (SW5e Database scheme):
+   dark navy surfaces, red headings, blue accent rules, gold stat-block frames. */
+
+/* ---------- 1. palette: re-point Foundry's and dnd5e's colour variables ---------- */
+.ht-themed,
+body.ht-ui-windows :is(#context-menu, #tooltip, .locked-tooltip, #menu, #prosemirror-dropdown),
+body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #controls, #chat-notifications, #ui-bottom) {
+  /* Foundry v12 core (v1 apps) */
+  --color-text-dark-primary: var(--ht-text);
+  --color-text-dark-secondary: var(--ht-muted);
+  --color-text-dark-header: var(--ht-strong);
+  --color-text-dark-inactive: var(--ht-muted);
+  --color-text-dark-5: var(--ht-muted);
+  --color-text-dark-6: var(--ht-muted);
+  --color-text-light-highlight: var(--ht-strong);
+  --color-text-light-heading: var(--ht-red);
+  --color-text-light-primary: var(--ht-text);
+  --color-text-light-6: var(--ht-muted);
+  --color-text-hyperlink: var(--ht-blue);
+  --color-underline-header: var(--ht-blue);
+  --color-underline-active: var(--ht-red);
+  --color-border-light-primary: var(--ht-line);
+  --color-border-light-secondary: var(--ht-line);
+  --color-border-light-tertiary: var(--ht-line);
+  --color-border-light-highlight: var(--ht-line);
+  --color-border-light-1: var(--ht-line);
+  --color-border-light-2: var(--ht-line);
+  --color-border-dark: #07090b;
+  --color-border-dark-primary: #07090b;
+  --color-border-dark-secondary: var(--ht-line);
+  --color-border-highlight: var(--ht-blue);
+  --color-border-highlight-alt: var(--ht-blue);
+  --color-shadow-primary: var(--ht-blue);
+  --color-shadow-highlight: var(--ht-blue);
+  --color-bg-option: var(--ht-panel-2);
+  --color-bg-btn-minor-inactive: var(--ht-panel-2);
+  --color-bg-btn-minor-active: var(--ht-band-2);
+  --color-scrollbar: #3a4a58;
+  --color-scrollbar-track: transparent;
+  --color-scrollbar-border: transparent;
+  /* Foundry v12 ApplicationV2 / theme variables */
+  --background: var(--ht-bg);
+  --color-text-primary: var(--ht-text);
+  --color-text-secondary: var(--ht-muted);
+  --color-text-subtle: var(--ht-muted);
+  --color-text-emphatic: var(--ht-strong);
+  --color-text-selection: var(--ht-strong);
+  --color-text-selection-bg: var(--ht-blue-soft);
+  --color-header-background: var(--ht-panel);
+  --color-form-label: var(--ht-text);
+  --color-form-label-hover: var(--ht-strong);
+  --color-form-hint: var(--ht-muted);
+  --color-form-hint-hover: var(--ht-text);
+  --color-fieldset-border: var(--ht-line);
+  --color-light-1: var(--ht-strong);
+  --input-background-color: #0a0e12;
+  --input-border-color: var(--ht-line);
+  --input-text-color: var(--ht-text);
+  --input-placeholder-color: var(--ht-muted);
+  --input-focus-outline-color: var(--ht-blue);
+  --button-background-color: var(--ht-panel-2);
+  --button-border-color: var(--ht-line);
+  --button-text-color: var(--ht-text);
+  --button-hover-background-color: var(--ht-band-2);
+  --button-hover-border-color: var(--ht-red);
+  --button-hover-text-color: var(--ht-strong);
+  --button-focus-outline-color: var(--ht-blue);
+  --color-cool-5: var(--ht-bg);
+  --color-cool-4: var(--ht-panel);
+  --color-cool-3: var(--ht-panel-2);
+  /* dnd5e 4.x palette (its dark mode reads these) */
+  --dnd5e-color-blue-white: var(--ht-text);
+  --dnd5e-color-blue-gray-1: var(--ht-line);
+  --dnd5e-color-blue-gray-2: var(--ht-panel);
+  --dnd5e-color-blue-gray-3: #33414d;
+  --dnd5e-color-blue-gray-4: var(--ht-panel-2);
+  --dnd5e-color-dark-gray: var(--ht-bg);
+  --dnd5e-color-light-gray: var(--ht-panel-2);
+  --dnd5e-color-iron-gray: var(--ht-band-2);
+  --dnd5e-color-gold: var(--ht-gold);
+  --dnd5e-color-parchment: var(--ht-bg);
+  --dnd5e-color-card: var(--ht-panel);
+  --dnd5e-color-groove: var(--ht-line);
+  --dnd5e-color-beige: var(--ht-muted);
+  --dnd5e-color-tan: var(--ht-muted);
+  --dnd5e-color-faint: var(--ht-line);
+  --dnd5e-color-maroon: #8a2620;
+  --dnd5e-color-crimson: #3a1412;
+  --dnd5e-color-scrollbar: #3a4a58;
+  --dnd5e-color-table-row-even: var(--ht-band-1);
+  --dnd5e-color-table-row-odd: var(--ht-band-2);
+  --dnd5e-background-card: var(--ht-panel);
+  --dnd5e-background-parchment: var(--ht-panel);
+  --dnd5e-sheet-background: var(--ht-bg);
+  --dnd5e-border-gold: 1px solid var(--ht-gold-rule);
+  --dnd5e-border-dark: 1px solid var(--ht-line);
+  --dnd5e-border-dotted: 1px dotted var(--ht-line);
+  --dnd5e-border-groove: 1px solid var(--ht-line);
+  --filigree-background-color: var(--ht-panel);
+  --filigree-border-color: var(--ht-line);
+  --dnd5e-font-modesto: var(--ht-font-display);
+  --dnd5e-font-roboto-slab: var(--ht-font-display);
+  --font-primary: var(--ht-font-body);
+  --icon-fill: var(--ht-gold);
+  color: var(--ht-text);
+}
+
+/* ---------- 2. window frame ---------- */
+.ht-themed:is(.window-app, .application, .dialog) {
+  background: var(--ht-bg);
+  border: 1px solid #07090b; border-radius: var(--ht-radius);
+  box-shadow: 0 0 0 1px var(--ht-line), 0 0 18px rgba(42, 163, 223, .12), 0 14px 34px rgba(0, 0, 0, .75);
+  font-family: var(--ht-font-body);
+}
+.ht-themed > .window-header {
+  background: linear-gradient(180deg, var(--ht-panel-2), var(--ht-panel));
+  border-bottom: 2px solid var(--ht-blue);
+  color: var(--ht-strong);
+}
+.ht-themed > .window-header .window-title {
+  color: var(--ht-red); font-family: var(--ht-font-display); font-weight: 700; font-size: 13px;
+  text-transform: uppercase; letter-spacing: .3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+.ht-themed > .window-header :is(a, button, .header-button, .header-control) { color: var(--ht-muted); white-space: nowrap; font-size: 12px; }
+.ht-themed > .window-header :is(a, button, .header-button, .header-control):hover { color: var(--ht-red); text-shadow: none; }
+.ht-themed > .window-header .window-icon { color: var(--ht-blue); }
+/* header buttons (PopOut!, Sheet, Close): icon and label on one line; dnd5e's sheet header otherwise stacks them */
+.ht-themed > .window-header :is(a.header-button, a.popout, .header-button) {
+  display: inline-flex !important; flex-direction: row; align-items: center; gap: 4px; margin-top: 0; line-height: 1;
+  flex: none; width: auto !important; min-width: max-content; overflow: visible; margin-inline: 4px;
+}
+.ht-themed > .window-header :is(a.header-button, .header-button) i { margin: 0; font-size: 12px; color: inherit; }
+/* dnd5e sheets draw header buttons as small round icons, so labels like "PopOut!" spill over the next button
+   (stock dnd5e does this too): show the icon only */
+.ht-themed.dnd5e2 > .window-header :is(a.header-button, .header-button) {
+  width: 22px !important; height: 22px; min-width: 0; aspect-ratio: 1; justify-content: center; gap: 0;
+  font-size: 0; border-radius: 50%; background: var(--ht-panel-2); border: 1px solid var(--ht-line); margin-inline: 2px;
+}
+.ht-themed.dnd5e2 > .window-header :is(a.header-button, .header-button):hover { border-color: var(--ht-red); }
+.ht-themed.dnd5e2 > .window-header :is(a.header-button, .header-button) i { font-size: 11px; }
+.ht-themed > .window-content {
+  background: radial-gradient(120% 60% at 50% 0%, rgba(42, 163, 223, .07), transparent 70%), var(--ht-bg) !important;
+  color: var(--ht-text);
+  font-size: 13px; overflow-wrap: break-word;
+}
+.ht-themed .window-content :is(.form-group > label, .form-fields, .form-group > *) { min-width: 0; }
+.ht-themed .window-resizable-handle, .ht-themed .window-resize-handle { filter: invert(1) hue-rotate(180deg); opacity: .5; background-color: transparent; border-color: var(--ht-line); }
+.ht-themed.minimized { background: var(--ht-panel) !important; }
+
+/* ---------- 3. text, headings, rules, links ---------- */
+.ht-themed .window-content :is(h1, h2, h3, h4) { color: var(--ht-red); font-family: var(--ht-font-display); text-shadow: none; }
+.ht-themed .window-content :is(h1, h2, h3) { border-bottom-color: var(--ht-blue); }
+.ht-themed .window-content :is(h2.divider, h3.divider, .form-header) { color: var(--ht-red); border-color: var(--ht-blue); }
+.ht-themed .window-content :is(label, p, li, dt, dd, td, th, .form-group, .form-fields, .notes) { color: inherit; }
+.ht-themed .window-content :is(.hint, .notes, p.notes, .form-group .notes, .form-group .hint) { color: var(--ht-muted); }
+.ht-themed .window-content hr { border: 0; border-top: 1px solid var(--ht-line); background: none; }
+.ht-themed .window-content hr.ampersand {
+  height: 2px; border: 0; margin-left: 12px; margin-right: 12px;
+  background: linear-gradient(90deg, transparent, var(--ht-blue) 20%, var(--ht-blue) 80%, transparent);
+}
+.ht-themed .window-content a:not(.content-link):not(.inline-roll):not(.item):not(.button):hover { color: var(--ht-red-hover); text-shadow: none; }
+.ht-themed :is(a.content-link, a.inline-roll, .content-link) {
+  background: var(--ht-panel-2); border: 1px solid var(--ht-line); color: var(--ht-text);
+}
+.ht-themed :is(a.content-link, a.inline-roll) i { color: var(--ht-blue); }
+.ht-themed .window-content :is(table) { border-color: var(--ht-line); background: transparent; }
+.ht-themed .window-content :is(thead, th) { background: var(--ht-panel-2); color: var(--ht-red); text-shadow: none; }
+.ht-themed .window-content tbody tr:nth-child(odd) { background: var(--ht-band-1); }
+.ht-themed .window-content tbody tr:nth-child(even) { background: var(--ht-band-2); }
+.ht-themed ::selection { background: var(--ht-blue-soft); color: var(--ht-strong); }
+
+/* ---------- 4. forms ---------- */
+.ht-themed :is(input[type="text"], input[type="number"], input[type="search"], input[type="password"], input[type="email"],
+  input[type="url"], input[type="date"], input[type="time"], input:not([type]), select, textarea, multi-select, .tags.input-element-tags) {
+  background: #0a0e12; color: var(--ht-text);
+  border: 1px solid var(--ht-line); border-radius: 4px; box-shadow: none;
+}
+.ht-themed :is(input, select, textarea):focus {
+  outline: none; border-color: var(--ht-blue); box-shadow: 0 0 0 2px var(--ht-blue-soft);
+}
+.ht-themed :is(input, textarea)::placeholder { color: var(--ht-muted); opacity: .8; }
+.ht-themed :is(input, select, textarea):disabled { opacity: .55; }
+.ht-themed select option, .ht-themed select optgroup { background: var(--ht-panel); color: var(--ht-text); }
+.ht-themed input[type="checkbox"], .ht-themed input[type="radio"] { accent-color: var(--ht-blue); }
+.ht-themed input[type="range"] { accent-color: var(--ht-red); }
+.ht-themed :is(input, textarea).uninput:not(:focus):not(:hover) { background: transparent; border-color: transparent; }
+.ht-themed fieldset { border: 1px solid var(--ht-line); border-radius: var(--ht-radius); background: rgba(20, 26, 32, .55); }
+.ht-themed fieldset > legend {
+  color: var(--ht-red); font: 700 11px var(--ht-font-display); text-transform: uppercase; letter-spacing: .3px;
+  background: none; border: 0; padding: 0 6px;
+}
+/* stock checkbox widgets (v12 AppV2, dnd5e slide toggles) */
+.ht-themed input[type="checkbox"]::before { color: var(--ht-blue); }
+.ht-themed slide-toggle { --slide-toggle-track-color-unchecked: #0a0e12; --slide-toggle-track-color-checked: var(--ht-blue);
+  --slide-toggle-thumb-color: var(--ht-strong); }
+
+/* ---------- 5. buttons ---------- */
+.ht-themed :is(button, .button, a.button, .dialog-button):not(.header-control):not(.header-button):not(.unbutton):not(.icon):not([data-action="toggleControls"]) {
+  background: var(--ht-panel-2); color: var(--ht-text);
+  border: 1px solid var(--ht-line); border-radius: 4px; box-shadow: none; text-shadow: none;
+  font-family: var(--ht-font-body); font-size: 12px; font-weight: 600; letter-spacing: 0;
+  line-height: 1.2; min-height: var(--form-field-height, 26px); height: auto; padding: 3px 8px;
+  white-space: normal; overflow-wrap: break-word; min-width: 0;
+}
+.ht-themed :is(button, .button, a.button, .dialog-button):not(.header-control):not(.header-button):not(.unbutton):not(.icon):hover:not(:disabled) {
+  background: var(--ht-band-2); color: var(--ht-strong); border-color: var(--ht-red); box-shadow: none;
+}
+.ht-themed :is(button, .dialog-button):focus-visible { outline: 2px solid var(--ht-blue); outline-offset: 1px; }
+/* the action that completes a window: blue */
+.ht-themed :is(button[type="submit"], .dialog-button.default, button.default, .form-footer button[type="submit"], button.bright) {
+  border-color: var(--ht-blue) !important; box-shadow: inset 0 -2px 0 var(--ht-blue) !important;
+}
+.ht-themed :is(button, .button) i { color: inherit; }
+.ht-themed .form-footer, .ht-themed .sheet-footer, .ht-themed .dialog-buttons { border-top: 1px solid var(--ht-line); }
+
+/* ---------- 6. tabs and side lists (settings categories, sheet tabs) ---------- */
+.ht-themed nav.tabs, .ht-themed nav.sheet-tabs { border-color: var(--ht-line); }
+.ht-themed nav:is(.tabs, .sheet-tabs) :is(.item, a, button):not(.unbutton) { color: var(--ht-muted); text-shadow: none; }
+.ht-themed nav:is(.tabs, .sheet-tabs) :is(.item, a, button):hover { color: var(--ht-strong); }
+.ht-themed nav:is(.tabs, .sheet-tabs) :is(.item, a, button).active {
+  color: var(--ht-red); text-shadow: none; box-shadow: inset 0 -2px 0 var(--ht-blue);
+}
+.ht-themed :is(aside, .sidebar, nav.tabs.vertical, .categories) :is(a, .category, .category-tab, .item).active {
+  color: var(--ht-red); background: var(--ht-band-2); box-shadow: inset 3px 0 0 var(--ht-blue); border-color: var(--ht-line);
+}
+.ht-themed :is(.categories, .category-list, aside.sidebar) :is(.count, .category-count) { color: var(--ht-gold); }
+.ht-themed .window-content :is(.directory-list, .item-list) > li:hover { background: var(--ht-band-2); }
+
+/* ---------- 7. scrollbars ---------- */
+.ht-themed *, body.ht-ui-full :is(#sidebar, #chat-popout) * { scrollbar-width: thin; scrollbar-color: #3a4a58 transparent; }
+.ht-themed ::-webkit-scrollbar { width: 8px; height: 8px; }
+.ht-themed ::-webkit-scrollbar-track { background: transparent; box-shadow: none; border: 0; }
+.ht-themed ::-webkit-scrollbar-thumb { background: #3a4a58; border: 0; border-radius: 4px; }
+.ht-themed ::-webkit-scrollbar-thumb:hover { background: var(--ht-blue); }
+
+/* ---------- 8. rich text editors ---------- */
+.ht-themed :is(.editor, .editor-content, prose-mirror, .prosemirror) { color: var(--ht-text); }
+.ht-themed :is(.editor-menu, .prosemirror menu, prose-mirror menu) { background: var(--ht-panel-2); border-color: var(--ht-line); color: var(--ht-text); }
+.ht-themed :is(.editor-content, .ProseMirror) :is(h1, h2, h3, h4) { color: var(--ht-red); border-color: var(--ht-blue); }
+.ht-themed .editor-content blockquote, .ht-themed .ProseMirror blockquote { border-left: 3px solid var(--ht-blue); background: var(--ht-panel); color: var(--ht-text); }
+.ht-themed .secret { background: rgba(42, 163, 223, .06); border-left: 2px solid var(--ht-blue); }
+
+/* ---------- 9. dnd5e sheets and dialogs (on top of dnd5e's own dark mode) ---------- */
+.ht-themed.dnd5e2 .window-content { background: var(--ht-bg) !important; }
+.ht-themed.dnd5e2.sheet.item { border: 1px solid #07090b; }
+.ht-themed.dnd5e2 :is(.card, filigree-box, .items-section, .inventory-element .items-section) { background: var(--ht-panel); border-color: var(--ht-line); }
+.ht-themed.dnd5e2 .card .header, .ht-themed.dnd5e2 .items-header {
+  background: linear-gradient(90deg, var(--ht-panel-2), var(--ht-panel)); color: var(--ht-red);
+  border-bottom: 1px solid var(--ht-blue); font-family: var(--ht-font-display); text-shadow: none;
+}
+.ht-themed.dnd5e2 .card .header :is(h3, .name, span) { color: var(--ht-red); }
+.ht-themed.dnd5e2 filigree-box > h3 > span, .ht-themed.dnd5e2 h3.icon { color: var(--ht-red); border-color: var(--ht-blue); }
+.ht-themed.dnd5e2 :is(.items-list, .item-list) > :is(.item, li):nth-child(odd) { background: var(--ht-band-1); }
+.ht-themed.dnd5e2 :is(.items-list, .item-list) > :is(.item, li):nth-child(even) { background: var(--ht-band-2); }
+.ht-themed.dnd5e2 .pills .pill { background: var(--ht-panel-2); border-color: var(--ht-line); color: var(--ht-text); }
+.ht-themed.dnd5e2 .pills .pill.active, .ht-themed.dnd5e2 .pill.active { border-color: var(--ht-blue); }
+/* info notes (Long Rest text etc.) */
+.ht-themed .window-content :is(.notification, .note, p.note, .info-note) {
+  background: rgba(42, 163, 223, .1); border: 1px solid var(--ht-blue); border-left-width: 3px; color: var(--ht-text); text-shadow: none;
+  padding: 6px 10px; box-sizing: border-box; max-width: 100%; overflow-wrap: break-word;
+}
+.ht-themed .window-content .notification.warning, .ht-themed .window-content .note.warning { background: rgba(255, 159, 67, .1); border-color: var(--ht-warn); }
+.ht-themed .window-content .notification.error { background: rgba(255, 81, 70, .1); border-color: var(--ht-red); }
+
+/* item sheet: name in red display type, gold stat-block frame round the image, gold bar under the header */
+.ht-themed.dnd5e2.sheet.item { border-top: 3px solid var(--ht-gold); }
+.ht-themed.dnd5e2.sheet.item .sheet-header { padding-bottom: 6px; border-bottom: 2px solid var(--ht-gold); }
+.ht-themed.dnd5e2.sheet.item .sheet-header .document-name {
+  color: var(--ht-red); font-family: var(--ht-font-display); font-weight: 700; letter-spacing: .3px;
+  font-size: 20px; text-overflow: ellipsis; min-width: 0; text-align: center;
+}
+/* feats and other items with no weight/price leave the right column empty: give its width to the name */
+.ht-themed.dnd5e2.sheet.item .sheet-header > .right:not(:has(*)) { display: none;
+}
+.ht-themed.dnd5e2.sheet.item .sheet-header .item-image {
+  border: 3px solid var(--ht-gold); border-radius: 10px; box-shadow: 0 0 0 1px #07090b, 0 0 12px rgba(230, 154, 40, .25);
+  background: var(--ht-gold-bg);
+}
+.ht-themed.dnd5e2.sheet.item .sheet-header .subtitles { color: var(--ht-muted); }
+.ht-themed.dnd5e2.sheet.item .sheet-header .common-fields { color: var(--ht-muted); }
+.ht-themed.dnd5e2.sheet.item nav.tabs .item { color: var(--ht-muted); font-family: var(--ht-font-display); font-size: 11px; letter-spacing: 0; box-shadow: none; flex: 1 1 auto; white-space: nowrap; }
+.ht-themed.dnd5e2.sheet.item nav.tabs .item.active { color: var(--ht-red); box-shadow: none; }
+.ht-themed.dnd5e2.sheet.item nav.tabs .item.active > span { border-bottom: 3px solid var(--ht-blue); }
+/* stat-block blocks (spell / power details, item info) read as the gold SW5e stat-block */
+.ht-themed.dnd5e2.sheet.item :is(.spell-block, .info-block) {
+  background: var(--ht-gold-bg); color: var(--ht-gold-text);
+  border-top: 3px solid var(--ht-gold); border-bottom: 3px solid var(--ht-gold); border-radius: 2px;
+}
+.ht-themed.dnd5e2.sheet.item :is(.spell-block, .info-block) .label { color: var(--ht-gold-label); }
+/* actor sheets (stock dnd5e, when used): keep the sidebar and tabs readable */
+.ht-themed.dnd5e2.sheet.actor .sheet-header .document-name { color: var(--ht-red); font-family: var(--ht-font-display); text-transform: uppercase; }
+.ht-themed.dnd5e2.sheet.actor nav.tabs a.item { background: var(--ht-panel-2); border-color: var(--ht-line); color: var(--ht-muted); }
+.ht-themed.dnd5e2.sheet.actor nav.tabs a.item.active { color: var(--ht-red); border-color: var(--ht-blue); }
+/* rest and roll dialogs */
+.ht-themed.dnd5e2:is(.rest, .short-rest, .long-rest, .roll-configuration) .window-content > form,
+.ht-themed.dnd5e2:is(.rest, .short-rest, .long-rest, .roll-configuration) .window-content { gap: 10px; }
+.ht-themed.dnd5e2 .window-header .window-title { color: var(--ht-red); }
+/* dnd5e AppV2 dialogs (Long Rest, roll config, trait config): dnd5e drops the title below a see-through header,
+   so keep the header clear and the content transparent over the window's own background */
+.ht-themed.dnd5e2.application:not(.minimized) > .window-header { background: none; border-bottom: 0; }
+.ht-themed.dnd5e2.application:not(.minimized) > .window-content { background: transparent !important; }
+.ht-themed.dnd5e2.application {
+  background: radial-gradient(120% 50% at 50% 0%, rgba(42, 163, 223, .09), transparent 70%), var(--ht-bg);
+  border-top: 2px solid var(--ht-blue);
+}
+.ht-themed.dnd5e2.application:not(.minimized) > .window-header :is(h1, h2) {
+  color: var(--ht-red); font-family: var(--ht-font-display); letter-spacing: .3px;
+  padding-inline: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ht-themed.dnd5e2.application:not(.minimized) > .window-header h2 { color: var(--ht-muted); text-transform: none; letter-spacing: 0; }
+.ht-themed.dnd5e2.application:not(.minimized) > .window-header .window-icon { color: var(--ht-blue); --icon-fill: var(--ht-blue); }
+
+/* ---------- 10. menus, tooltips and the Escape menu (any non-off mode) ---------- */
+body.ht-ui-windows #context-menu,
+body.ht-ui-windows #context-menu.dnd5e2 {
+  background: var(--ht-panel); color: var(--ht-text);
+  border: 1px solid var(--ht-line); border-top: 2px solid var(--ht-blue); box-shadow: 0 8px 22px rgba(0, 0, 0, .7);
+}
+body.ht-ui-windows #context-menu .context-item { color: var(--ht-text); border-color: var(--ht-line); }
+body.ht-ui-windows #context-menu .context-item:hover { background: var(--ht-band-2); color: var(--ht-strong); text-shadow: none; }
+body.ht-ui-windows #context-menu .context-item i { color: var(--ht-blue); }
+body.ht-ui-windows :is(#tooltip, .locked-tooltip) {
+  background: var(--ht-panel) !important; color: var(--ht-text);
+  border: 1px solid var(--ht-line); box-shadow: 0 0 0 1px #07090b, 0 6px 18px rgba(0, 0, 0, .6);
+}
+body.ht-ui-windows :is(#tooltip, .locked-tooltip) :is(h1, h2, h3, h4, .title, .name) { color: var(--ht-red); }
+body.ht-ui-windows #menu {
+  background: var(--ht-bg); border: 1px solid #07090b;
+  box-shadow: 0 0 0 1px var(--ht-line), 0 0 18px rgba(42, 163, 223, .15), 0 14px 34px rgba(0, 0, 0, .75);
+  border-top: 3px solid var(--ht-blue); border-radius: var(--ht-radius);
+}
+body.ht-ui-windows #menu li, body.ht-ui-windows #menu .menu-item {
+  color: var(--ht-text); font-family: var(--ht-font-display); letter-spacing: .2px;
+  border-color: var(--ht-line);
+}
+body.ht-ui-windows #menu li:hover, body.ht-ui-windows #menu .menu-item:hover {
+  color: var(--ht-red); text-shadow: none; background: var(--ht-band-2); box-shadow: inset 3px 0 0 var(--ht-blue);
+}
+body.ht-ui-windows #menu li i { color: var(--ht-blue); }
+body.ht-ui-windows #prosemirror-dropdown { background: var(--ht-panel); color: var(--ht-text); border: 1px solid var(--ht-line); }
+body.ht-ui-windows #notifications .notification {
+  background: var(--ht-panel); color: var(--ht-text); border: 1px solid var(--ht-line); border-left: 4px solid var(--ht-blue);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .6); text-shadow: none;
+}
+body.ht-ui-windows #notifications .notification.warning { border-left-color: var(--ht-warn); }
+body.ht-ui-windows #notifications .notification.error { border-left-color: var(--ht-red); }
+
+/* ---------- 11. whole interface: sidebar, chat, hotbar, navigation, players ---------- */
+body.ht-ui-full #sidebar {
+  background: linear-gradient(180deg, rgba(20, 26, 32, .96), rgba(14, 18, 22, .96)); color: var(--ht-text);
+  border-left: 1px solid var(--ht-line); box-shadow: -6px 0 18px rgba(0, 0, 0, .5);
+}
+body.ht-ui-full #sidebar-tabs { background: var(--ht-panel); border-bottom: 2px solid var(--ht-blue); box-shadow: none; }
+body.ht-ui-full #sidebar-tabs > .item { color: var(--ht-muted); text-shadow: none; }
+body.ht-ui-full #sidebar-tabs > .item:hover { color: var(--ht-strong); text-shadow: none; }
+body.ht-ui-full #sidebar-tabs > .item.active { color: var(--ht-red); border-color: var(--ht-blue); box-shadow: inset 0 -2px 0 var(--ht-blue); }
+body.ht-ui-full #sidebar :is(.directory-header, .header-search, .header-actions) { border-color: var(--ht-line); }
+body.ht-ui-full #sidebar .directory-list :is(.directory-item, .folder > .folder-header) { border-color: var(--ht-line); }
+body.ht-ui-full #sidebar .directory-list .folder > .folder-header { background: var(--ht-panel-2) !important; color: var(--ht-red); text-shadow: none; }
+body.ht-ui-full #sidebar .directory-list .directory-item:hover { background: var(--ht-band-2); }
+body.ht-ui-full #sidebar :is(.directory-item .document-name, .entry-name) a, body.ht-ui-full #sidebar .directory-item h4 { color: var(--ht-text); }
+body.ht-ui-full #sidebar :is(input, select, textarea) { background: #0a0e12; color: var(--ht-text); border: 1px solid var(--ht-line); }
+body.ht-ui-full #sidebar :is(input, select, textarea):focus { border-color: var(--ht-blue); box-shadow: 0 0 0 2px var(--ht-blue-soft); }
+body.ht-ui-full #sidebar button { background: var(--ht-panel-2); color: var(--ht-text); border: 1px solid var(--ht-line); box-shadow: none; }
+body.ht-ui-full #sidebar button:hover { border-color: var(--ht-red); color: var(--ht-strong); box-shadow: none; }
+body.ht-ui-full :is(#chat-log, #chat-popout #chat-log) .chat-message {
+  background: var(--ht-panel); color: var(--ht-text); border: 1px solid var(--ht-line); border-left: 3px solid var(--ht-blue);
+}
+body.ht-ui-full .chat-message .message-header { color: var(--ht-muted); }
+body.ht-ui-full .chat-message .message-header .message-sender { color: var(--ht-red); font-family: var(--ht-font-display); }
+body.ht-ui-full .chat-message.whisper { border-left-color: var(--ht-gold); }
+body.ht-ui-full .chat-message :is(.dice-roll .dice-total, .dice-formula) { background: #0a0e12; border-color: var(--ht-line); color: var(--ht-text); }
+body.ht-ui-full #chat-controls, body.ht-ui-full #chat-form { border-color: var(--ht-line); }
+body.ht-ui-full #chat-message { background: #0a0e12; color: var(--ht-text); border: 1px solid var(--ht-line); }
+body.ht-ui-full #hotbar #action-bar .macro, body.ht-ui-full #hotbar .bar-controls {
+  background: rgba(14, 18, 22, .9); border: 1px solid var(--ht-line); box-shadow: none; color: var(--ht-text);
+}
+body.ht-ui-full #hotbar #action-bar .macro:hover { border-color: var(--ht-blue); box-shadow: 0 0 6px var(--ht-blue-soft); }
+body.ht-ui-full #hotbar .macro-key { color: var(--ht-gold); }
+body.ht-ui-full #navigation .scene, body.ht-ui-full #navigation #nav-toggle {
+  background: rgba(14, 18, 22, .9); border: 1px solid var(--ht-line); color: var(--ht-text); box-shadow: none;
+}
+body.ht-ui-full #navigation .scene.view { border-color: var(--ht-blue); color: var(--ht-strong); box-shadow: inset 0 -2px 0 var(--ht-blue); }
+body.ht-ui-full #navigation .scene.active::before, body.ht-ui-full #navigation .scene.active > i { color: var(--ht-red); }
+body.ht-ui-full #players {
+  background: rgba(14, 18, 22, .9); border: 1px solid var(--ht-line); box-shadow: none; color: var(--ht-text);
+}
+body.ht-ui-full #controls .scene-control, body.ht-ui-full #controls .control-tool {
+  background: rgba(14, 18, 22, .9); border: 1px solid var(--ht-line); color: var(--ht-text); box-shadow: none;
+}
+body.ht-ui-full #controls :is(.scene-control, .control-tool).active,
+body.ht-ui-full #controls :is(.scene-control, .control-tool):hover { color: var(--ht-red); border-color: var(--ht-blue); box-shadow: 0 0 6px var(--ht-blue-soft); }
