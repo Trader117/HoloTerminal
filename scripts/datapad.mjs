@@ -56,6 +56,13 @@ const LOCKOUTS = new Map();
 /** True for a GM who isn't testing as a player: they skip every lock. */
 const gmBypass = () => game.user.isGM && !Crypt.test.on;
 
+/** Datapad sizes: a handheld and a wide desk "computer". A manual resize is remembered as "custom". */
+export const PAD_SIZES = {
+  compact: { width: 430, height: 660, label: "Compact" },
+  computer: { width: 980, height: 680, label: "Computer" }
+};
+const PAD_MIN = { width: 360, height: 480 };
+
 export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #instance;
   static get instance() { return (this.#instance ??= new DatapadApp()); }
@@ -66,7 +73,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 430, height: 660 },
     actions: {
       home: DatapadApp.#home, close: DatapadApp.#closePad, console: DatapadApp.#console, forward: DatapadApp.#forward,
-      go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab, pingBody: DatapadApp.#pingBody,
+      go: DatapadApp.#go, back: DatapadApp.#back, switchTab: DatapadApp.#tab, padSize: DatapadApp.#padSize, pingBody: DatapadApp.#pingBody,
       login: DatapadApp.#login, camZoom: DatapadApp.#camZoom, testStart: DatapadApp.#testStart, testStop: DatapadApp.#testStop, control: DatapadApp.#control,
       sliceBoost: DatapadApp.#sliceBoost, sliceBegin: DatapadApp.#sliceBegin, glyph: DatapadApp.#glyph,
       glyphBack: DatapadApp.#glyphBack, transmit: DatapadApp.#transmit, slicePush: DatapadApp.#slicePush,
@@ -147,11 +154,36 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // open where this player last left it (clamped to the screen by setPosition), else centred over the canvas
     const scale = game.settings.get(MODULE_ID, "tabletScale") ?? 1;
     const saved = game.settings.get(MODULE_ID, "datapadPosition");
-    const { width, height } = this.options.position;
+    const size = PAD_SIZES[saved?.size] ?? (Number(saved?.width) ? saved : PAD_SIZES.compact);
+    const width = Math.max(PAD_MIN.width, Number(size.width)), height = Math.max(PAD_MIN.height, Number(size.height));
     const sidebar = document.getElementById("sidebar")?.offsetWidth ?? 0;
     const left = Number.isFinite(saved?.left) ? saved.left : Math.max(0, (window.innerWidth - sidebar - width * scale) / 2);
     const top = Number.isFinite(saved?.top) ? saved.top : Math.max(0, (window.innerHeight - height * scale) / 2);
-    this.setPosition({ left, top, scale });
+    this.setPosition({ left, top, scale, width, height });
+    this.#markSize();
+  }
+
+  /** Remember position and size for this player. */
+  #savePad(extra = {}) {
+    const p = placeFrameless(this);
+    const prev = game.settings.get(MODULE_ID, "datapadPosition") ?? {};
+    return game.settings.set(MODULE_ID, "datapadPosition", { ...prev, left: p.left, top: p.top, width: p.width, height: p.height, ...extra });
+  }
+  #markSize() {
+    const size = game.settings.get(MODULE_ID, "datapadPosition")?.size ?? "compact";
+    this.element?.classList.toggle("ht-pad-wide", Number(placeFrameless(this).width) >= 700);
+    const key = this.element?.querySelector("[data-action=padSize] span");
+    if (key) key.textContent = PAD_SIZES[size]?.label ?? "Custom";
+  }
+
+  /** Size key: Compact -> Computer -> Compact (a custom size goes to Compact). Keeps the pad's centre where it was. */
+  static #padSize() {
+    const cur = game.settings.get(MODULE_ID, "datapadPosition")?.size;
+    const next = cur === "compact" ? "computer" : "compact";
+    const p = placeFrameless(this), s = Number(p.scale) || 1, n = PAD_SIZES[next];
+    const cx = p.left + (p.width * s) / 2, cy = p.top + (p.height * s) / 2;
+    this.setPosition({ width: n.width, height: n.height, left: cx - (n.width * s) / 2, top: cy - (n.height * s) / 2 });
+    this.#savePad({ size: next }).then(() => this.#markSize());
   }
   /** Frameless window: drag it by the status bar. */
   _onRender(context, options) {
@@ -200,6 +232,7 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (this.game === "firewall" && this.puzzle?.state === "playing") this.element.querySelector(".ht-fw-grid")?.focus();
     Cam.fitFeeds(this.element, this.camZoom);
+    this.#markSize();
     const device = this.element.querySelector(".ht-device");
     if (!device || device.dataset.drag) return;
     device.dataset.drag = "1";
@@ -215,8 +248,25 @@ export class DatapadApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const move = (e) => this.setPosition({ left: start.left + e.clientX - start.x, top: start.top + e.clientY - start.y });
       const up = () => {
         window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
-        const p = placeFrameless(this);
-        game.settings.set(MODULE_ID, "datapadPosition", { left: p.left, top: p.top });
+        this.#savePad();
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+    // bottom-right grip: drag to any size (remembered as "custom")
+    this.element.querySelector(".ht-pad-grip")?.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault(); ev.stopPropagation();
+      const p = placeFrameless(this), s = Number(p.scale) || 1;
+      const start = { x: ev.clientX, y: ev.clientY, w: p.width, h: p.height };
+      const move = (e) => {
+        this.setPosition({ width: Math.max(PAD_MIN.width, Math.round(start.w + (e.clientX - start.x) / s)),
+          height: Math.max(PAD_MIN.height, Math.round(start.h + (e.clientY - start.y) / s)) });
+        this.#markSize();
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        this.#savePad({ size: "custom" }).then(() => this.#markSize());
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
