@@ -237,6 +237,10 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.level = num(sys.details?.level);
     const xp = sys.details?.xp ?? {};
     ctx.xp = { value: num(xp.value), max: num(xp.max), pct: num(xp.pct, pct(num(xp.value) - num(xp.min), num(xp.max) - num(xp.min))) };
+    // dnd5e "Leveling mode": "noxp" is level advancement without XP, so the XP ring goes and level-up is manual
+    ctx.noXP = game.settings.settings.has("dnd5e.levelingMode") && game.settings.get("dnd5e", "levelingMode") === "noxp";
+    const maxLevel = num(C.maxLevel, 20);
+
     ctx.alignment = sys.details?.alignment ?? "";
 
     /* vitals */
@@ -324,7 +328,14 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ].filter(Boolean);
     ctx.classCards = classes.map((c) => {
       const sub = subclasses.find((x) => x.system.classIdentifier === c.system.identifier);
-      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels: c.system.levels };
+      const levels = num(c.system.levels, 1);
+      // stock dnd5e level selector: every level 1..max, labelled with the change, beyond the cap disabled
+      const room = maxLevel - ctx.level;
+      const levelOptions = Array.from({ length: maxLevel }, (_, i) => {
+        const delta = i + 1 - levels;
+        return { delta, label: delta ? `${i + 1} (${delta > 0 ? "+" : ""}${delta})` : `${i + 1}`, selected: !delta, disabled: delta > room };
+      });
+      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels, levelOptions };
     });
 
     /* conditions */
@@ -573,6 +584,16 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
       input.addEventListener("focus", () => input.select());
     });
+    // class level selectors (Features), like the stock sheet's
+    el.querySelectorAll("select.holo-level-select").forEach((select) => {
+      select.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        const item = this.actor.items.get(select.closest("[data-item-id]")?.dataset.itemId);
+        const delta = Number(select.value);
+        select.value = "0";
+        if (item?.type === "class") HoloDossierSheet.#changeLevel.call(this, item, delta);
+      });
+    });
     // inline item fields (quantity, uses) edit the item, not the actor
     el.querySelectorAll("input[data-item-field]").forEach((input) => {
       input.addEventListener("change", async (ev) => {
@@ -676,6 +697,23 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element.querySelectorAll(`.ht-key[data-group="${group}"]`).forEach((k) => k.classList.toggle("active", k.dataset.tab === target.dataset.tab));
   }
   static #onCloseSheet() { return this.close(); }
+
+  /** Same flow as the stock dnd5e level selector: run advancements when there are any, else just set the level. */
+  static async #changeLevel(classItem, delta) {
+    if (!delta || !this.isEditable) return;
+    const sys = globalThis.dnd5e?.applications?.advancement ?? {};
+    const disabled = game.settings.settings.has("dnd5e.disableAdvancements") && game.settings.get("dnd5e", "disableAdvancements");
+    if (!disabled && sys.AdvancementManager) {
+      const manager = sys.AdvancementManager.forLevelChange(this.actor, classItem.id, delta);
+      if (manager?.steps?.length) {
+        if (delta > 0) return manager.render(true);
+        try {
+          if (await sys.AdvancementConfirmationDialog?.forLevelDown(classItem)) return manager.render(true);
+        } catch(err) { return; }
+      }
+    }
+    return classItem.update({ "system.levels": num(classItem.system.levels, 1) + delta });
+  }
   /* the frameless tablet has no window header, so its Sheet and Token buttons live in the sheet header */
   static #onConfigureSheet() {
     if (game.release.generation >= 13) return new foundry.applications.apps.DocumentSheetConfig({ document: this.document }).render({ force: true });

@@ -4,7 +4,11 @@
     <div class="holo-id-card holo-class-card" data-item-id="{{id}}">
       <img src="{{img}}" data-action="editItem">{{#if subImg}}<img src="{{subImg}}">{{/if}}
       <div><a class="holo-id-name" data-action="editItem">{{name}}</a><span>{{sub}}</span></div>
-      <b class="holo-class-level">{{levels}}</b>
+      {{#if @root.editable}}
+      <select class="holo-level-select" data-tooltip="Change level">
+        {{#each levelOptions}}<option value="{{delta}}"{{#if selected}} selected{{/if}}{{#if disabled}} disabled{{/if}}>{{label}}</option>{{/each}}
+      </select>
+      {{else}}<b class="holo-class-level">{{levels}}</b>{{/if}}
     </div>
     {{/each}}
   </div>

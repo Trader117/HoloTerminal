@@ -99,6 +99,7 @@ input.holo-name { background:transparent !important; border:none !important; bor
 .holo-level-ring .track { stroke:var(--hs-line); }
 .holo-level-ring .fill { fill:none; stroke:var(--hs-rule); stroke-linecap:round; }
 .holo-level-badge span { position:relative; font:700 28px var(--hs-display); color:var(--hs-strong); }
+.holo-noxp .holo-level-ring .track { stroke:var(--hs-rule); }
 
 /* ---------- sidebar ---------- */
 .holo-sidebar { overflow-y:auto; padding:.8rem .7rem 1rem; background:var(--hs-bg); border-right:1px solid var(--hs-line); display:flex; flex-direction:column; gap:.8rem; }
@@ -270,6 +271,9 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
 .holo-class-card { min-width:240px; }
 .holo-class-card img + img { margin-left:-4px; }
 .holo-class-level { font:700 22px var(--hs-display); color:var(--hs-strong); margin-left:.6rem; }
+.holo-level-select { flex:none; width:auto; margin-left:.6rem; height:32px; padding:0 .3rem; font:700 18px var(--hs-display); color:var(--hs-strong); background:var(--hs-bg); border:1px solid var(--hs-line); border-radius:5px; cursor:pointer; }
+.holo-level-select:hover, .holo-level-select:focus { border-color:var(--hs-bar); outline:none; }
+.holo-level-select option { background:#0e1216; color:var(--hs-text); font-size:14px; }
 
 /* ---------- effects ---------- */
 .holo-switch { display:inline-block; width:26px; height:14px; border-radius:7px; background:var(--hs-line); position:relative; vertical-align:middle; }
