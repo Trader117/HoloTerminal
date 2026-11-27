@@ -15,7 +15,7 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
   --color-text-dark-5: var(--ht-muted);
   --color-text-dark-6: var(--ht-muted);
   --color-text-light-highlight: var(--ht-strong);
-  --color-text-light-heading: var(--ht-red);
+  --color-text-light-heading: var(--ht-strong);
   --color-text-light-primary: var(--ht-text);
   --color-text-light-6: var(--ht-muted);
   --color-text-hyperlink: var(--ht-blue);
@@ -30,8 +30,8 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
   --color-border-dark: #07090b;
   --color-border-dark-primary: #07090b;
   --color-border-dark-secondary: var(--ht-line);
-  --color-border-highlight: var(--ht-blue);
-  --color-border-highlight-alt: var(--ht-blue);
+  --color-border-highlight: var(--ht-line);
+  --color-border-highlight-alt: var(--ht-line);
   --color-shadow-primary: var(--ht-blue);
   --color-shadow-highlight: var(--ht-blue);
   --color-bg-option: var(--ht-panel-2);
@@ -144,9 +144,11 @@ body.ht-ui-full :is(#sidebar, #chat-popout, #hotbar, #navigation, #players, #con
 .ht-themed > .window-content {
   background: radial-gradient(120% 60% at 50% 0%, rgba(42, 163, 223, .07), transparent 70%), var(--ht-bg) !important;
   color: var(--ht-text);
-  font-size: 13px; overflow-wrap: break-word;
+  font-size: 13px;
 }
-.ht-themed .window-content :is(.form-group > label, .form-fields, .form-group > *) { min-width: 0; }
+/* form labels read as plain text (headings stay red) */
+.ht-themed .window-content :is(.form-group > label, .form-group > .label, label.checkbox) { color: var(--ht-text); }
+.ht-themed .window-content .form-group:hover > label { color: var(--ht-strong); }
 .ht-themed .window-resizable-handle, .ht-themed .window-resize-handle { filter: invert(1) hue-rotate(180deg); opacity: .5; background-color: transparent; border-color: var(--ht-line); }
 .ht-themed.minimized { background: var(--ht-panel) !important; }
 
