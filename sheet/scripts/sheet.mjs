@@ -170,6 +170,8 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editTraits: HoloDossierSheet.#onEditTraits,
       holoTab: HoloDossierSheet.#onTab,
       closeSheet: HoloDossierSheet.#onCloseSheet,
+      levelChange: HoloDossierSheet.#onLevelChange,
+      levelUp: HoloDossierSheet.#onLevelUp,
       configureSheet: HoloDossierSheet.#onConfigureSheet,
       configurePrototypeToken: HoloDossierSheet.#onConfigureToken
     }
@@ -237,6 +239,11 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ctx.level = num(sys.details?.level);
     const xp = sys.details?.xp ?? {};
     ctx.xp = { value: num(xp.value), max: num(xp.max), pct: num(xp.pct, pct(num(xp.value) - num(xp.min), num(xp.max) - num(xp.min))) };
+    // dnd5e "Leveling mode": "noxp" is level advancement without XP, so the XP ring goes and level-up is manual
+    ctx.noXP = game.settings.settings.has("dnd5e.levelingMode") && game.settings.get("dnd5e", "levelingMode") === "noxp";
+    const maxLevel = num(C.maxLevel, 20);
+    ctx.canLevelUp = ctx.editable && ctx.level < maxLevel && (actor.itemTypes.class ?? []).length > 0
+      && (ctx.noXP || (ctx.xp.max > 0 && ctx.xp.value >= ctx.xp.max));
     ctx.alignment = sys.details?.alignment ?? "";
 
     /* vitals */
@@ -324,7 +331,9 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     ].filter(Boolean);
     ctx.classCards = classes.map((c) => {
       const sub = subclasses.find((x) => x.system.classIdentifier === c.system.identifier);
-      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels: c.system.levels };
+      const levels = num(c.system.levels, 1);
+      return { id: c.id, img: c.img, subImg: sub?.img, name: c.name, sub: sub?.name ?? "", levels,
+        canUp: ctx.editable && ctx.level < maxLevel, canDown: ctx.editable && levels > 1 };
     });
 
     /* conditions */
@@ -676,6 +685,34 @@ export class HoloDossierSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element.querySelectorAll(`.ht-key[data-group="${group}"]`).forEach((k) => k.classList.toggle("active", k.dataset.tab === target.dataset.tab));
   }
   static #onCloseSheet() { return this.close(); }
+
+  /** Level-up badge: with one class it levels that class, with several it opens the class cards on Features. */
+  static #onLevelUp(event, target) {
+    const classes = this.actor.itemTypes.class ?? [];
+    if (classes.length === 1) return HoloDossierSheet.#changeLevel.call(this, classes[0], 1);
+    this.changeTab("features", "primary", { event });
+    this.element.querySelectorAll('.ht-key[data-group="primary"]').forEach((k) => k.classList.toggle("active", k.dataset.tab === "features"));
+  }
+  static #onLevelChange(event, target) {
+    const item = HoloDossierSheet.#item.call(this, target);
+    if (item?.type === "class") return HoloDossierSheet.#changeLevel.call(this, item, Number(target.dataset.delta) || 0);
+  }
+  /** Same flow as the stock dnd5e level selector: run advancements when there are any, else just set the level. */
+  static async #changeLevel(classItem, delta) {
+    if (!delta || !this.isEditable) return;
+    const sys = globalThis.dnd5e?.applications?.advancement ?? {};
+    const disabled = game.settings.settings.has("dnd5e.disableAdvancements") && game.settings.get("dnd5e", "disableAdvancements");
+    if (!disabled && sys.AdvancementManager) {
+      const manager = sys.AdvancementManager.forLevelChange(this.actor, classItem.id, delta);
+      if (manager?.steps?.length) {
+        if (delta > 0) return manager.render(true);
+        try {
+          if (await sys.AdvancementConfirmationDialog?.forLevelDown(classItem)) return manager.render(true);
+        } catch(err) { return; }
+      }
+    }
+    return classItem.update({ "system.levels": num(classItem.system.levels, 1) + delta });
+  }
   /* the frameless tablet has no window header, so its Sheet and Token buttons live in the sheet header */
   static #onConfigureSheet() {
     if (game.release.generation >= 13) return new foundry.applications.apps.DocumentSheetConfig({ document: this.document }).render({ force: true });
