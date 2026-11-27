@@ -271,9 +271,13 @@ a.holo-chip:hover { border-color:var(--hs-rule); }
 .holo-class-card { min-width:240px; }
 .holo-class-card img + img { margin-left:-4px; }
 .holo-class-level { font:700 22px var(--hs-display); color:var(--hs-strong); margin-left:.6rem; }
-.holo-level-select { flex:none; width:auto; margin-left:.6rem; height:32px; padding:0 .3rem; font:700 18px var(--hs-display); color:var(--hs-strong); background:var(--hs-bg); border:1px solid var(--hs-line); border-radius:5px; cursor:pointer; }
-.holo-level-select:hover, .holo-level-select:focus { border-color:var(--hs-bar); outline:none; }
-.holo-level-select option { background:#0e1216; color:var(--hs-text); font-size:14px; }
+/* Foundry styles every select (full width, its own colours), so pin this one to a small level box */
+.holo-sheet .holo-class-card select.holo-level-select { flex:0 0 auto !important; width:72px !important; min-width:0; max-width:72px; height:30px; margin:0 0 0 .4rem;
+  padding:0 .2rem 0 .45rem; font:700 15px var(--hs-display); color:var(--hs-strong) !important; background:var(--hs-bg) !important;
+  border:1px solid var(--hs-line); border-radius:5px; box-shadow:none; cursor:pointer; }
+.holo-sheet .holo-class-card select.holo-level-select:hover, .holo-sheet .holo-class-card select.holo-level-select:focus { border-color:var(--hs-bar); outline:none; }
+.holo-sheet .holo-class-card select.holo-level-select option { background:#0e1216; color:#dce3e9; font-size:14px; }
+.holo-sheet .holo-class-card > div { flex:1 1 auto; min-width:60px; }
 
 /* ---------- effects ---------- */
 .holo-switch { display:inline-block; width:26px; height:14px; border-radius:7px; background:var(--hs-line); position:relative; vertical-align:middle; }
