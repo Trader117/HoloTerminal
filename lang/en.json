@@ -6,6 +6,15 @@
   "HT.password": "Access code",
   "HT.login": "Authenticate",
   "HT.slice": "Slice in",
+  "HOLOTHEME.Setting.Name": "Foundry window theme",
+  "HOLOTHEME.Setting.Hint": "Give Foundry's own windows the Holo-Terminal look (SW5e Database colours): settings, dialogs, dnd5e item sheets and dialogs, the Escape menu, context menus and tooltips. Whole interface also themes the sidebar, chat, hotbar and scene navigation.",
+  "HOLOTHEME.Setting.off": "Off (stock Foundry look)",
+  "HOLOTHEME.Setting.windows": "Windows and dialogs",
+  "HOLOTHEME.Setting.full": "Whole interface",
+  "HOLOTHEME.Skip.Name": "Foundry window theme: skip these windows",
+  "HOLOTHEME.Skip.Hint": "CSS selectors (comma separated) for windows that should keep their own look, for example another module's window that doesn't read well themed.",
+  "HOLOTHEME.ItemSheet": "Holo-Terminal item",
+  "HOLOTHEME.ContainerSheet": "Holo-Terminal container",
   "TYPES": {
     "RegionBehavior": {
       "holo-terminal.openDatapad": "Open Datapad",

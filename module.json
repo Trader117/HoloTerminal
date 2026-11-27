@@ -1,7 +1,7 @@
 {
   "id": "holo-terminal",
   "title": "Holo-Terminal",
-  "description": "An original sci-fi datapad for Foundry VTT: local-net terminals, a Cipher Lock slicing minigame, a bounty board and map-based markets, security cameras, Region triggers, plus SW5e character and NPC sheets. Built for Foundry v12 with dnd5e/SW5e.",
+  "description": "An original sci-fi datapad for Foundry VTT: local-net terminals, a Cipher Lock slicing minigame, a bounty board and map-based markets, security cameras, Region triggers, plus SW5e character and NPC sheets and an optional Holo-Terminal theme for Foundry's own windows. Built for Foundry v12 with dnd5e/SW5e.",
   "version": "0.3.22",
   "authors": [
     {
@@ -17,13 +17,15 @@
     "sheet/scripts/sheet.mjs",
     "sheet/scripts/npc-sheet.mjs",
     "sheet/scripts/starship-sheet.mjs",
-    "scripts/hud/hud.mjs"
+    "scripts/hud/hud.mjs",
+    "scripts/foundry-theme.mjs"
   ],
   "styles": [
     "styles/theme.css",
     "styles/holo-terminal.css",
     "sheet/styles/sheet.css",
-    "styles/hud.css"
+    "styles/hud.css",
+    "styles/foundry-theme.css"
   ],
   "languages": [
     {
