@@ -94,6 +94,11 @@
 
 /* ---------- home: app tiles with coloured badges ---------- */
 .ht-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* computer size: wider app grid */
+.ht-pad-wide .ht-apps { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.ht-pad-grip { position: absolute; right: 5px; bottom: 4px; width: 14px; height: 14px; cursor: nwse-resize; opacity: .55; z-index: 2;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, #5d6f80 3px 4px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.ht-pad-grip:hover { opacity: 1; }
 .ht-screen .ht-app-tile {
   display: flex; align-items: center; gap: 10px; padding: 14px 12px; text-align: left;
   background: linear-gradient(180deg, var(--ht-panel-2), var(--ht-panel)); border: 1px solid var(--ht-line); border-radius: 8px;

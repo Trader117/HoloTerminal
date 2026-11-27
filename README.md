@@ -13,7 +13,7 @@ This works once a GitHub release exists. Publishing a release tagged like `v0.3.
 
 ## Players: the datapad
 Open it from the **tablet icon** in Token controls, or press **Shift+P**. It uses your selected token, or your assigned character if none is selected, and shows that character's credits in the header.
-Drag it by its frame, title bar or bottom keys to move it anywhere; it reopens where you last left it.
+Drag it by its frame, title bar or bottom keys to move it anywhere. The **Size** key switches between Compact (handheld) and Computer (wide desk screen), and the grip in the bottom-right corner resizes it freely. It reopens where, and at the size, you last left it.
 - **Local Net**: terminals on this scene. Each has messages, files and controls (doors and lights). Secured terminals need an access code, or you can **slice in** with the Cipher Lock minigame.
 - **Bounties**: open contracts. Press *Take contract* to sign on.
 - **Markets**: shops on this scene. *Buy* takes credits, adds the item to the character and lowers the stock.

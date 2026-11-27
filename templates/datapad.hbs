@@ -17,6 +17,8 @@
       <button type="button" class="ht-key" data-action="home" title="Home" {{#if (eq view "home")}}disabled{{/if}}><i class="fas fa-house"></i><span>Home</span></button>
     </div>
     <div class="ht-readout" title="Credits">{{#if (ne credits null)}}{{credits}}<small>cr</small>{{else}}<small>no ID</small>{{/if}}</div>
+    <button type="button" class="ht-key ht-size" data-action="padSize" title="Switch between compact and computer size (drag the corner grip for any size)"><i class="fas fa-up-right-and-down-left-from-center"></i><span>Size</span></button>
     <button type="button" class="ht-key ht-power" data-action="close" title="Close datapad"><i class="fas fa-power-off"></i><span>Close</span></button>
   </nav>
+  <span class="ht-pad-grip" title="Drag to resize"></span>
 </div>
